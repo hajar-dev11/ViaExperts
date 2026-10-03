@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   VIA EXPERTS — DESIGN SYSTEM
+   ----------------------------------------------------------------------------
+   Palette et mesures relevées AU PIXEL sur les captures réelles du système de
+   référence (DOCX « Analyse du système de comptabilité », viaexperts.online).
+
+   ⚠️ Les noms de tokens historiques (`ink-*`, `brand-*`, `amber-accent`,
+   `maroon-accent`) sont CONSERVÉS : ils sont référencés ~400 fois dans les
+   pages. Seules leurs VALEURS changent, ce qui bascule toute l'application sur
+   la nouvelle identité sans toucher aux pages.
+   `brand-*` = violet de référence #7367F0.
+   ========================================================================== */
+
+@theme {
+  --font-sans: "Public Sans", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Neutres / texte (relevés : titres #5D596C, corps #6F6B7D) ---------- */
+  --color-ink-950: #2f3349; /* sidebar et surfaces sombres */
+  --color-ink-900: #5d596c; /* titres */
+  --color-ink-800: #6f6b7d; /* corps appuyé */
+  --color-ink-700: #7e7a8c;
+  --color-ink-600: #a5a3ae; /* texte secondaire */
+
+  /* --- Primaire : violet de référence #7367F0 ---------------------------- */
+  --color-brand-50: #f3f2fe;
+  --color-brand-100: #e7e4fd;
+  --color-brand-200: #d2cdfb;
+  --color-brand-300: #b5aef8;
+  --color-brand-400: #948cf4;
+  --color-brand-500: #7367f0;
+  --color-brand-600: #6355e3;
+  --color-brand-700: #5445c9;
+  --color-brand-800: #4438a3;
+  --color-brand-900: #372e80;
+
+  /* --- Succès : vert du bouton « + Ajouter » #28C76F --------------------- */
+  --color-success-50: #e8f9f0;
+  --color-success-100: #d0f3e0;
+  --color-success-200: #a5e9c4;
+  --color-success-500: #28c76f;
+  --color-success-600: #22b263;
+  --color-success-700: #1c9553;
+
+  /* --- Avertissement : orange « Archive » #FF9F43 ------------------------ */
+  --color-warning-50: #fff4e9;
+  --color-warning-100: #ffe8d1;
+  --color-warning-200: #ffd0a4;
+  --color-warning-500: #ff9f43;
+  --color-warning-600: #f08c2c;
+  --color-warning-700: #d4761a;
+
+  /* --- Danger : rouge #EA5455 -------------------------------------------- */
+  --color-danger-50: #fdedee;
+  --color-danger-100: #fbdadb;
+  --color-danger-200: #f6b5b6;
+  --color-danger-500: #ea5455;
+  --color-danger-600: #d94243;
+  --color-danger-700: #bf3334;
+
+  /* --- Info : cyan #00CFE8 ----------------------------------------------- */
+  --color-info-50: #e6fafd;
+  --color-info-100: #ccf5fa;
+  --color-info-200: #99ebf6;
+  --color-info-500: #00cfe8;
+  --color-info-600: #00b8cf;
+  --color-info-700: #0098ab;
+
+  /* --- Sombre : bouton « Corbeille » #4B4B4B ----------------------------- */
+  --color-dark-50: #ededed;
+  --color-dark-100: #dcdcdc;
+  --color-dark-500: #4b4b4b;
+  --color-dark-600: #3b3b3b;
+  --color-dark-700: #2f2f2f;
+
+  /* --- Accents identitaires ---------------------------------------------- */
+  --color-amber-accent: #d6a432; /* doré du groupe de menu ouvert */
+  --color-maroon-accent: #7a2142;
+
+  /* --- Surfaces et bordures ---------------------------------------------- */
+  --color-surface: #f8f7fa; /* fond d'application ET lignes paires */
+  --color-line: #c7c5d1; /* bordure standard — légèrement assombrie pour rester visible */
+
+  /* --- Ombres (douces, quasi sans bordure) -------------------------------- */
+  --shadow-card: 0 0.25rem 1.125rem rgba(75, 70, 92, 0.1);
+  --shadow-card-hover: 0 0.3rem 1.5rem rgba(75, 70, 92, 0.16);
+  --shadow-menu: 0 0.31rem 1.25rem rgba(75, 70, 92, 0.22);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink-800);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Les montants et toute donnée chiffrée alignent leurs chiffres :
+   indispensable pour comparer des colonnes de facturation. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.table-wrap {
+  scrollbar-width: thin;
+}
+
+/* Anneau de focus homogène pour tous les éléments interactifs du design system. */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@keyframes ve-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ve-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.ve-slide-in-right {
+  animation: ve-slide-in-right 0.18s ease-out;
+}
+
+@keyframes ve-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ve-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Filet vert ANIMÉ de l'accordéon « Ajouter Domiciliation ».
+
+   Ce n'est pas une bordure verte figée : un segment très fin PARCOURT le
+   contour — il traverse le haut de gauche à droite, puis le bas de droite à
+   gauche, en boucle. D'où deux pistes et deux animations décalées d'une
+   demi-période.
+   ------------------------------------------------------------------------- */
+.ve-piste-verte {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ve-piste-verte::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 34%;
+  background: linear-gradient(90deg, rgba(40, 199, 111, 0) 0%, #28c76f 50%, rgba(40, 199, 111, 0) 100%);
+  animation-duration: 3.2s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* Piste du HAUT : visible sur la première moitié du cycle, de gauche à droite. */
+.ve-piste-haut::after {
+  animation-name: ve-trace-haut;
+}
+
+/* Piste du BAS : prend le relais, de droite à gauche. */
+.ve-piste-bas::after {
+  animation-name: ve-trace-bas;
+}
+
+@keyframes ve-trace-haut {
+  0% {
+    left: -34%;
+    opacity: 1;
+  }
+  50% {
+    left: 100%;
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes ve-trace-bas {
+  0%,
+  49.99% {
+    left: 100%;
+    opacity: 0;
+  }
+  50% {
+    left: 100%;
+    opacity: 1;
+  }
+  100% {
+    left: -34%;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ve-piste-verte::after {
+    animation: none;
+    left: 0;
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+.ve-fade-in {
+  animation: ve-fade-in 0.14s ease-out;
+}
+.ve-toast-in {
+  animation: ve-toast-in 0.18s ease-out;
+}

@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+
+node_modules/
+vendor/
+dist/
+
+storage/*.key
+storage/logs/
+
+.claude/
