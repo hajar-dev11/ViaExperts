@@ -6,7 +6,7 @@ import Alert from './ui/Alert.jsx'
 import Card, { CardHeader } from './ui/Card.jsx'
 import { getDomiciliation } from '../api/domiciliations.js'
 import { getEntreprise } from '../api/entreprises.js'
-import { chargerIdentitePdf } from '../utils/documentPrint.js'
+import { chargerIdentitePdf } from '../utils/print/identite.js'
 import { htmlDocumentComplet } from '../utils/exporters.js'
 
 // Identité de secours si les réglages sont inaccessibles (droits) : le document reste générable.

@@ -1,104 +1,14 @@
-// Impression des documents commerciaux (Facture / Devis / Bon Livraison /
-// Facture d'Avoir) et du Reçu de Paiement — gabarit repris fidèlement des
-// modèles de référence fournis par l'utilisateur (logo, bandeau coloré par
-// type de document, tableau de lignes, bloc récapitulatif, montant en toutes
-// lettres, cachet/signature, pied de page légal).
-//
-// Facture / Devis / Bon Livraison / Facture d'Avoir : ouverts comme un vrai PDF dans
-// le lecteur PDF du navigateur (`pdfDocument.js`), sans impression automatique.
-// Reçu de paiement : impression directe par iframe cachée (`printHtml`).
-//
-// Découpage en cours (migration Modular Monolith, Facturation — étape 1) : les blocs communs et les modèles de
-// documents commerciaux ont été extraits TELS QUELS dans `print/`. Ce fichier reste le point d'entrée : toutes les
-// fonctions exportées auparavant le sont toujours, avec les mêmes noms et le même comportement.
+// Reçus de paiement (HTML imprimable et PDF A4 / A5) — module Paiements.
+// Extrait TEL QUEL de `utils/documentPrint.js` (migration Modular Monolith — Facturation, étape 15) : le HTML produit est
+// strictement identique (voir les instantanés de `__tests__/documents.snapshot.test.js`). Aucune dépendance vers
+// Facturation ni Domiciliation : seulement les utilitaires d'impression partagés.
 
-import { printHtml, escapeHtml } from './exporters.js'
-import { PAGES } from './pdfDocument.js'
-import { montantEnLettres } from './montantEnLettres.js'
-import { dh, formatDateFr } from './print/commun.js'
-import { chargerIdentite, chargerIdentitePdf } from './print/identite.js'
-import { ouvrirPdfApresClic } from './print/ouvrirPdf.js'
-import { construireHtmlDocumentCommercial, imprimerDocumentCommercial } from './print/documentCommercial.js'
-
-// Compatibilité : mêmes exports qu'avant le découpage.
-export {
-  formatDateFr, chargerIdentite, chargerIdentitePdf, ouvrirPdfApresClic,
-  construireHtmlDocumentCommercial, imprimerDocumentCommercial,
-}
-
-const arrondi2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100
-const TVA_DOMICILIATION = 20
-
-/**
- * Convertit une domiciliation en « facture » au format des documents commerciaux, pour
- * réutiliser EXACTEMENT le modèle de la Facture. Rien n'est enregistré : c'est uniquement
- * la présentation des champs de la domiciliation.
- * - une ligne « Domiciliation » : quantité = mois payés, total TTC = prix total ;
- * - HT / TVA (20 %) déduits du TTC, comme sur la facture de domiciliation de référence ;
- * - « Information » : période, mois payés/gratuits, centre — le contenu propre à la domiciliation ;
- * - payée si une date de paiement est renseignée.
- */
-export function domiciliationEnFacture(d) {
-  const totalTtc = arrondi2(d.prixTotal)
-  const totalHt = arrondi2(totalTtc / (1 + TVA_DOMICILIATION / 100))
-  const totalTva = arrondi2(totalTtc - totalHt)
-  const mois = Number(d.moisPayee) > 0 ? Number(d.moisPayee) : 1
-  const annee = String(d.dateFacture || '').slice(2, 4) || String(new Date().getFullYear()).slice(2)
-  const periode = d.dateDepart || d.dateFin ? `Période : ${formatDateFr(d.dateDepart) || '—'} au ${formatDateFr(d.dateFin) || '—'}` : ''
-  const note = [
-    periode,
-    d.centre ? `Centre de domiciliation : ${d.centre}` : '',
-    d.moisPayee != null && d.moisPayee !== '' ? `Mois payés : ${d.moisPayee}` : '',
-    Number(d.moisGratuits) > 0 ? `Mois gratuits : ${d.moisGratuits}` : '',
-    d.numeroArchive ? `N° Archive : ${d.numeroArchive}` : '',
-  ].filter(Boolean).join('\n')
-  const paye = d.datePaiement ? totalTtc : 0
-  return {
-    emetteur: 'via_experts',
-    numero: `DOM-${d.id}/${annee}`,
-    dateDocument: d.dateFacture,
-    datePaiement: d.datePaiement,
-    tiers: d.denomination,
-    tiersIce: d.ice,
-    tiersCin: d.clientCin,
-    modePaiement: d.modePaiement,
-    lignes: [{
-      designation: 'Domiciliation',
-      prixUnitaire: arrondi2(totalHt / mois),
-      quantite: mois,
-      totalHt,
-      totalNetHt: totalHt,
-      totalTva,
-      tvaPourcent: TVA_DOMICILIATION,
-      totalTtc,
-    }],
-    totalHt,
-    totalRemise: 0,
-    totalNetHt: totalHt,
-    totalTva,
-    totalTtc,
-    prixPaye: paye,
-    prixRestant: arrondi2(totalTtc - paye),
-    note,
-    signature: !!d.signatureSurFacture,
-  }
-}
-
-/** Facture de domiciliation : même modèle PDF que la Facture, avec le contenu de la domiciliation. */
-export function imprimerFactureDomiciliationPdf(d) {
-  return ouvrirPdfApresClic(async () => {
-    const facture = domiciliationEnFacture(d)
-    const identite = await chargerIdentitePdf(facture.emetteur)
-    // Signature/cachet : celui de « Paramètres → Bureau de Comptabilité » (à défaut, celui du Centre
-    // Domiciliation). Affiché sous le tableau des totaux si « Signature » est cochée, sinon le texte
-    // « Signature » reste affiché (voir `signatureHtml`).
-    if (facture.signature) {
-      const bureau = await chargerIdentitePdf('bureau').catch(() => null)
-      identite.signature = bureau?.signature || identite.signature
-    }
-    return construireHtmlDocumentCommercial('facture', facture, identite)
-  })
-}
+import { printHtml, escapeHtml } from '../../../utils/exporters.js'
+import { PAGES } from '../../../utils/pdfDocument.js'
+import { montantEnLettres } from '../../../utils/montantEnLettres.js'
+import { dh, formatDateFr } from '../../../utils/print/commun.js'
+import { chargerIdentite, chargerIdentitePdf } from '../../../utils/print/identite.js'
+import { ouvrirPdfApresClic } from '../../../utils/print/ouvrirPdf.js'
 
 /** Construit le HTML imprimable du reçu (pur, sans effet de bord) — sert à `imprimerRecuPaiement` et à la prévisualisation. */
 export function construireHtmlRecuPaiement(p, identite) {

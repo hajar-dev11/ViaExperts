@@ -1,14 +1,15 @@
 // Filet de sécurité de la migration Modular Monolith : instantanés EXACTS du HTML/CSS produit pour les documents
 // (factures, devis, bons de livraison, avoirs, reçus, attestation, contrat, procuration, facture de domiciliation).
 // Ces fonctions sont pures : le même jeu de données doit toujours donner exactement le même HTML, donc le même
-// PDF. Déplacer ou découper `documentPrint.js` ne doit rien changer à ces instantanés.
+// PDF. Déplacer ou découper les générateurs (ex-`documentPrint.js`, éclaté par domaine à l'étape 15) ne doit rien changer à ces instantanés.
 //
 // Mise à jour volontaire (après un changement de design assumé) :  npm test -- -u   puis relire le diff Git.
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import {
-  construireHtmlDocumentCommercial, construireHtmlRecuPdf, domiciliationEnFacture, formatDateFr,
-} from '../utils/documentPrint.js'
+import { construireHtmlDocumentCommercial } from '../modules/facturation/index.js'
+import { construireHtmlRecuPdf } from '../modules/paiements/index.js'
+import { domiciliationEnFacture } from '../modules/domiciliation/index.js'
+import { formatDateFr } from '../utils/print/commun.js'
 import { attestationParDefaut, construireHtmlAttestation } from '../utils/attestation.js'
 import { construireHtmlContrat, contratParDefaut, qrContratDataUrl } from '../utils/contrat.js'
 import { construireHtmlProcuration, procurationParDefaut } from '../utils/procuration.js'

@@ -1,4 +1,4 @@
-import { imprimerFactureDomiciliationPdf } from './documentPrint.js'
+import { imprimerFactureDomiciliationPdf } from '../modules/domiciliation/index.js'
 
 /**
  * Les quatre documents d'une domiciliation.

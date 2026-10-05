@@ -119,7 +119,7 @@ describe('Pages Facturation : chargeables, mêmes exports', () => {
   })
 })
 
-describe('Module Facturation : point d\'entrée public et compatibilité des anciens chemins', () => {
+describe('Module Facturation : point d\'entrée public', () => {
   it('index.js expose l\'API, les pages et le rendu des documents', async () => {
     const index = await import('../modules/facturation/index.js')
     expect(Object.keys(index).sort()).toEqual([
@@ -127,21 +127,6 @@ describe('Module Facturation : point d\'entrée public et compatibilité des anc
       'corbeilleDocument', 'createDocument', 'deleteDocumentForever', 'getDocument', 'getNumeroPropose',
       'imprimerDocument', 'imprimerDocumentCommercial', 'listDocuments', 'restoreDocument', 'updateDocument',
     ])
-  })
-
-  it('l\'ancien api/facturation.js ré-exporte exactement les mêmes objets', async () => {
-    const ancien = await import('../api/facturation.js')
-    expect(Object.keys(ancien).sort()).toEqual(Object.keys(apiFacturation).sort())
-    for (const nom of Object.keys(apiFacturation)) expect(ancien[nom]).toBe(apiFacturation[nom])
-  })
-
-  it('l\'ancien utils/print/documentCommercial.js et la façade documentPrint pointent vers le même rendu', async () => {
-    const module = await import('../modules/facturation/print/documentCommercial.js')
-    const ancien = await import('../utils/print/documentCommercial.js')
-    const facade = await import('../utils/documentPrint.js')
-    expect(ancien.construireHtmlDocumentCommercial).toBe(module.construireHtmlDocumentCommercial)
-    expect(facade.construireHtmlDocumentCommercial).toBe(module.construireHtmlDocumentCommercial)
-    expect(facade.imprimerDocumentCommercial).toBe(module.imprimerDocumentCommercial)
   })
 
   it('les constantes partagées restent à un seul endroit (shared) et sont les mêmes objets partout', async () => {
@@ -171,21 +156,43 @@ const dansModule = (p) => p === MODULE || p.startsWith(MODULE + path.sep)
 const estTest = (f) => f.includes(`${path.sep}__tests__${path.sep}`)
 
 describe('Module Facturation : frontières et dépendances', () => {
-  it('hors du module, on n\'importe que le point d\'entrée index.js (jamais les fichiers internes)', () => {
-    const entree = path.join(MODULE, 'index.js')
+  it('hors d\'un module, on n\'importe que son point d\'entrée index.js (Facturation, Paiements, Domiciliation)', () => {
     const fautes = []
-    for (const f of fichiersSrc().filter((x) => !dansModule(x) && !estTest(x))) {
-      for (const cible of importsDe(f)) {
-        if (dansModule(cible) && cible !== entree) fautes.push(`${path.relative(SRC, f)} -> ${path.relative(SRC, cible)}`)
+    for (const nom of ['facturation', 'paiements', 'domiciliation']) {
+      const dossier = path.join(SRC, 'modules', nom)
+      const entree = path.join(dossier, 'index.js')
+      const interne = (p) => p === dossier || p.startsWith(dossier + path.sep)
+      for (const f of fichiersSrc().filter((x) => !interne(x) && !estTest(x))) {
+        for (const cible of importsDe(f)) {
+          if (interne(cible) && cible !== entree) fautes.push(`${path.relative(SRC, f)} -> ${path.relative(SRC, cible)}`)
+        }
       }
     }
-    // Les deux seuls fichiers autorisés à pointer dans le module sont les stubs de compatibilité (ré-exports).
-    expect(fautes.sort()).toEqual([
-      'api\\facturation.js -> modules\\facturation\\api\\facturation.js',
-      'utils\\print\\documentCommercial.js -> modules\\facturation\\print\\documentCommercial.js',
-    ].sort().map((s) => s.replaceAll('\\', path.sep)))
+    expect(fautes).toEqual([])
   })
 
+  it('le dossier shared/ et les utilitaires d\'impression communs ne dépendent d\'aucun module', () => {
+    const communs = fichiersSrc().filter((f) => {
+      const rel = path.relative(SRC, f).split(path.sep).join('/')
+      return rel.startsWith('shared/') || rel.startsWith('utils/print/') || ['utils/exporters.js', 'utils/pdfDocument.js', 'utils/montantEnLettres.js', 'utils/format.js'].includes(rel)
+    })
+    expect(communs.length).toBeGreaterThan(5)
+    for (const f of communs) {
+      for (const cible of importsDe(f)) {
+        expect(cible.startsWith(path.join(SRC, 'modules') + path.sep), `${path.relative(SRC, f)} importe ${path.relative(SRC, cible)}`).toBe(false)
+      }
+    }
+  })
+
+  it('Facturation n\'importe ni Paiements ni Domiciliation (dépendances à sens unique)', () => {
+    for (const f of fichiersSrc(MODULE)) {
+      for (const cible of importsDe(f)) {
+        for (const autre of ['paiements', 'domiciliation']) {
+          expect(cible.startsWith(path.join(SRC, 'modules', autre)), `${path.relative(SRC, f)} importe ${path.relative(SRC, cible)}`).toBe(false)
+        }
+      }
+    }
+  })
   it('les modules de paiements / rapports n\'importent plus les constantes via l\'API Facturation', () => {
     for (const rel of ['pages/PaiementForm.jsx', 'pages/PaiementGestion.jsx', 'pages/PaiementList.jsx', 'pages/Rapports.jsx']) {
       expect(fs.readFileSync(path.join(SRC, rel), 'utf8')).not.toMatch(/from '\.\.\/api\/facturation\.js'/)

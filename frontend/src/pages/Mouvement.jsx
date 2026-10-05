@@ -14,7 +14,7 @@ import { mouvementRecu, mouvementFacture } from '../api/mouvements.js'
 import { getPaiement, archivePaiement, corbeillePaiement } from '../api/paiements.js'
 import { getDocument, imprimerDocument } from '../modules/facturation/index.js'
 import ChoixFormatRecu from '../components/ChoixFormatRecu.jsx'
-import { imprimerRecuPaiementPdf } from '../utils/documentPrint.js'
+import { imprimerRecuPaiementPdf } from '../modules/paiements/index.js'
 
 const dh = (v) => `${Number(v ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} Dh`
 

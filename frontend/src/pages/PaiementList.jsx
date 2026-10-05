@@ -14,7 +14,7 @@ import { ApiError, API_URL } from '../api/http.js'
 import { EMETTEURS } from '../shared/constants/documents.js'
 import { formatDate } from '../utils/format.js'
 import ChoixFormatRecu from '../components/ChoixFormatRecu.jsx'
-import { imprimerRecuPaiement, imprimerRecuPaiementPdf } from '../utils/documentPrint.js'
+import { imprimerRecuPaiement, imprimerRecuPaiementPdf } from '../modules/paiements/index.js'
 import {
   listPaiements, archivePaiement, corbeillePaiement, restorePaiement, deletePaiementForever,
 } from '../api/paiements.js'

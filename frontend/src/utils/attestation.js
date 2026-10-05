@@ -9,7 +9,8 @@
 // attestation : rien n'est enregistré, les données d'origine restent intactes.
 
 import { escapeHtml } from './exporters.js'
-import { formatDateFr, ouvrirPdfApresClic } from './documentPrint.js'
+import { formatDateFr } from './print/commun.js'
+import { ouvrirPdfApresClic } from './print/ouvrirPdf.js'
 
 // ---------------------------------------------------------------------------------------
 // Données
