@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Modules\Facturation\Contracts\FactureReference;
 use App\Modules\Facturation\Contracts\SynchronisationPaiements;
-use App\Modules\Facturation\Models\DocumentCommercial;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -49,9 +49,41 @@ class Paiement extends Model
         return $this->belongsTo(Entreprise::class, 'party_id', 'party_id');
     }
 
-    public function document()
+    /**
+     * Numéros de factures déjà résolus pour un lot de paiements (non persisté) : document_id => numéro|null.
+     *
+     * @var array<int, string|null>
+     */
+    protected array $numerosFactures = [];
+
+    /**
+     * Numéro de la facture rattachée, lu via le contrat PUBLIC de Facturation (plus de relation Eloquent vers le modèle
+     * DocumentCommercial). Null sans facture, ou si celle-ci est en corbeille / introuvable — comme l'ancienne relation.
+     */
+    public function numeroFacture(): ?string
     {
-        return $this->belongsTo(DocumentCommercial::class, 'document_id');
+        if (! $this->document_id) {
+            return null;
+        }
+
+        if (! array_key_exists($this->document_id, $this->numerosFactures)) {
+            $this->numerosFactures[$this->document_id] = app(FactureReference::class)->numeros([$this->document_id])[$this->document_id] ?? null;
+        }
+
+        return $this->numerosFactures[$this->document_id];
+    }
+
+    /** Résout en UNE requête les numéros de factures d'une liste de paiements (remplace l'ancien eager-loading). */
+    public static function chargerNumerosFactures(iterable $paiements): void
+    {
+        $paiements = collect($paiements);
+        $numeros = app(FactureReference::class)->numeros($paiements->pluck('document_id')->all());
+
+        foreach ($paiements as $paiement) {
+            if ($paiement->document_id) {
+                $paiement->numerosFactures[$paiement->document_id] = $numeros[$paiement->document_id] ?? null;
+            }
+        }
     }
 
     /** Colonne PRIX RESTANT de la capture : calculée, jamais stockée. */

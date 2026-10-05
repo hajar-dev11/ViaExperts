@@ -51,8 +51,9 @@ class ModuleFacturationTest extends TestCase
         $this->assertSame('documents_commerciaux', $document->getTable());
         $this->assertSame('document_lignes', $ligne->getTable());
 
-        // Paiement::document() importe désormais explicitement le namespace du module.
-        $this->assertInstanceOf(DocumentCommercial::class, (new \App\Models\Paiement())->document()->getRelated());
+        // Paiements ne dépend plus du modèle de Facturation : plus de relation Eloquent, le numéro passe par le contrat.
+        $this->assertFalse(method_exists(\App\Models\Paiement::class, 'document'));
+        $this->assertTrue(method_exists(\App\Models\Paiement::class, 'numeroFacture'));
     }
     public function test_les_routes_facturation_pointent_vers_le_controleur_du_module_dans_le_bon_ordre(): void
     {

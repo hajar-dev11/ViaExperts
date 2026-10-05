@@ -2,10 +2,12 @@
 
 namespace App\Modules\Facturation;
 
+use App\Modules\Facturation\Contracts\FactureReference;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Modules\Facturation\Contracts\FacturesPourMouvements;
 use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Modules\Facturation\Contracts\SynchronisationPaiements;
+use App\Modules\Facturation\Services\FactureReferenceEloquent;
 use App\Modules\Facturation\Services\FacturesDisponiblesEloquent;
 use App\Modules\Facturation\Services\FacturesPourMouvementsEloquent;
 use App\Modules\Facturation\Services\StatistiquesDocumentsEloquent;
@@ -30,5 +32,6 @@ class FacturationServiceProvider extends ServiceProvider
         SynchronisationPaiements::class => SynchronisationPaiementsEloquent::class,
         StatistiquesDocuments::class => StatistiquesDocumentsEloquent::class,
         FacturesPourMouvements::class => FacturesPourMouvementsEloquent::class,
+        FactureReference::class => FactureReferenceEloquent::class,
     ];
 }

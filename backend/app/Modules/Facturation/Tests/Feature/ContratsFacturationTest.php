@@ -2,6 +2,7 @@
 
 namespace App\Modules\Facturation\Tests\Feature;
 
+use App\Modules\Facturation\Contracts\FactureReference;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Modules\Facturation\Contracts\FacturesPourMouvements;
 use App\Modules\Facturation\Contracts\StatistiquesDocuments;
@@ -13,6 +14,7 @@ use App\Models\Party;
 use App\Models\Service;
 use App\Models\ServiceEnCours;
 use App\Models\User;
+use App\Modules\Facturation\Services\FactureReferenceEloquent;
 use App\Modules\Facturation\Services\FacturesDisponiblesEloquent;
 use App\Modules\Facturation\Services\FacturesPourMouvementsEloquent;
 use App\Modules\Facturation\Services\StatistiquesDocumentsEloquent;
@@ -68,6 +70,7 @@ class ContratsFacturationTest extends TestCase
         $this->assertInstanceOf(SynchronisationPaiementsEloquent::class, app(SynchronisationPaiements::class));
         $this->assertInstanceOf(StatistiquesDocumentsEloquent::class, app(StatistiquesDocuments::class));
         $this->assertInstanceOf(FacturesPourMouvementsEloquent::class, app(FacturesPourMouvements::class));
+        $this->assertInstanceOf(FactureReferenceEloquent::class, app(FactureReference::class));
         $this->assertInstanceOf(AssureServicesEnCoursEloquent::class, app(AssureServicesEnCours::class));
     }
 
@@ -102,6 +105,36 @@ class ContratsFacturationTest extends TestCase
         $reponse = $this->actingAs($this->admin())->getJson('/api/v1/paiements/factures-disponibles')->assertOk();
 
         $this->assertEquals(app(FacturesDisponibles::class)->lister()->values()->all(), $reponse->json());
+    }
+
+    // ---- Référence de facture pour Paiements ----------------------------------------------------------------------
+
+    public function test_numeros_renvoie_le_numero_par_identifiant_en_une_requete(): void
+    {
+        $party = $this->party();
+        $a = $this->document('facture', $party, 'F-1');
+        $b = $this->document('facture', $party, 'F-2');
+        $archivee = $this->document('devis', $party, 'D-1');
+        DocumentCommercial::whereKey($archivee)->update(['status' => 'archive']);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $numeros = app(FactureReference::class)->numeros([$a, $b, $archivee, $a, 0, 999999, '']);
+        $requetes = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame(1, $requetes);
+        $this->assertSame([$a => 'F-1', $b => 'F-2', $archivee => 'D-1'], $numeros, 'Statut actif/archive non filtré ; inconnus ignorés.');
+    }
+
+    public function test_numeros_ignore_un_document_supprime_et_une_liste_vide(): void
+    {
+        $id = $this->document('facture', $this->party(), 'F-1');
+        DocumentCommercial::whereKey($id)->delete(); // suppression douce
+
+        $this->assertSame([], app(FactureReference::class)->numeros([$id]));
+        $this->assertSame([], app(FactureReference::class)->numeros([]));
+        $this->assertSame([], app(FactureReference::class)->numeros([null, 0]));
     }
 
     // ---- Synchronisation du prix payé ---------------------------------------------------------------------------

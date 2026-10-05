@@ -25,7 +25,7 @@ class PaiementResource extends JsonResource
             'entrepriseIce' => optional($this->entreprise)->ice,
 
             'documentId' => $this->document_id,
-            'factureNumero' => $this->whenLoaded('document')->numero ?? null,
+            'factureNumero' => $this->numeroFacture(),
 
             'dateOperation' => optional($this->date_operation)->toDateTimeString(),
             'dateCredit' => optional($this->date_credit)->toDateString(),

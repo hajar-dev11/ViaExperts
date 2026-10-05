@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class PaiementController extends Controller
 {
-    private const RELATIONS = ['lignes.service', 'client', 'entreprise', 'document'];
+    private const RELATIONS = ['lignes.service', 'client', 'entreprise'];
 
     public function __construct(private FacturesDisponibles $factures)
     {
@@ -67,7 +67,10 @@ class PaiementController extends Controller
             $query->where('document_id', $documentId);
         }
 
-        return PaiementResource::collection($query->orderByDesc('id')->get());
+        $paiements = $query->orderByDesc('id')->get();
+        Paiement::chargerNumerosFactures($paiements);
+
+        return PaiementResource::collection($paiements);
     }
 
     /**

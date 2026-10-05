@@ -276,6 +276,62 @@ class PaiementTest extends TestCase
             ->assertJsonPath('0.service', null);
     }
 
+    public function test_le_numero_de_facture_est_expose_via_le_contrat_de_facturation(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+
+        $id = $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $facture->id]))
+            ->assertStatus(201)
+            ->assertJsonPath('data.documentId', $facture->id)
+            ->assertJsonPath('data.factureNumero', 'FAC-001/26')
+            ->json('data.id');
+        $sansFacture = $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party))
+            ->assertStatus(201)
+            ->assertJsonPath('data.factureNumero', null)
+            ->json('data.id');
+
+        $this->actingAs($admin)->getJson("/api/v1/paiements/{$id}")->assertOk()->assertJsonPath('data.factureNumero', 'FAC-001/26');
+
+        $liste = $this->actingAs($admin)->getJson('/api/v1/paiements')->assertOk()->json('data');
+        $numeros = collect($liste)->pluck('factureNumero', 'id')->all();
+        $this->assertSame('FAC-001/26', $numeros[$id]);
+        $this->assertNull($numeros[$sansFacture]);
+    }
+
+    public function test_la_liste_des_paiements_resout_les_numeros_de_facture_en_une_seule_requete(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        foreach ([1, 2, 3] as $i) {
+            $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $facture->id, 'prix_paye' => 100]))->assertStatus(201);
+        }
+
+        \DB::flushQueryLog();
+        \DB::enableQueryLog();
+        $this->actingAs($admin)->getJson('/api/v1/paiements')->assertOk();
+        $requetesDocuments = collect(\DB::getQueryLog())->filter(fn ($q) => str_contains($q['query'], 'documents_commerciaux'))->count();
+        \DB::disableQueryLog();
+
+        $this->assertSame(1, $requetesDocuments, 'Une requête pour tout le lot, pas une par paiement.');
+    }
+
+    public function test_le_numero_de_facture_est_nul_si_la_facture_est_en_corbeille(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        $id = $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $facture->id]))->json('data.id');
+
+        $facture->delete(); // suppression douce : comme l'ancienne relation, le numéro n'est plus résolu
+
+        $this->actingAs($admin)->getJson("/api/v1/paiements/{$id}")->assertOk()
+            ->assertJsonPath('data.documentId', $facture->id)
+            ->assertJsonPath('data.factureNumero', null);
+    }
+
     public function test_staff_permissions_are_enforced(): void
     {
         $staff = User::factory()->create(['is_admin' => false]);
