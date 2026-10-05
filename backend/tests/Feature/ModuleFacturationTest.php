@@ -12,21 +12,20 @@ use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Modules\Facturation\Models\DocumentLigne;
 use App\Providers\AppServiceProvider;
 use Illuminate\Routing\Route;
-use ReflectionClass;
 use Tests\TestCase;
 
 /**
- * Module Facturation (migration Modular Monolith, étape 4) : le code réel vit dans `App\Modules\Facturation`, les anciens
- * noms ne sont que des alias, le ServiceProvider du module porte les liaisons des contrats et les routes pointent vers le
- * contrôleur du module.
+ * Module Facturation (migration Modular Monolith) : le code réel vit dans `App\Modules\Facturation` et UNIQUEMENT là (les
+ * alias de compatibilité de l'étape 4 ont été supprimés à l'étape 6), le ServiceProvider du module porte les liaisons des
+ * contrats et les routes pointent vers le contrôleur du module.
  */
 class ModuleFacturationTest extends TestCase
 {
     /** @dataProvider anciensNoms */
-    public function test_l_ancien_nom_est_un_alias_de_la_classe_du_module(string $ancien, string $nouveau): void
+    public function test_les_anciens_noms_n_existent_plus_et_les_classes_du_module_existent(string $ancien, string $nouveau): void
     {
-        $this->assertTrue(class_exists($ancien) || interface_exists($ancien));
-        $this->assertSame($nouveau, (new ReflectionClass($ancien))->getName());
+        $this->assertFalse(class_exists($ancien), "L'ancien nom {$ancien} ne doit plus exister (plus d'alias).");
+        $this->assertTrue(class_exists($nouveau));
     }
 
     public static function anciensNoms(): array
@@ -42,7 +41,7 @@ class ModuleFacturationTest extends TestCase
         ];
     }
 
-    public function test_les_relations_eloquent_fonctionnent_avec_l_ancien_et_le_nouveau_nom(): void
+    public function test_les_relations_eloquent_pointent_vers_les_classes_du_module(): void
     {
         $ligne = new DocumentLigne();
         $document = new DocumentCommercial();
@@ -52,10 +51,9 @@ class ModuleFacturationTest extends TestCase
         $this->assertSame('documents_commerciaux', $document->getTable());
         $this->assertSame('document_lignes', $ligne->getTable());
 
-        // Paiement::document() référence encore l'ancien espace de noms (alias).
+        // Paiement::document() importe désormais explicitement le namespace du module.
         $this->assertInstanceOf(DocumentCommercial::class, (new \App\Models\Paiement())->document()->getRelated());
     }
-
     public function test_les_routes_facturation_pointent_vers_le_controleur_du_module_dans_le_bon_ordre(): void
     {
         $routes = collect(app('router')->getRoutes()->getRoutes())
