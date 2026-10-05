@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
+use App\Contracts\ServicesEnCours\CompteursServicesEnCours;
 use App\Services\ServicesEnCours\AssureServicesEnCoursEloquent;
+use App\Services\ServicesEnCours\CompteursServicesEnCoursEloquent;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -16,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         AssureServicesEnCours::class => AssureServicesEnCoursEloquent::class,
+        CompteursServicesEnCours::class => CompteursServicesEnCoursEloquent::class,
     ];
 
     /**

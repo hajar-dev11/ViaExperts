@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\ServicesEnCours\CompteursServicesEnCours;
 use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\Cachet;
@@ -13,7 +14,6 @@ use App\Models\Paiement;
 use App\Models\Party;
 use App\Models\Rapport;
 use App\Models\Service;
-use App\Models\ServiceEnCours;
 use Illuminate\Http\Request;
 
 /**
@@ -26,8 +26,10 @@ use Illuminate\Http\Request;
  */
 class ArchiveController extends Controller
 {
-    public function __construct(private StatistiquesDocuments $documents)
-    {
+    public function __construct(
+        private StatistiquesDocuments $documents,
+        private CompteursServicesEnCours $servicesEnCours,
+    ) {
     }
 
     public function counts(Request $request)
@@ -40,7 +42,7 @@ class ArchiveController extends Controller
             'entreprises' => Party::where('type', 'entreprise')->where('status', $status)->count(),
             'domiciliation' => Domiciliation::where('status', $status)->count(),
             'services' => Service::where('status', $status)->count(),
-            'services_en_cours' => ServiceEnCours::where('status', $status)->count(),
+            'services_en_cours' => $this->servicesEnCours->compterParStatut($status),
             'facture' => $documents['facture'],
             'devis' => $documents['devis'],
             'bl' => $documents['bl'],
