@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DeclarationTvaResource;
 use App\Models\DeclarationTva;
 use App\Models\Entreprise;
-use App\Models\ServiceEnCours;
 use App\Support\ZipSimple;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 class DeclarationTvaController extends Controller
 {
     private const RELATIONS = ['lignes', 'entreprise'];
+
+    public function __construct(private AssureServicesEnCours $servicesEnCours)
+    {
+    }
 
     /**
      * `type` = tva | chiffre_affaire ; chacun a son propre groupe de permissions
@@ -113,7 +117,7 @@ class DeclarationTvaController extends Controller
             // n'est pas concerné — seul `tva` a été demandé.
             if ($type === 'tva') {
                 $clientId = Entreprise::where('party_id', $data['entreprise_id'])->value('client_id');
-                ServiceEnCours::assurerPourClient('Déclaration TVA', $clientId, $request->user()->id);
+                $this->servicesEnCours->assurerPourClient('Déclaration TVA', $clientId, $request->user()->id);
             }
 
             return $declaration;

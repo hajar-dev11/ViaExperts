@@ -195,6 +195,200 @@ class DeclarationTvaTest extends TestCase
 
     // ------------------------------------------------------------- Exports réels
 
+    // ---- Caractérisation du lien « Services en cours » (écrits AVANT le découplage, valables avant et après) ---------
+
+    public function test_le_service_en_cours_est_cree_de_facon_synchrone_dans_la_transaction_apres_les_totaux(): void
+    {
+        Service::create(['nom' => 'Déclaration TVA', 'prix' => 0, 'status' => 'actif']);
+        $entreprise = $this->entrepriseAvecClient();
+        $admin = $this->admin();
+        $niveauInitial = \DB::transactionLevel();
+        $observations = [];
+        ServiceEnCours::creating(function (ServiceEnCours $sec) use (&$observations) {
+            $declaration = DeclarationTva::with('lignes')->first();
+            $observations[] = [
+                'niveau' => \DB::transactionLevel(),
+                'declarations' => DeclarationTva::count(),
+                'lignes' => $declaration?->lignes->count(),
+                'totalTtc' => $declaration?->total_ttc,
+                'creePar' => $sec->created_by,
+                'clientId' => $sec->client_id,
+            ];
+        });
+
+        $this->actingAs($admin)
+            ->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]))
+            ->assertStatus(201);
+
+        $this->assertCount(1, $observations, 'Exactement une création de service en cours.');
+        $this->assertGreaterThan($niveauInitial, $observations[0]['niveau'], 'Dans la transaction de la déclaration.');
+        $this->assertSame(1, $observations[0]['declarations']);
+        $this->assertSame(2, $observations[0]['lignes'], 'Les lignes sont déjà enregistrées.');
+        $this->assertSame('1800.00', $observations[0]['totalTtc'], 'Les totaux sont déjà calculés.');
+        $this->assertSame($admin->id, $observations[0]['creePar']);
+        $this->assertSame($entreprise->client_id, $observations[0]['clientId']);
+        $this->assertDatabaseCount('service_en_cours', 1);
+    }
+
+    public function test_une_erreur_de_services_en_cours_est_propagee_et_annule_toute_la_declaration(): void
+    {
+        Service::create(['nom' => 'Déclaration TVA', 'prix' => 0, 'status' => 'actif']);
+        $entreprise = $this->entrepriseAvecClient();
+        ServiceEnCours::creating(fn () => throw new \RuntimeException('Services en cours indisponible'));
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($this->admin())->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]));
+            $this->fail('L\'exception doit remonter jusqu\'à l\'appelant.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Services en cours indisponible', $e->getMessage());
+        }
+
+        $this->assertDatabaseCount('declarations_tva', 0);
+        $this->assertDatabaseCount('declaration_tva_lignes', 0);
+        $this->assertDatabaseCount('service_en_cours', 0);
+    }
+
+    public function test_sans_service_declaration_tva_au_catalogue_la_declaration_est_creee_sans_service_en_cours(): void
+    {
+        $entreprise = $this->entrepriseAvecClient();
+
+        $this->actingAs($this->admin())
+            ->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]))
+            ->assertStatus(201);
+
+        $this->assertDatabaseCount('declarations_tva', 1);
+        $this->assertDatabaseCount('service_en_cours', 0);
+    }
+
+    public function test_la_modification_d_une_declaration_ne_touche_pas_aux_services_en_cours(): void
+    {
+        Service::create(['nom' => 'Déclaration TVA', 'prix' => 0, 'status' => 'actif']);
+        $entreprise = $this->entrepriseAvecClient();
+        $admin = $this->admin();
+        $id = $this->actingAs($admin)->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]))->json('data.id');
+        $this->assertDatabaseCount('service_en_cours', 1);
+        ServiceEnCours::creating(fn () => throw new \LogicException('Aucune création attendue à la modification.'));
+        $this->withoutExceptionHandling();
+
+        $this->actingAs($admin)->putJson("/api/v1/declarations/tva/{$id}", ['regime' => '1'])->assertOk();
+        $this->assertDatabaseCount('service_en_cours', 1);
+    }
+    /** Faux « Services en cours » : enregistre chaque appel ET l'état de la déclaration / de la transaction à cet instant. */
+    private function espionServicesEnCours(?\Closure $surAppel = null): object
+    {
+        $espion = new class($surAppel) implements \App\Contracts\ServicesEnCours\AssureServicesEnCours {
+            public array $appels = [];
+            public array $appelsTiers = [];
+
+            public function __construct(private ?\Closure $surAppel)
+            {
+            }
+
+            public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar): void
+            {
+                $this->appelsTiers[] = [$partyId, collect($serviceIds)->all(), $creePar];
+            }
+
+            public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void
+            {
+                $declaration = \App\Models\DeclarationTva::with('lignes')->first();
+                $this->appels[] = [
+                    'nomService' => $nomService,
+                    'clientId' => $clientId,
+                    'creePar' => $creePar,
+                    'niveauTransaction' => \Illuminate\Support\Facades\DB::transactionLevel(),
+                    'declarations' => \App\Models\DeclarationTva::count(),
+                    'lignes' => $declaration?->lignes->count(),
+                    'totalTtc' => $declaration?->total_ttc,
+                ];
+
+                if ($this->surAppel) {
+                    ($this->surAppel)();
+                }
+            }
+        };
+        $this->app->instance(\App\Contracts\ServicesEnCours\AssureServicesEnCours::class, $espion);
+
+        return $espion;
+    }
+
+    public function test_la_declaration_tva_passe_par_le_contrat_avec_les_memes_parametres_au_meme_moment(): void
+    {
+        $entreprise = $this->entrepriseAvecClient();
+        $admin = $this->admin();
+        $espion = $this->espionServicesEnCours();
+        $niveauInitial = \DB::transactionLevel();
+
+        $this->actingAs($admin)
+            ->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]))
+            ->assertStatus(201);
+
+        $this->assertCount(1, $espion->appels, 'Un seul appel, synchrone.');
+        $this->assertSame([], $espion->appelsTiers, 'La Déclaration TVA utilise la variante par nom de service.');
+        $appel = $espion->appels[0];
+        $this->assertSame('Déclaration TVA', $appel['nomService']);
+        $this->assertSame($entreprise->client_id, $appel['clientId']);
+        $this->assertSame($admin->id, $appel['creePar']);
+        $this->assertGreaterThan($niveauInitial, $appel['niveauTransaction'], 'Dans la transaction de la déclaration.');
+        $this->assertSame(1, $appel['declarations']);
+        $this->assertSame(2, $appel['lignes'], 'Après l\'enregistrement des lignes.');
+        $this->assertSame('1800.00', $appel['totalTtc'], 'Après le calcul des totaux.');
+        $this->assertDatabaseCount('service_en_cours', 0); // le faux contrat n'écrit rien : TVA ne crée rien lui-même
+    }
+
+    public function test_le_contrat_est_aussi_appele_quand_l_entreprise_n_a_pas_de_client_titulaire(): void
+    {
+        // Comme avant : TVA appelle toujours, c'est le service en cours qui ignore un client vide.
+        $espion = $this->espionServicesEnCours();
+
+        $this->actingAs($this->admin())->postJson('/api/v1/declarations/tva', $this->payload())->assertStatus(201);
+
+        $this->assertCount(1, $espion->appels);
+        $this->assertNull($espion->appels[0]['clientId']);
+    }
+
+    public function test_le_contrat_n_est_pas_appele_pour_le_chiffre_d_affaire_ni_a_la_modification(): void
+    {
+        $entreprise = $this->entrepriseAvecClient();
+        $admin = $this->admin();
+        $espion = $this->espionServicesEnCours();
+
+        $this->actingAs($admin)->postJson('/api/v1/declarations/chiffre_affaire', $this->payload(['entreprise_id' => $entreprise->party_id]))->assertStatus(201);
+        $this->assertCount(0, $espion->appels);
+
+        $id = $this->actingAs($admin)->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]))->json('data.id');
+        $this->assertCount(1, $espion->appels);
+        $this->actingAs($admin)->putJson("/api/v1/declarations/tva/{$id}", ['regime' => '1'])->assertOk();
+        $this->assertCount(1, $espion->appels, 'Aucun appel à la modification.');
+    }
+
+    public function test_une_erreur_du_contrat_est_propagee_et_annule_la_declaration(): void
+    {
+        $entreprise = $this->entrepriseAvecClient();
+        $this->espionServicesEnCours(fn () => throw new \RuntimeException('Services en cours indisponible'));
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($this->admin())->postJson('/api/v1/declarations/tva', $this->payload(['entreprise_id' => $entreprise->party_id]));
+            $this->fail('L\'exception du contrat doit remonter.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Services en cours indisponible', $e->getMessage());
+        }
+
+        $this->assertDatabaseCount('declarations_tva', 0);
+        $this->assertDatabaseCount('declaration_tva_lignes', 0);
+    }
+
+    public function test_la_declaration_tva_n_appelle_plus_service_en_cours_directement(): void
+    {
+        $source = file_get_contents(base_path('app/Http/Controllers/Api/V1/DeclarationTvaController.php'));
+
+        $this->assertStringNotContainsString('ServiceEnCours::', $source);
+        $this->assertStringNotContainsString('App\Models\ServiceEnCours', $source);
+        $this->assertStringNotContainsString('AssureServicesEnCoursEloquent', $source, 'Pas de connaissance de l\'implémentation concrète.');
+        $this->assertStringContainsString('AssureServicesEnCours', $source);
+    }
     public function test_xml_export_is_a_real_xml_document(): void
     {
         $admin = $this->admin();

@@ -15,4 +15,9 @@ class AssureServicesEnCoursEloquent implements AssureServicesEnCours
     {
         ServiceEnCours::assurerServicesPourTiers($partyId, $serviceIds, $creePar);
     }
+
+    public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void
+    {
+        ServiceEnCours::assurerPourClient($nomService, $clientId, $creePar);
+    }
 }

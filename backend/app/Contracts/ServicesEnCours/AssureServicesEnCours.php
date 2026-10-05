@@ -19,4 +19,15 @@ interface AssureServicesEnCours
      * @param  int  $creePar  utilisateur à l'origine de l'opération
      */
     public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar): void;
+
+    /**
+     * Variante par NOM de service, pour un client déjà identifié : utilisée par la Déclaration TVA, dont le service
+     * (« Déclaration TVA ») est connu par son nom et non par une ligne de document. Ne fait rien si `$clientId` est vide,
+     * si le service n'existe pas au catalogue, ou si le couple (service, client) existe déjà (quel que soit son statut).
+     *
+     * @param  string  $nomService  nom exact du service au catalogue
+     * @param  int|null  $clientId  client titulaire (déjà résolu par l'appelant)
+     * @param  int  $creePar  utilisateur à l'origine de l'opération
+     */
+    public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void;
 }

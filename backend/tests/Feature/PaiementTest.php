@@ -356,6 +356,11 @@ class PaiementTest extends TestCase
                     ($this->surAppel)();
                 }
             }
+
+            public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void
+            {
+                throw new \LogicException('Paiements n\'utilise pas assurerPourClient.');
+            }
         };
         $this->app->instance(\App\Contracts\ServicesEnCours\AssureServicesEnCours::class, $espion);
 

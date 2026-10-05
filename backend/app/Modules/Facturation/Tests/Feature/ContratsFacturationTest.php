@@ -296,6 +296,36 @@ class ContratsFacturationTest extends TestCase
         $this->assertDatabaseHas('service_en_cours', ['service_id' => $service->id, 'client_id' => $party->id]);
     }
 
+    public function test_assurer_pour_client_cree_le_service_par_son_nom_sans_doublon_et_ignore_les_cas_vides(): void
+    {
+        $party = $this->party();
+        $service = Service::create(['nom' => 'Déclaration TVA', 'prix' => 0, 'status' => 'actif']);
+        $contrat = app(AssureServicesEnCours::class);
+        $utilisateur = $this->admin()->id;
+
+        $contrat->assurerPourClient('Déclaration TVA', null, $utilisateur);          // client vide : rien
+        $contrat->assurerPourClient('Service inconnu', $party->id, $utilisateur);    // service absent du catalogue : rien
+        $this->assertSame(0, ServiceEnCours::count());
+
+        $contrat->assurerPourClient('Déclaration TVA', $party->id, $utilisateur);
+        $contrat->assurerPourClient('Déclaration TVA', $party->id, $utilisateur);    // pas de doublon
+
+        $this->assertSame(1, ServiceEnCours::count());
+        $this->assertDatabaseHas('service_en_cours', ['service_id' => $service->id, 'client_id' => $party->id, 'created_by' => $utilisateur]);
+    }
+
+    public function test_assurer_pour_client_suit_la_transaction_de_l_appelant(): void
+    {
+        $party = $this->party();
+        Service::create(['nom' => 'Déclaration TVA', 'prix' => 0, 'status' => 'actif']);
+
+        DB::beginTransaction();
+        app(AssureServicesEnCours::class)->assurerPourClient('Déclaration TVA', $party->id, $this->admin()->id);
+        $this->assertSame(1, ServiceEnCours::count());
+        DB::rollBack();
+
+        $this->assertSame(0, ServiceEnCours::count());
+    }
     public function test_assurer_pour_tiers_suit_la_transaction_de_l_appelant(): void
     {
         $party = $this->party();
