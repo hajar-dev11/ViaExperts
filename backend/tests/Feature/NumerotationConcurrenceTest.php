@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CabinetSetting;
 use App\Models\Client;
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Models\Party;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;

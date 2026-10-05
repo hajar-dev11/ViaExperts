@@ -8,7 +8,7 @@ use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Modules\Facturation\Contracts\SynchronisationPaiements;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Models\Client;
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Models\Party;
 use App\Models\Service;
 use App\Models\ServiceEnCours;

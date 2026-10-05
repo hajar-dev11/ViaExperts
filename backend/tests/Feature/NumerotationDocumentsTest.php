@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\CabinetSetting;
 use App\Models\Client;
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Models\DomiciliationSetting;
 use App\Models\Party;
 use App\Models\User;
-use App\Services\NumerotationDocuments;
+use App\Modules\Facturation\Services\NumerotationDocuments;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

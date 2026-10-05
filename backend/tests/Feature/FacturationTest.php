@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Models\Party;
 use App\Models\Permission;
 use App\Models\Service;
