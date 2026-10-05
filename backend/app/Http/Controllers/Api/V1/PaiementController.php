@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
+use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaiementResource;
 use App\Models\Paiement;
-use App\Models\ServiceEnCours;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -15,8 +15,10 @@ class PaiementController extends Controller
 {
     private const RELATIONS = ['lignes.service', 'client', 'entreprise'];
 
-    public function __construct(private FacturesDisponibles $factures)
-    {
+    public function __construct(
+        private FacturesDisponibles $factures,
+        private AssureServicesEnCours $servicesEnCours,
+    ) {
     }
 
     private function regles(bool $partiel = false): array
@@ -153,7 +155,7 @@ class PaiementController extends Controller
             $paiement->recalculerTotal();
 
             // Les services saisis sur les lignes apparaissent dans « Services en cours ».
-            ServiceEnCours::assurerServicesPourTiers($paiement->party_id, $paiement->lignes->pluck('service_id'), $request->user()->id);
+            $this->servicesEnCours->assurerPourTiers($paiement->party_id, $paiement->lignes->pluck('service_id'), $request->user()->id);
 
             // Option C : la facture rattachée est resynchronisée dans la même transaction.
             Paiement::synchroniserFacture($paiement->document_id);
@@ -199,7 +201,7 @@ class PaiementController extends Controller
             $paiement->recalculerTotal();
 
             // Un service ajouté lors d'une modification apparaît lui aussi dans « Services en cours ».
-            ServiceEnCours::assurerServicesPourTiers($paiement->party_id, $paiement->lignes->pluck('service_id'), $request->user()->id);
+            $this->servicesEnCours->assurerPourTiers($paiement->party_id, $paiement->lignes->pluck('service_id'), $request->user()->id);
 
             // Resynchroniser l'ancienne facture si le rattachement a changé.
             Paiement::synchroniserFacture($ancienDocument);

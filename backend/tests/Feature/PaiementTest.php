@@ -332,6 +332,123 @@ class PaiementTest extends TestCase
             ->assertJsonPath('data.factureNumero', null);
     }
 
+    /** Faux « Services en cours » : enregistre chaque appel et l'état de la transaction / de la facture à cet instant. */
+    private function espionServicesEnCours(?\Closure $surAppel = null): object
+    {
+        $espion = new class($surAppel) implements \App\Contracts\ServicesEnCours\AssureServicesEnCours {
+            public array $appels = [];
+
+            public function __construct(private ?\Closure $surAppel)
+            {
+            }
+
+            public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar): void
+            {
+                $this->appels[] = [
+                    'partyId' => $partyId,
+                    'serviceIds' => collect($serviceIds)->all(),
+                    'creePar' => $creePar,
+                    'niveauTransaction' => \Illuminate\Support\Facades\DB::transactionLevel(),
+                    'prixPayeFacture' => \Illuminate\Support\Facades\DB::table('documents_commerciaux')->value('prix_paye'),
+                ];
+
+                if ($this->surAppel) {
+                    ($this->surAppel)();
+                }
+            }
+        };
+        $this->app->instance(\App\Contracts\ServicesEnCours\AssureServicesEnCours::class, $espion);
+
+        return $espion;
+    }
+
+    public function test_paiements_passe_par_le_contrat_services_en_cours_a_la_creation_et_a_la_modification(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $a = Service::create(['nom' => 'Service A', 'prix' => 100, 'status' => 'actif']);
+        $b = Service::create(['nom' => 'Service B', 'prix' => 100, 'status' => 'actif']);
+        $facture = $this->facture($admin, $party);
+        $espion = $this->espionServicesEnCours();
+        $niveauHorsTransaction = \DB::transactionLevel();
+
+        $id = $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, [
+            'document_id' => $facture->id,
+            'lignes' => [
+                ['service_id' => $a->id, 'designation' => 'A', 'quantite' => 1, 'prix_unitaire' => 100],
+                ['service_id' => null, 'designation' => 'Libre', 'quantite' => 1, 'prix_unitaire' => 50],
+            ],
+        ]))->assertStatus(201)->json('data.id');
+
+        $this->assertCount(1, $espion->appels, 'Un appel synchrone à la création.');
+        $this->assertSame($party->id, $espion->appels[0]['partyId']);
+        $this->assertSame([$a->id, null], $espion->appels[0]['serviceIds'], 'Même données : service_id des lignes, dans l\'ordre.');
+        $this->assertSame($admin->id, $espion->appels[0]['creePar']);
+        $this->assertGreaterThan($niveauHorsTransaction, $espion->appels[0]['niveauTransaction'], 'Appelé DANS la transaction.');
+        $this->assertSame('0.00', $espion->appels[0]['prixPayeFacture'], 'Appelé AVANT la resynchronisation de la facture (même ordre qu\'avant).');
+        $this->assertSame('500.00', $facture->fresh()->prix_paye, 'La resynchronisation a bien eu lieu ensuite.');
+
+        $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", [
+            'lignes' => [
+                ['service_id' => $a->id, 'designation' => 'A', 'quantite' => 1, 'prix_unitaire' => 100],
+                ['service_id' => $b->id, 'designation' => 'B', 'quantite' => 1, 'prix_unitaire' => 100],
+            ],
+        ])->assertOk();
+
+        $this->assertCount(2, $espion->appels, 'Un appel à la modification.');
+        $this->assertSame([$a->id, $b->id], $espion->appels[1]['serviceIds']);
+        $this->assertSame($party->id, $espion->appels[1]['partyId']);
+        $this->assertGreaterThan($niveauHorsTransaction, $espion->appels[1]['niveauTransaction']);
+    }
+
+    public function test_paiements_ne_cree_pas_les_services_en_cours_lui_meme(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $service = Service::create(['nom' => 'Service A', 'prix' => 100, 'status' => 'actif']);
+        $this->espionServicesEnCours(); // le faux contrat n'écrit rien
+
+        $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, [
+            'lignes' => [['service_id' => $service->id, 'designation' => 'A', 'quantite' => 1, 'prix_unitaire' => 100]],
+        ]))->assertStatus(201);
+
+        $this->assertDatabaseCount('service_en_cours', 0);
+    }
+
+    public function test_une_erreur_de_services_en_cours_est_propagee_et_annule_le_paiement(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        $this->espionServicesEnCours(fn () => throw new \RuntimeException('Services en cours indisponible'));
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $facture->id]));
+            $this->fail('L\'exception du contrat doit remonter jusqu\'à l\'appelant.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Services en cours indisponible', $e->getMessage());
+        }
+
+        $this->assertSame(0, Paiement::count(), 'La transaction est annulée : aucun paiement.');
+        $this->assertSame('0.00', $facture->fresh()->prix_paye, 'La facture n\'a pas été touchée.');
+    }
+
+    public function test_le_code_de_production_de_paiements_n_appelle_plus_service_en_cours_directement(): void
+    {
+        foreach (['app/Http/Controllers/Api/V1/PaiementController.php', 'app/Models/Paiement.php', 'app/Http/Resources/PaiementResource.php'] as $fichier) {
+            $source = file_get_contents(base_path($fichier));
+
+            $this->assertStringNotContainsString('ServiceEnCours::', $source, "{$fichier} ne doit pas appeler le modèle ServiceEnCours.");
+            $this->assertStringNotContainsString('App\Models\ServiceEnCours', $source, "{$fichier} ne doit pas importer le modèle ServiceEnCours.");
+            $this->assertStringNotContainsString('AssureServicesEnCoursEloquent', $source, "{$fichier} ne doit pas connaître l'implémentation concrète.");
+        }
+
+        $this->assertStringContainsString(
+            'AssureServicesEnCours',
+            file_get_contents(base_path('app/Http/Controllers/Api/V1/PaiementController.php'))
+        );
+    }
     public function test_staff_permissions_are_enforced(): void
     {
         $staff = User::factory()->create(['is_admin' => false]);
