@@ -8,7 +8,7 @@ import Button from '../components/ui/Button.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import { Field, Input, Textarea, FormCard, FormActions } from '../components/Field.jsx'
 import { ApiError } from '../api/http.js'
-import { EMETTEURS } from '../api/facturation.js'
+import { EMETTEURS } from '../shared/constants/documents.js'
 import { listRapports, getRapport, createRapport, updateRapport, urlDocument } from '../api/rapports.js'
 
 const dh = (v) => `${Number(v ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} Dh`

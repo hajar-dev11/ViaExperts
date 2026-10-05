@@ -17,7 +17,7 @@ import { listServices, corbeilleService, restoreService, deleteServiceForever } 
 import {
   listServicesEnCours, corbeilleServiceEnCours, restoreServiceEnCours, deleteServiceEnCoursForever,
 } from '../api/servicesEnCours.js'
-import { listDocuments, corbeilleDocument, restoreDocument, deleteDocumentForever } from '../api/facturation.js'
+import { listDocuments, corbeilleDocument, restoreDocument, deleteDocumentForever } from '../modules/facturation/index.js'
 import { listPaiements, corbeillePaiement, restorePaiement, deletePaiementForever } from '../api/paiements.js'
 import {
   listDeclarations, corbeilleDeclaration, restoreDeclaration, deleteDeclarationForever,

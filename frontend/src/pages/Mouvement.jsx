@@ -12,10 +12,9 @@ import { Field, Input, Select } from '../components/Field.jsx'
 import { ApiError } from '../api/http.js'
 import { mouvementRecu, mouvementFacture } from '../api/mouvements.js'
 import { getPaiement, archivePaiement, corbeillePaiement } from '../api/paiements.js'
-import { getDocument } from '../api/facturation.js'
+import { getDocument, imprimerDocument } from '../modules/facturation/index.js'
 import ChoixFormatRecu from '../components/ChoixFormatRecu.jsx'
 import { imprimerRecuPaiementPdf } from '../utils/documentPrint.js'
-import { imprimerDocument } from '../components/DocumentList.jsx'
 
 const dh = (v) => `${Number(v ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} Dh`
 

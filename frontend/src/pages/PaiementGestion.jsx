@@ -12,7 +12,7 @@ import { useToast } from '../components/ui/Toast.jsx'
 import { Field, Input, Select } from '../components/Field.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import { ApiError, API_URL } from '../api/http.js'
-import { EMETTEURS } from '../api/facturation.js'
+import { EMETTEURS } from '../shared/constants/documents.js'
 import { formatDate } from '../utils/format.js'
 import { imprimerPaiement } from './PaiementList.jsx'
 import {
