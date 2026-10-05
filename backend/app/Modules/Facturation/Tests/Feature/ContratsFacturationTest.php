@@ -2,6 +2,7 @@
 
 namespace App\Modules\Facturation\Tests\Feature;
 
+use App\Modules\Facturation\Contracts\FactureExiste;
 use App\Modules\Facturation\Contracts\FactureReference;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Modules\Facturation\Contracts\FacturesPourMouvements;
@@ -14,6 +15,7 @@ use App\Models\Party;
 use App\Models\Service;
 use App\Models\ServiceEnCours;
 use App\Models\User;
+use App\Modules\Facturation\Services\FactureExisteEloquent;
 use App\Modules\Facturation\Services\FactureReferenceEloquent;
 use App\Modules\Facturation\Services\FacturesDisponiblesEloquent;
 use App\Modules\Facturation\Services\FacturesPourMouvementsEloquent;
@@ -137,6 +139,29 @@ class ContratsFacturationTest extends TestCase
         $this->assertSame([], app(FactureReference::class)->numeros([null, 0]));
     }
 
+    // ---- Existence d'un document (validation du document_id des paiements) ------------------------------------------
+
+    public function test_existe_est_vrai_pour_tout_document_present_quels_que_soient_type_statut_et_corbeille(): void
+    {
+        $party = $this->party();
+        $facture = $this->document('facture', $party, 'F-1');
+        $devis = $this->document('devis', $party, 'D-1');
+        $archive = $this->document('bl', $party, 'B-1');
+        $corbeille = $this->document('avoir', $party, 'A-1');
+        $supprime = $this->document('facture', $party, 'F-2');
+        DocumentCommercial::whereKey($archive)->update(['status' => 'archive']);
+        DocumentCommercial::whereKey($corbeille)->update(['status' => 'corbeille']);
+        DocumentCommercial::whereKey($supprime)->delete(); // suppression douce
+
+        $contrat = app(FactureExiste::class);
+
+        foreach ([$facture, $devis, $archive, $corbeille, $supprime] as $id) {
+            $this->assertTrue($contrat->existe($id), "Le document {$id} doit exister (comme l'ancienne règle `exists`).");
+        }
+        $this->assertFalse($contrat->existe(999999));
+        $this->assertFalse($contrat->existe(0));
+        $this->assertNull(DocumentCommercial::find($supprime), 'Le document supprimé reste invisible via le modèle.');
+    }
     // ---- Synchronisation du prix payé ---------------------------------------------------------------------------
 
     public function test_appliquer_total_paye_enregistre_le_total_arrondi(): void

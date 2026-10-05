@@ -449,6 +449,174 @@ class PaiementTest extends TestCase
             file_get_contents(base_path('app/Http/Controllers/Api/V1/PaiementController.php'))
         );
     }
+    // ---- Validation de `document_id` (ex-règle `exists:documents_commerciaux,id`) ----------------------------------
+    // Ces tests CARACTÉRISENT le comportement de l'ancienne règle Laravel ; ils ont été écrits et passaient AVANT le
+    // découplage, et doivent continuer à passer à l'identique après.
+
+    private const MESSAGE_DOCUMENT_INVALIDE = 'The selected document id is invalid.';
+
+    private function creerPaiementAvecDocument(User $admin, Party $party, $documentId)
+    {
+        return $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $documentId]));
+    }
+
+    public function test_document_id_existant_est_accepte_quel_que_soit_son_type_et_son_statut(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        $devisId = $this->actingAs($admin)->postJson('/api/v1/facturation/devis', [
+            'emetteur' => 'bureau_comptabilite', 'party_id' => $party->id, 'numero' => 'DEV-1', 'date_document' => '2026-09-17 11:00:00',
+            'lignes' => [['designation' => 'S', 'quantite' => 1, 'prix_unitaire' => 10]],
+        ])->json('data.id');
+        DocumentCommercial::whereKey($devisId)->update(['status' => 'archive']);
+
+        $this->creerPaiementAvecDocument($admin, $party, $facture->id)->assertStatus(201)->assertJsonPath('data.documentId', $facture->id);
+        $this->creerPaiementAvecDocument($admin, $party, $devisId)->assertStatus(201)->assertJsonPath('data.documentId', $devisId);
+        $this->creerPaiementAvecDocument($admin, $party, null)->assertStatus(201)->assertJsonPath('data.documentId', null);
+        // L'identifiant peut arriver sous forme de chaîne numérique (formulaire multipart).
+        $this->creerPaiementAvecDocument($admin, $party, (string) $facture->id)->assertStatus(201);
+    }
+
+    public function test_document_id_inexistant_donne_un_422_identique_et_ne_cree_rien(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+
+        $this->creerPaiementAvecDocument($admin, $party, 999999)
+            ->assertStatus(422)
+            ->assertExactJson([
+                'message' => self::MESSAGE_DOCUMENT_INVALIDE,
+                'errors' => ['document_id' => [self::MESSAGE_DOCUMENT_INVALIDE]],
+            ]);
+
+        $this->assertSame(0, Paiement::count(), 'Refusé AVANT toute écriture.');
+        $this->assertDatabaseCount('paiement_lignes', 0);
+    }
+
+    /** @dataProvider documentIdsNonEntiers */
+    public function test_document_id_non_entier_est_refuse_par_la_regle_integer_seule(mixed $valeur): void
+    {
+        // Laravel n'évalue pas `exists` après l'échec de `integer` : un seul message, celui de `integer`.
+        $admin = $this->admin();
+        $party = $this->party();
+
+        $this->creerPaiementAvecDocument($admin, $party, $valeur)
+            ->assertStatus(422)
+            ->assertExactJson([
+                'message' => 'The document id must be an integer.',
+                'errors' => ['document_id' => ['The document id must be an integer.']],
+            ]);
+        $this->assertSame(0, Paiement::count());
+    }
+
+    public static function documentIdsNonEntiers(): array
+    {
+        return [['abc'], ['1abc'], [5.5], ['1e1']];
+    }
+
+    public function test_document_id_en_corbeille_est_toujours_considere_comme_existant(): void
+    {
+        // Comportement RÉEL de `exists:documents_commerciaux,id` : requête brute sur la table, sans la portée
+        // « suppression douce » — un document en corbeille (deleted_at renseigné) est accepté.
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        $facture->delete();
+        $this->assertNull(DocumentCommercial::find($facture->id));
+
+        $this->creerPaiementAvecDocument($admin, $party, $facture->id)
+            ->assertStatus(201)
+            ->assertJsonPath('data.documentId', $facture->id)
+            ->assertJsonPath('data.factureNumero', null);
+    }
+
+    public function test_modification_avec_document_invalide_ne_change_rien_et_avec_document_en_corbeille_passe(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        $id = $this->creerPaiementAvecDocument($admin, $party, $facture->id)->json('data.id');
+
+        $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", ['document_id' => 999999, 'prix_paye' => 1])
+            ->assertStatus(422)
+            ->assertExactJson([
+                'message' => self::MESSAGE_DOCUMENT_INVALIDE,
+                'errors' => ['document_id' => [self::MESSAGE_DOCUMENT_INVALIDE]],
+            ]);
+        $paiement = Paiement::find($id);
+        $this->assertSame($facture->id, $paiement->document_id);
+        $this->assertSame('500.00', $paiement->prix_paye);
+        $this->assertSame('500.00', $facture->fresh()->prix_paye, 'La facture n\'est pas resynchronisée par une requête refusée.');
+
+        // Détacher (null) reste possible.
+        $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", ['document_id' => null])->assertOk()->assertJsonPath('data.documentId', null);
+        $this->assertSame('0.00', $facture->fresh()->prix_paye);
+
+        // Document en corbeille : accepté, comme avant.
+        $facture->delete();
+        $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", ['document_id' => $facture->id])->assertOk()->assertJsonPath('data.documentId', $facture->id);
+    }
+    public function test_la_validation_du_document_passe_par_le_contrat_avant_toute_ecriture(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $facture = $this->facture($admin, $party);
+        $appels = [];
+        $this->app->instance(\App\Modules\Facturation\Contracts\FactureExiste::class, new class($appels) implements \App\Modules\Facturation\Contracts\FactureExiste {
+            public function __construct(public array &$appels)
+            {
+            }
+
+            public function existe(int $documentId): bool
+            {
+                $this->appels[] = ['id' => $documentId, 'paiementsDejaCrees' => Paiement::count(), 'niveau' => \DB::transactionLevel()];
+
+                return false; // le contrat dit « inexistant », même si la facture existe réellement
+            }
+        });
+        $niveauInitial = \DB::transactionLevel();
+
+        $this->creerPaiementAvecDocument($admin, $party, $facture->id)
+            ->assertStatus(422)
+            ->assertExactJson(['message' => self::MESSAGE_DOCUMENT_INVALIDE, 'errors' => ['document_id' => [self::MESSAGE_DOCUMENT_INVALIDE]]]);
+
+        $this->assertCount(1, $appels, 'La décision vient du contrat (et d\'aucune requête directe de Paiements).');
+        $this->assertSame($facture->id, $appels[0]['id']);
+        $this->assertSame(0, $appels[0]['paiementsDejaCrees']);
+        $this->assertSame($niveauInitial, $appels[0]['niveau'], 'Validation AVANT l\'ouverture de la transaction d\'écriture.');
+        $this->assertSame(0, Paiement::count());
+    }
+
+    public function test_une_modification_sans_document_id_ne_declenche_pas_la_validation(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+        $id = $this->creerPaiementAvecDocument($admin, $party, null)->json('data.id');
+        $this->app->instance(\App\Modules\Facturation\Contracts\FactureExiste::class, new class implements \App\Modules\Facturation\Contracts\FactureExiste {
+            public function existe(int $documentId): bool
+            {
+                throw new \LogicException('Ne doit pas être appelé.');
+            }
+        });
+
+        $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", ['prix_paye' => 10])->assertOk();
+        $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", ['document_id' => null])->assertOk();
+    }
+
+    public function test_paiements_ne_reference_plus_la_table_documents_commerciaux_pour_valider(): void
+    {
+        foreach (['app/Http/Controllers/Api/V1/PaiementController.php', 'app/Models/Paiement.php', 'app/Http/Resources/PaiementResource.php'] as $fichier) {
+            $source = file_get_contents(base_path($fichier));
+            $codeSansCommentaires = preg_replace('#/\*.*?\*/|//[^\n]*#s', '', $source);
+
+            $this->assertStringNotContainsString('exists:documents_commerciaux', $source, $fichier);
+            $this->assertStringNotContainsString("'documents_commerciaux'", $codeSansCommentaires, $fichier);
+            $this->assertStringNotContainsString('FactureExisteEloquent', $source, "{$fichier} ne doit pas connaître l'implémentation concrète.");
+        }
+
+        $this->assertStringContainsString('FactureExiste', file_get_contents(base_path('app/Http/Controllers/Api/V1/PaiementController.php')));
+    }
     public function test_staff_permissions_are_enforced(): void
     {
         $staff = User::factory()->create(['is_admin' => false]);

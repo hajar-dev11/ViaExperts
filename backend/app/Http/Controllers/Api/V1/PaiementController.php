@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Modules\Facturation\Contracts\FactureExiste;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaiementResource;
 use App\Models\Paiement;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +20,7 @@ class PaiementController extends Controller
     public function __construct(
         private FacturesDisponibles $factures,
         private AssureServicesEnCours $servicesEnCours,
+        private FactureExiste $factureExiste,
     ) {
     }
 
@@ -29,7 +32,15 @@ class PaiementController extends Controller
             'emetteur' => [$r, 'in:via_experts,bureau_comptabilite'],
             'responsable' => ['nullable', 'string', 'max:150'],
             'party_id' => [$r, 'integer', 'exists:parties,id'],
-            'document_id' => ['nullable', 'integer', 'exists:documents_commerciaux,id'],
+            'document_id' => ['bail', 'nullable', 'integer', function (string $attribute, mixed $value, Closure $fail) {
+                // Validation via le contrat public de Facturation (plus de lien direct avec la table des documents) :
+                // mêmes règles que l'ancienne règle Laravel `exists` - même message, évaluée avant toute écriture, et
+                // un document en corbeille reste accepté. "bail" reproduit le fait que `exists` n'était pas évaluée
+                // après l'échec de `integer` (un seul message d'erreur dans ce cas).
+                if (! $this->factureExiste->existe((int) $value)) {
+                    $fail(__('validation.exists'));
+                }
+            }],
             'date_operation' => [$r, 'date'],
             'date_credit' => ['nullable', 'date'],
             'mode_paiement' => ['nullable', 'string', 'max:40'],
