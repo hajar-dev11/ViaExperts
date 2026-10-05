@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Facturation\SynchronisationPaiements;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -83,17 +84,13 @@ class Paiement extends Model
             return;
         }
 
-        $document = DocumentCommercial::find($documentId);
-        if (! $document) {
-            return;
-        }
-
         // Seuls les paiements encore actifs comptent : archivés/corbeille exclus.
         $somme = static::where('document_id', $documentId)
             ->where('status', 'actif')
             ->sum('prix_paye');
 
-        $document->forceFill(['prix_paye' => round((float) $somme, 2)])->save();
+        // L'écriture de `prix_paye` appartient à Facturation : elle passe par son contrat (même transaction).
+        app(SynchronisationPaiements::class)->appliquerTotalPaye($documentId, (float) $somme);
     }
 
     /** Référence séquentielle (#904 dans la capture). */

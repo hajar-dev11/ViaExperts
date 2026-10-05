@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\Facturation\FacturesDisponibles;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaiementResource;
-use App\Models\DocumentCommercial;
 use App\Models\Paiement;
 use App\Models\ServiceEnCours;
 use Illuminate\Http\Request;
@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Storage;
 class PaiementController extends Controller
 {
     private const RELATIONS = ['lignes.service', 'client', 'entreprise', 'document'];
+
+    public function __construct(private FacturesDisponibles $factures)
+    {
+    }
 
     private function regles(bool $partiel = false): array
     {
@@ -262,19 +266,6 @@ class PaiementController extends Controller
     {
         abort_unless($request->user()->hasPermission('paiements', 'ajouter_paiement'), 403);
 
-        return DocumentCommercial::with(['client', 'entreprise'])
-            ->type('facture')
-            ->status('actif')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn ($d) => [
-                'id' => $d->id,
-                'numero' => $d->numero,
-                'tiers' => $d->tiers_nom,
-                'partyId' => $d->party_id,
-                'totalTtc' => $d->total_ttc,
-                'prixPaye' => $d->prix_paye,
-                'prixRestant' => $d->prix_restant,
-            ]);
+        return $this->factures->lister();
     }
 }

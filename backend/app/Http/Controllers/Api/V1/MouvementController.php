@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\Facturation\FacturesPourMouvements;
 use App\Http\Controllers\Controller;
-use App\Models\DocumentCommercial;
 use App\Models\Paiement;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class MouvementController extends Controller
 {
+    public function __construct(private FacturesPourMouvements $factures)
+    {
+    }
+
     /**
      * Module Mouvement — deux vues d'AGRÉGATION, sans table dédiée :
      *   - Entrés (Reçu)     : agrège les paiements       (permission mouvement_entres_recu)
@@ -81,32 +85,17 @@ class MouvementController extends Controller
     {
         abort_unless($request->user()->hasPermission('mouvement', 'mouvement_entres_facture'), 403);
 
-        $factures = $this->appliquerFiltres(
-            DocumentCommercial::with(['client', 'entreprise'])->type('facture')->status('actif'),
-            $request,
-            'date_document'
-        )->orderByDesc('id')->get();
+        // Les factures viennent du contrat de Facturation (mêmes filtres de période) ; les totaux restent calculés ici.
+        $factures = collect($this->factures->entrees(array_intersect_key($request->query(), array_flip(['date_debut', 'date_fin', 'annee', 'trimestre']))));
 
         return response()->json([
             'totaux' => [
-                'montantTotal' => number_format($factures->sum(fn ($f) => (float) $f->total_ttc), 2, '.', ''),
-                'montantHt' => number_format($factures->sum(fn ($f) => (float) $f->total_ht), 2, '.', ''),
-                'montantPaye' => number_format($factures->sum(fn ($f) => (float) $f->prix_paye), 2, '.', ''),
+                'montantTotal' => number_format($factures->sum(fn ($f) => (float) $f['totalTtc']), 2, '.', ''),
+                'montantHt' => number_format($factures->sum(fn ($f) => (float) $f['totalHt']), 2, '.', ''),
+                'montantPaye' => number_format($factures->sum(fn ($f) => (float) $f['prixPaye']), 2, '.', ''),
             ],
-            'lignes' => $factures->map(fn ($f) => [
-                'id' => $f->id,
-                'numero' => $f->numero,
-                'responsable' => $f->responsable,
-                'clientId' => $f->client->party_id ?? null,
-                'entrepriseId' => $f->entreprise->party_id ?? null,
-                'client' => $f->tiers_nom,
-                'dateDocument' => optional($f->date_document)->toDateString(),
-                'totalHt' => $f->total_ht,
-                'totalTtc' => $f->total_ttc,
-                'prixPaye' => $f->prix_paye,
-                'prixRestant' => $f->prix_restant,
-            ]),
-            'annees' => $this->anneesDisponibles(DocumentCommercial::class, 'date_document'),
+            'lignes' => $factures,
+            'annees' => $this->factures->anneesDisponibles(),
         ]);
     }
 

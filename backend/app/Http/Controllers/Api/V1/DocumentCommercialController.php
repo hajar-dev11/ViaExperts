@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentCommercialRequest;
 use App\Http\Requests\UpdateDocumentCommercialRequest;
 use App\Http\Resources\DocumentCommercialResource;
 use App\Models\DocumentCommercial;
-use App\Models\ServiceEnCours;
 use App\Services\NumerotationDocuments;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -17,8 +17,10 @@ class DocumentCommercialController extends Controller
 {
     private const RELATIONS = ['lignes.service', 'client', 'entreprise'];
 
-    public function __construct(private NumerotationDocuments $numerotation)
-    {
+    public function __construct(
+        private NumerotationDocuments $numerotation,
+        private AssureServicesEnCours $servicesEnCours,
+    ) {
     }
 
     /**
@@ -83,7 +85,7 @@ class DocumentCommercialController extends Controller
                 $document->recalculerTotaux();
 
                 // Les services saisis sur les lignes apparaissent dans « Services en cours ».
-                ServiceEnCours::assurerServicesPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
+                $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
 
                 // Le compteur avance dans la MÊME transaction que la création.
                 $this->numerotation->avancer($document->emetteur, $type, $document->numero);
@@ -135,7 +137,7 @@ class DocumentCommercialController extends Controller
                 $document->recalculerTotaux();
 
                 // Un service ajouté lors d'une modification apparaît lui aussi dans « Services en cours ».
-                ServiceEnCours::assurerServicesPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
+                $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
             });
         } catch (QueryException $erreur) {
             $this->numerotation->convertirCollision($erreur);
