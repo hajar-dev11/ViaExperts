@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace App\Modules\Facturation\Tests\Feature;
 
 use App\Models\CabinetSetting;
 use App\Models\Client;

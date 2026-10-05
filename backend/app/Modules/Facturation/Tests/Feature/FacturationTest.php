@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace App\Modules\Facturation\Tests\Feature;
 
 use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Models\Party;

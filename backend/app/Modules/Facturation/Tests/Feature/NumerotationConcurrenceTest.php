@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace App\Modules\Facturation\Tests\Feature;
 
 use App\Models\CabinetSetting;
 use App\Models\Client;
@@ -90,7 +90,7 @@ class NumerotationConcurrenceTest extends TestCase
     private function lancerEnParallele(int $documentsParProcessus, bool $reessayer): array
     {
         $jeton = $this->admin->createToken('concurrence')->plainTextToken;
-        $script = base_path('tests/Support/creer_document_en_parallele.php');
+        $script = base_path('app/Modules/Facturation/Tests/Support/creer_document_en_parallele.php');
         $depart = microtime(true) + 6.0; // laisse à chaque processus le temps de démarrer l'application
 
         $processus = [];

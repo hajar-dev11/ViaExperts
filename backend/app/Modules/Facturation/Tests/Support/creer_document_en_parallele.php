@@ -21,8 +21,8 @@ use Illuminate\Http\Request;
 $cible = (int) ($argv[4] ?? 1);
 $reessayer = ($argv[5] ?? '0') === '1';
 
-require __DIR__.'/../../vendor/autoload.php';
-$app = require __DIR__.'/../../bootstrap/app.php';
+require __DIR__.'/../../../../../vendor/autoload.php';
+$app = require __DIR__.'/../../../../../bootstrap/app.php';
 $app->make(ConsoleKernel::class)->bootstrap(); // démarrage de l'application AVANT le top départ
 
 while (microtime(true) < (float) $depart) {
