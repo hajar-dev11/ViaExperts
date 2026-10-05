@@ -6,16 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentCommercialRequest;
 use App\Http\Requests\UpdateDocumentCommercialRequest;
 use App\Http\Resources\DocumentCommercialResource;
-use App\Models\CabinetSetting;
 use App\Models\DocumentCommercial;
-use App\Models\DomiciliationSetting;
 use App\Models\ServiceEnCours;
+use App\Services\NumerotationDocuments;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DocumentCommercialController extends Controller
 {
     private const RELATIONS = ['lignes.service', 'client', 'entreprise'];
+
+    public function __construct(private NumerotationDocuments $numerotation)
+    {
+    }
 
     /**
      * Le catalogue de permissions `facturation` est décliné PAR TYPE de document
@@ -30,65 +34,6 @@ class DocumentCommercialController extends Controller
         abort_unless($request->user()->hasPermission('facturation', "{$action}_{$suffixe}"), 403);
     }
 
-    private function settings(string $emetteur)
-    {
-        return $emetteur === 'via_experts'
-            ? DomiciliationSetting::firstOrCreate([])
-            : CabinetSetting::firstOrCreate([]);
-    }
-
-    /** Racine des colonnes de numérotation : facture_ | devis_ | bl_ | avoir_ */
-    private function prefixeCle(string $type): string
-    {
-        return $type === 'avoir' ? 'avoir' : ($type === 'bl' ? 'bl' : $type);
-    }
-
-    private function composerNumero($settings, string $type): string
-    {
-        $cle = $this->prefixeCle($type);
-
-        return trim(sprintf(
-            '%s%s%s',
-            $settings->{$cle.'_prefixe'} ?? '',
-            $settings->{$cle.'_prochain_numero'} ?? '',
-            $settings->{$cle.'_suffixe'} ?? ''
-        ));
-    }
-
-    /**
-     * Fait avancer le compteur après émission d'un document.
-     *
-     * Appelée DANS la transaction de création, avec `lockForUpdate()` sur la ligne
-     * de paramètres : deux créations simultanées ne peuvent pas lire le même
-     * compteur et produire deux fois le même numéro.
-     *
-     * Le compteur n'avance QUE si le numéro enregistré est bien celui qu'il
-     * proposait : un numéro saisi manuellement par l'utilisateur ne le déplace pas.
-     * Le format (préfixe/suffixe) n'est jamais modifié.
-     */
-    private function avancerCompteur(string $emetteur, string $type, string $numeroUtilise): void
-    {
-        $classe = $emetteur === 'via_experts' ? DomiciliationSetting::class : CabinetSetting::class;
-
-        $classe::firstOrCreate([]); // garantit l'existence de la ligne singleton
-        $settings = $classe::lockForUpdate()->first();
-
-        if (! $settings || $this->composerNumero($settings, $type) !== $numeroUtilise) {
-            return;
-        }
-
-        $colonne = $this->prefixeCle($type).'_prochain_numero';
-        $courant = $settings->{$colonne};
-
-        // La colonne est un entier non signé : un compteur vide n'est pas incrémenté.
-        if ($courant === null || $courant === '') {
-            return;
-        }
-
-        $settings->{$colonne} = (int) $courant + 1;
-        $settings->save();
-    }
-
     /** Numéro proposé : préfixe + prochain numéro + suffixe de l'émetteur choisi. */
     public function numeroPropose(Request $request, string $type)
     {
@@ -97,12 +42,7 @@ class DocumentCommercialController extends Controller
         $emetteur = $request->query('emetteur', 'bureau_comptabilite');
         abort_unless(in_array($emetteur, DocumentCommercial::EMETTEURS, true), 422);
 
-        $settings = $this->settings($emetteur);
-
-        return response()->json([
-            'numero' => $this->composerNumero($settings, $type),
-            'responsable' => $settings->nom_societe ?: ($emetteur === 'via_experts' ? 'Via Experts' : null),
-        ]);
+        return response()->json($this->numerotation->proposer($emetteur, $type));
     }
 
     public function index(Request $request, string $type)
@@ -128,27 +68,33 @@ class DocumentCommercialController extends Controller
         $lignes = $data['lignes'];
         unset($data['lignes']);
 
-        $document = DB::transaction(function () use ($data, $lignes, $type, $request) {
-            $document = DocumentCommercial::create($data + [
-                'type' => $type,
-                'created_by' => $request->user()->id,
-            ]);
+        try {
+            $document = DB::transaction(function () use ($data, $lignes, $type, $request) {
+                $document = DocumentCommercial::create($data + [
+                    'type' => $type,
+                    'created_by' => $request->user()->id,
+                ]);
 
-            foreach (array_values($lignes) as $ordre => $ligne) {
-                $document->lignes()->create($ligne + ['ordre' => $ordre]);
-            }
+                foreach (array_values($lignes) as $ordre => $ligne) {
+                    $document->lignes()->create($ligne + ['ordre' => $ordre]);
+                }
 
-            $document->load('lignes');
-            $document->recalculerTotaux();
+                $document->load('lignes');
+                $document->recalculerTotaux();
 
-            // Les services saisis sur les lignes apparaissent dans « Services en cours ».
-            ServiceEnCours::assurerServicesPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
+                // Les services saisis sur les lignes apparaissent dans « Services en cours ».
+                ServiceEnCours::assurerServicesPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
 
-            // Le compteur avance dans la MÊME transaction que la création.
-            $this->avancerCompteur($document->emetteur, $type, $document->numero);
+                // Le compteur avance dans la MÊME transaction que la création.
+                $this->numerotation->avancer($document->emetteur, $type, $document->numero);
 
-            return $document;
-        });
+                return $document;
+            });
+        } catch (QueryException $erreur) {
+            // Collision sur l'index unique (type, numero) : jamais de doublon, et une réponse 422 au lieu d'un 500.
+            $this->numerotation->convertirCollision($erreur);
+            throw $erreur;
+        }
 
         // `fresh()` fait perdre l'état « recently created » : on impose le 201.
         return (new DocumentCommercialResource($document->fresh(self::RELATIONS)))
@@ -173,23 +119,28 @@ class DocumentCommercialController extends Controller
         $lignes = $data['lignes'] ?? null;
         unset($data['lignes']);
 
-        DB::transaction(function () use ($document, $data, $lignes, $request) {
-            $document->update($data);
+        try {
+            DB::transaction(function () use ($document, $data, $lignes, $request) {
+                $document->update($data);
 
-            // Les lignes sont remplacées intégralement quand elles sont fournies.
-            if ($lignes !== null) {
-                $document->lignes()->delete();
-                foreach (array_values($lignes) as $ordre => $ligne) {
-                    $document->lignes()->create($ligne + ['ordre' => $ordre]);
+                // Les lignes sont remplacées intégralement quand elles sont fournies.
+                if ($lignes !== null) {
+                    $document->lignes()->delete();
+                    foreach (array_values($lignes) as $ordre => $ligne) {
+                        $document->lignes()->create($ligne + ['ordre' => $ordre]);
+                    }
                 }
-            }
 
-            $document->load('lignes');
-            $document->recalculerTotaux();
+                $document->load('lignes');
+                $document->recalculerTotaux();
 
-            // Un service ajouté lors d'une modification apparaît lui aussi dans « Services en cours ».
-            ServiceEnCours::assurerServicesPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
-        });
+                // Un service ajouté lors d'une modification apparaît lui aussi dans « Services en cours ».
+                ServiceEnCours::assurerServicesPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
+            });
+        } catch (QueryException $erreur) {
+            $this->numerotation->convertirCollision($erreur);
+            throw $erreur;
+        }
 
         return new DocumentCommercialResource($document->fresh(self::RELATIONS));
     }
