@@ -5,15 +5,9 @@ const unwrap = (res) => res?.data ?? res
 // type : facture | devis | bl | avoir
 const base = (type) => `/api/v1/facturation/${type}`
 
-export const EMETTEURS = [
-  { value: 'via_experts', label: 'Via Experts', sousTitre: 'Centre Domiciliation' },
-  { value: 'bureau_comptabilite', label: 'Maitre : Morad Bendeq', sousTitre: 'Bureau de Comptabilité' },
-]
-
-export const MODES_PAIEMENT = [
-  'Virement', 'Chèque', 'Traite', 'Espèce', 'Versement',
-  'Carte bancaire', 'Affacturage', 'Crédit', 'Autres à déterminer',
-]
+// Compatibilité : ces constantes sont maintenant définies dans un emplacement partagé, mais restent importables
+// d'ici (PaiementForm, PaiementList, PaiementGestion, Rapports, DocumentForm… ne changent pas).
+export { EMETTEURS, MODES_PAIEMENT } from '../shared/constants/documents.js'
 
 export async function listDocuments(type, { status = 'actif', responsable = '' } = {}) {
   const params = new URLSearchParams({ status })
