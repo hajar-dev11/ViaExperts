@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Facturation;
+namespace App\Modules\Facturation\Contracts;
 
 /**
  * Lecture des factures pour la vue « Mouvement → Entrées (Facturé) ».

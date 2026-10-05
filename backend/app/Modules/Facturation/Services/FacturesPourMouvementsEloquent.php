@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Facturation;
+namespace App\Modules\Facturation\Services;
 
-use App\Contracts\Facturation\FacturesPourMouvements;
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Contracts\FacturesPourMouvements;
+use App\Modules\Facturation\Models\DocumentCommercial;
 
 /**
  * Implémentation du contrat {@see FacturesPourMouvements} : la requête et le filtrage par période qui se trouvaient dans

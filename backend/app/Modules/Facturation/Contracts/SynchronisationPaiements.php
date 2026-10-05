@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Facturation;
+namespace App\Modules\Facturation\Contracts;
 
 /**
  * Mise à jour du « prix payé » d'une facture à partir de ses paiements.

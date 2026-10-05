@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Contracts\Facturation\FacturesDisponibles;
-use App\Contracts\Facturation\FacturesPourMouvements;
-use App\Contracts\Facturation\StatistiquesDocuments;
-use App\Contracts\Facturation\SynchronisationPaiements;
+use App\Modules\Facturation\Contracts\FacturesDisponibles;
+use App\Modules\Facturation\Contracts\FacturesPourMouvements;
+use App\Modules\Facturation\Contracts\StatistiquesDocuments;
+use App\Modules\Facturation\Contracts\SynchronisationPaiements;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Models\Client;
 use App\Models\DocumentCommercial;
@@ -13,10 +13,10 @@ use App\Models\Party;
 use App\Models\Service;
 use App\Models\ServiceEnCours;
 use App\Models\User;
-use App\Services\Facturation\FacturesDisponiblesEloquent;
-use App\Services\Facturation\FacturesPourMouvementsEloquent;
-use App\Services\Facturation\StatistiquesDocumentsEloquent;
-use App\Services\Facturation\SynchronisationPaiementsEloquent;
+use App\Modules\Facturation\Services\FacturesDisponiblesEloquent;
+use App\Modules\Facturation\Services\FacturesPourMouvementsEloquent;
+use App\Modules\Facturation\Services\StatistiquesDocumentsEloquent;
+use App\Modules\Facturation\Services\SynchronisationPaiementsEloquent;
 use App\Services\ServicesEnCours\AssureServicesEnCoursEloquent;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

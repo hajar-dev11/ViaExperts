@@ -10,7 +10,6 @@ use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\DataCenterController;
 use App\Http\Controllers\Api\V1\DeclarationTvaController;
-use App\Http\Controllers\Api\V1\DocumentCommercialController;
 use App\Http\Controllers\Api\V1\DomiciliationController;
 use App\Http\Controllers\Api\V1\DomiciliationSettingController;
 use App\Http\Controllers\Api\V1\EntrepriseController;
@@ -148,20 +147,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/services/{service}/restore', [ServiceController::class, 'restore'])->middleware('permission:services,archive');
         Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->middleware('permission:services,supprimer');
 
-        // Facturation — 4 types partagent le même contrôleur : {type} vaut
-        // facture | devis | bl | avoir. Les permissions étant déclinées par type
-        // (liste_facture, ajouter_devis…), le contrôle se fait dans le contrôleur.
-        Route::prefix('facturation/{type}')->whereIn('type', ['facture', 'devis', 'bl', 'avoir'])->group(function () {
-            Route::get('/numero-propose', [DocumentCommercialController::class, 'numeroPropose']);
-            Route::get('/', [DocumentCommercialController::class, 'index']);
-            Route::post('/', [DocumentCommercialController::class, 'store']);
-            Route::get('/{document}', [DocumentCommercialController::class, 'show']);
-            Route::put('/{document}', [DocumentCommercialController::class, 'update']);
-            Route::post('/{document}/archive', [DocumentCommercialController::class, 'archive']);
-            Route::post('/{document}/corbeille', [DocumentCommercialController::class, 'corbeille']);
-            Route::post('/{document}/restore', [DocumentCommercialController::class, 'restore']);
-            Route::delete('/{document}', [DocumentCommercialController::class, 'destroy']);
-        });
+        // Facturation : routes dans le module (même position, même ordre — voir app/Modules/Facturation/routes.php).
+        require app_path('Modules/Facturation/routes.php');
 
         // Déclaration TVA et Chiffre d'Affaire — même structure, 2 groupes de
         // permissions distincts (`declaration` et `chiffre_affaire`).

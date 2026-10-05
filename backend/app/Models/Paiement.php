@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Contracts\Facturation\SynchronisationPaiements;
+use App\Modules\Facturation\Contracts\SynchronisationPaiements;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;

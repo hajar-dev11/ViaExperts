@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\Facturation\FacturesPourMouvements;
+use App\Modules\Facturation\Contracts\FacturesPourMouvements;
 use App\Http\Controllers\Controller;
 use App\Models\Paiement;
 use Illuminate\Database\Eloquent\Builder;

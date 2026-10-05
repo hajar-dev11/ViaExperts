@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Facturation;
+namespace App\Modules\Facturation\Services;
 
-use App\Contracts\Facturation\FacturesDisponibles;
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Contracts\FacturesDisponibles;
+use App\Modules\Facturation\Models\DocumentCommercial;
 use Illuminate\Support\Collection;
 
 /** Implémentation du contrat {@see FacturesDisponibles} : la requête qui se trouvait dans PaiementController. */

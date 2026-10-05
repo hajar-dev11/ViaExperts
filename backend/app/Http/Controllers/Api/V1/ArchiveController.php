@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\Facturation\StatistiquesDocuments;
+use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\Cachet;
 use App\Models\DataCenterFiche;

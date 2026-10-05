@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\Facturation\FacturesDisponibles;
+use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaiementResource;
 use App\Models\Paiement;

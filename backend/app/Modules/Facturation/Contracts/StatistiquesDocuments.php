@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Facturation;
+namespace App\Modules\Facturation\Contracts;
 
 /**
  * Statistiques des documents de Facturation, pour les compteurs Archive / Corbeille.

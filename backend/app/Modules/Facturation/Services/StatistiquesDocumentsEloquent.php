@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Facturation;
+namespace App\Modules\Facturation\Services;
 
-use App\Contracts\Facturation\StatistiquesDocuments;
-use App\Models\DocumentCommercial;
+use App\Modules\Facturation\Contracts\StatistiquesDocuments;
+use App\Modules\Facturation\Models\DocumentCommercial;
 
 /** Implémentation du contrat {@see StatistiquesDocuments} : les 4 comptages qui se trouvaient dans ArchiveController. */
 class StatistiquesDocumentsEloquent implements StatistiquesDocuments
