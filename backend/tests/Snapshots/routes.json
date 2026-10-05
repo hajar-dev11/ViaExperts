@@ -1,0 +1,2585 @@
+[
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/auth/login",
+        "nom": null,
+        "middleware": [
+            "api"
+        ],
+        "action": "AuthController@login"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/auth/forgot-password",
+        "nom": null,
+        "middleware": [
+            "api",
+            "throttle:6,1"
+        ],
+        "action": "PasswordResetController@forgotPassword"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/auth/reset-password",
+        "nom": null,
+        "middleware": [
+            "api",
+            "throttle:6,1"
+        ],
+        "action": "PasswordResetController@reset"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/auth/logout",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "AuthController@logout"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/auth/me",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "AuthController@me"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/profile",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ProfileController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/profile/photo",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ProfileController@uploadPhoto"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/profile/photo",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ProfileController@deletePhoto"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/fichiers",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "FichierController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/fichiers",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "FichierController@store"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/fichiers/{fichier}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "FichierController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/archive/counts",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ArchiveController@counts"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/notes",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "NoteController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/notes",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "NoteController@store"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/notes/{note}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "NoteController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/notes/{note}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "NoteController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/clients",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,list"
+        ],
+        "action": "ClientController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/clients",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,create"
+        ],
+        "action": "ClientController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/clients/{client}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,list"
+        ],
+        "action": "ClientController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/clients/{client}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,update"
+        ],
+        "action": "ClientController@update"
+    },
+    {
+        "methodes": [
+            "PATCH"
+        ],
+        "uri": "api/v1/clients/{client}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,update"
+        ],
+        "action": "ClientController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/clients/{client}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,archive"
+        ],
+        "action": "ClientController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/clients/{client}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,corbeille"
+        ],
+        "action": "ClientController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/clients/{client}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,archive"
+        ],
+        "action": "ClientController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/clients/{client}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:clients,delete"
+        ],
+        "action": "ClientController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/entreprises",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,list"
+        ],
+        "action": "EntrepriseController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,create"
+        ],
+        "action": "EntrepriseController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,list"
+        ],
+        "action": "EntrepriseController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,update"
+        ],
+        "action": "EntrepriseController@update"
+    },
+    {
+        "methodes": [
+            "PATCH"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,update"
+        ],
+        "action": "EntrepriseController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,archive"
+        ],
+        "action": "EntrepriseController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,corbeille"
+        ],
+        "action": "EntrepriseController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,archive"
+        ],
+        "action": "EntrepriseController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,delete"
+        ],
+        "action": "EntrepriseController@destroy"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/liste-noire",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,liste_noire"
+        ],
+        "action": "EntrepriseController@listeNoire"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/liste-noire/retirer",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,liste_noire"
+        ],
+        "action": "EntrepriseController@retirerListeNoire"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/bloquer",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,bloquer"
+        ],
+        "action": "EntrepriseController@bloquer"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/debloquer",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,bloquer"
+        ],
+        "action": "EntrepriseController@debloquer"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/documents",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,add_document"
+        ],
+        "action": "EntrepriseController@storeDocument"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/documents/{document}/download",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,list"
+        ],
+        "action": "EntrepriseController@downloadDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/documents/{document}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,archive"
+        ],
+        "action": "EntrepriseController@archiveDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/documents/{document}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,corbeille"
+        ],
+        "action": "EntrepriseController@corbeilleDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/documents/{document}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,archive"
+        ],
+        "action": "EntrepriseController@restoreDocument"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/documents/{document}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,delete"
+        ],
+        "action": "EntrepriseController@destroyDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/observations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,add_observation"
+        ],
+        "action": "EntrepriseController@storeObservation"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/observations/{observation}/fichiers/{fichier}/download",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,list"
+        ],
+        "action": "EntrepriseController@downloadObservationFichier"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/observations/{observation}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,archive"
+        ],
+        "action": "EntrepriseController@archiveObservation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/observations/{observation}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,corbeille"
+        ],
+        "action": "EntrepriseController@corbeilleObservation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/observations/{observation}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,archive"
+        ],
+        "action": "EntrepriseController@restoreObservation"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/entreprises/{entreprise}/observations/{observation}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:entreprises,delete"
+        ],
+        "action": "EntrepriseController@destroyObservation"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/domiciliations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,list"
+        ],
+        "action": "DomiciliationController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,ajouter"
+        ],
+        "action": "DomiciliationController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,list"
+        ],
+        "action": "DomiciliationController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,ajouter"
+        ],
+        "action": "DomiciliationController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,archive"
+        ],
+        "action": "DomiciliationController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,corbeille"
+        ],
+        "action": "DomiciliationController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,archive"
+        ],
+        "action": "DomiciliationController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,supprimer"
+        ],
+        "action": "DomiciliationController@destroy"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/renouveler",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,renouveler"
+        ],
+        "action": "DomiciliationController@renouveler"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/operations/{operation}/download",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,list"
+        ],
+        "action": "DomiciliationController@downloadOperationFichier"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/declarer",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@declarer"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/resilier",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,resilier"
+        ],
+        "action": "DomiciliationController@resilier"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/activer",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@activer"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/observations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@storeObservation"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/observations/{observation}/fichier/download",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,list"
+        ],
+        "action": "DomiciliationController@downloadObservationFichier"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/observations/{observation}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@destroyObservation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/observations/{observation}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@archiveObservation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/observations/{observation}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@corbeilleObservation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/observations/{observation}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@restoreObservation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/documents",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@storeDocument"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/documents/{document}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@destroyDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/documents/{document}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@archiveDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/documents/{document}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@corbeilleDocument"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/domiciliations/{domiciliation}/documents/{document}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,gestion"
+        ],
+        "action": "DomiciliationController@restoreDocument"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/services",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,list"
+        ],
+        "action": "ServiceController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,ajouter"
+        ],
+        "action": "ServiceController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/services/{service}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,list"
+        ],
+        "action": "ServiceController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/services/{service}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,modifier"
+        ],
+        "action": "ServiceController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services/{service}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,archive"
+        ],
+        "action": "ServiceController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services/{service}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,corbeille"
+        ],
+        "action": "ServiceController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services/{service}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,archive"
+        ],
+        "action": "ServiceController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/services/{service}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services,supprimer"
+        ],
+        "action": "ServiceController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/facturation/{type}/numero-propose",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@numeroPropose"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/facturation/{type}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/facturation/{type}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/facturation/{type}/{document}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/facturation/{type}/{document}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/facturation/{type}/{document}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/facturation/{type}/{document}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/facturation/{type}/{document}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/facturation/{type}/{document}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DocumentCommercialController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/declarations/{type}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/declarations/{type}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@update"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}/export/{format}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@export"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/declarations/{type}/{declaration}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/centres-domiciliation",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,centres_list"
+        ],
+        "action": "CentreDomiciliationController@index"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/centres-domiciliation/{centre}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,centres_list"
+        ],
+        "action": "CentreDomiciliationController@show"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/centres-domiciliation/{centre}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,archive_centres"
+        ],
+        "action": "CentreDomiciliationController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/centres-domiciliation/{centre}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,corbeille_centres"
+        ],
+        "action": "CentreDomiciliationController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/centres-domiciliation/{centre}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,archive_centres"
+        ],
+        "action": "CentreDomiciliationController@restore"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/centres-domiciliation",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,ajouter_centres"
+        ],
+        "action": "CentreDomiciliationController@store"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/centres-domiciliation/{centre}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,modifier_centres"
+        ],
+        "action": "CentreDomiciliationController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/centres-domiciliation/{centre}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:domiciliation,supprimer_centres"
+        ],
+        "action": "CentreDomiciliationController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/cachets/activite",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@activite"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/cachets",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/cachets",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/cachets/{cachet}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/cachets/{cachet}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/cachets/{cachet}/operations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@storeOperation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/cachets/{cachet}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/cachets/{cachet}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/cachets/{cachet}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/cachets/{cachet}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "CachetController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/mails/activite",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@activite"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/mails",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/mails",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/mails/{mail}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/mails/{mail}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/mails/{mail}/operations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@storeOperation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/mails/{mail}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/mails/{mail}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/mails/{mail}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/mails/{mail}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MailController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/rapports",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/rapports",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/rapports/{rapport}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@show"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/rapports/{rapport}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@update"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/rapports/{rapport}/document",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@telecharger"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/rapports/{rapport}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/rapports/{rapport}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/rapports/{rapport}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/rapports/{rapport}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "RapportController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/data-center",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,list"
+        ],
+        "action": "DataCenterController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/data-center",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,ajouter"
+        ],
+        "action": "DataCenterController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/data-center/{fiche}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,list"
+        ],
+        "action": "DataCenterController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/data-center/{fiche}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,modifier"
+        ],
+        "action": "DataCenterController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/data-center/{fiche}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,archive"
+        ],
+        "action": "DataCenterController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/data-center/{fiche}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,corbeille"
+        ],
+        "action": "DataCenterController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/data-center/{fiche}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,archive"
+        ],
+        "action": "DataCenterController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/data-center/{fiche}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:data_center,supprimer"
+        ],
+        "action": "DataCenterController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/mouvements/recu",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MouvementController@recu"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/mouvements/facture",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "MouvementController@facture"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/paiements/factures-disponibles",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@facturesDisponibles"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/paiements/gestion",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@gestion"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/paiements",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/paiements",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/paiements/{paiement}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@show"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/paiements/{paiement}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/paiements/{paiement}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/paiements/{paiement}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/paiements/{paiement}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/paiements/{paiement}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/services-en-cours",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,list"
+        ],
+        "action": "ServiceEnCoursController@index"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/services-en-cours/activite",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,list"
+        ],
+        "action": "ServiceEnCoursController@activite"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services-en-cours",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,ajouter"
+        ],
+        "action": "ServiceEnCoursController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,list"
+        ],
+        "action": "ServiceEnCoursController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,modifier"
+        ],
+        "action": "ServiceEnCoursController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}/operations",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,modifier"
+        ],
+        "action": "ServiceEnCoursController@storeOperation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}/archive",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,archive"
+        ],
+        "action": "ServiceEnCoursController@archive"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}/corbeille",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,corbeille"
+        ],
+        "action": "ServiceEnCoursController@corbeille"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}/restore",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,archive"
+        ],
+        "action": "ServiceEnCoursController@restore"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,supprimer"
+        ],
+        "action": "ServiceEnCoursController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/chat/contacts",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ChatController@contacts"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/chat/{user}/messages",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ChatController@messages"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/chat/{user}/messages",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ChatController@send"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/chat/messages/{message}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ChatController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/chat/messages/{message}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "ChatController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/users",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "UserController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/users",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "UserController@store"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/users/{user}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "UserController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/users/{user}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "UserController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/users/{user}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "UserController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/permissions",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "PermissionController@index"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/users/{user}/permissions",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "PermissionController@showForUser"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/users/{user}/permissions",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "admin"
+        ],
+        "action": "PermissionController@updateForUser"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/settings/cabinet",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,bureau_comptabilite"
+        ],
+        "action": "CabinetSettingController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/settings/cabinet",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,bureau_comptabilite"
+        ],
+        "action": "CabinetSettingController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/settings/cabinet/logo",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,bureau_comptabilite"
+        ],
+        "action": "CabinetSettingController@uploadLogo"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/settings/cabinet/logo",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,bureau_comptabilite"
+        ],
+        "action": "CabinetSettingController@resetLogo"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/settings/cabinet/signature",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,bureau_comptabilite"
+        ],
+        "action": "CabinetSettingController@uploadSignature"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/settings/cabinet/signature",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,bureau_comptabilite"
+        ],
+        "action": "CabinetSettingController@resetSignature"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/settings/domiciliation",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,centre_domiciliation"
+        ],
+        "action": "DomiciliationSettingController@show"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/settings/domiciliation",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,centre_domiciliation"
+        ],
+        "action": "DomiciliationSettingController@update"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/settings/domiciliation/logo",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,centre_domiciliation"
+        ],
+        "action": "DomiciliationSettingController@uploadLogo"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/settings/domiciliation/logo",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,centre_domiciliation"
+        ],
+        "action": "DomiciliationSettingController@resetLogo"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/settings/domiciliation/signature",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,centre_domiciliation"
+        ],
+        "action": "DomiciliationSettingController@uploadSignature"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/settings/domiciliation/signature",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,centre_domiciliation"
+        ],
+        "action": "DomiciliationSettingController@resetSignature"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/settings/fichier",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "SettingFichierController@show"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/service-statuses",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_services_status"
+        ],
+        "action": "ServiceStatusController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/service-statuses",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_services_status"
+        ],
+        "action": "ServiceStatusController@store"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/service-statuses/{serviceStatus}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_services_status"
+        ],
+        "action": "ServiceStatusController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/service-statuses/{serviceStatus}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_services_status"
+        ],
+        "action": "ServiceStatusController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/cachet-statuses",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_cashet_status"
+        ],
+        "action": "CachetStatusController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/cachet-statuses",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_cashet_status"
+        ],
+        "action": "CachetStatusController@store"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/cachet-statuses/{cachetStatus}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_cashet_status"
+        ],
+        "action": "CachetStatusController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/cachet-statuses/{cachetStatus}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_cashet_status"
+        ],
+        "action": "CachetStatusController@destroy"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/mail-statuses",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_mail_status"
+        ],
+        "action": "MailStatusController@index"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/mail-statuses",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_mail_status"
+        ],
+        "action": "MailStatusController@store"
+    },
+    {
+        "methodes": [
+            "PUT"
+        ],
+        "uri": "api/v1/mail-statuses/{mailStatus}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_mail_status"
+        ],
+        "action": "MailStatusController@update"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/mail-statuses/{mailStatus}",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:parametre,ajouter_mail_status"
+        ],
+        "action": "MailStatusController@destroy"
+    }
+]

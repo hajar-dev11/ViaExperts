@@ -1,0 +1,1476 @@
+{
+    "GET /api/v1/archive/counts": {
+        "statut": 200,
+        "forme": {
+            "avoir": "int",
+            "bl": "int",
+            "cachets": "int",
+            "chiffre_affaire": "int",
+            "clients": "int",
+            "data_center": "int",
+            "devis": "int",
+            "domiciliation": "int",
+            "entreprises": "int",
+            "facture": "int",
+            "mails": "int",
+            "paiements": "int",
+            "rapports": "int",
+            "services": "int",
+            "services_en_cours": "int",
+            "tva": "int"
+        }
+    },
+    "GET /api/v1/auth/me": {
+        "statut": 200,
+        "forme": {
+            "permissions": [
+                "[]"
+            ],
+            "user": {
+                "created_at": "string",
+                "email": "string",
+                "email_verified_at": "string",
+                "id": "int",
+                "is_admin": "bool",
+                "name": "string",
+                "telephone": "string",
+                "updated_at": "string"
+            }
+        }
+    },
+    "GET /api/v1/cachets": {
+        "statut": 200,
+        "forme": [
+            "[]",
+            {
+                "client": "string",
+                "clientId": "null",
+                "dateDepart": "string",
+                "derniereOperation": "string",
+                "entrepriseId": "int",
+                "id": "int",
+                "lignes": "int",
+                "operations": [
+                    "[]"
+                ],
+                "partyId": "int",
+                "status": "string",
+                "statut": {
+                    "couleurFond": "string",
+                    "couleurTexte": "string",
+                    "id": "int",
+                    "nom": "string"
+                }
+            }
+        ]
+    },
+    "GET /api/v1/centres-domiciliation": {
+        "statut": 200,
+        "forme": {
+            "current_page": "int",
+            "data": [
+                "[]",
+                {
+                    "adresse": "string",
+                    "created_at": "string",
+                    "deleted_at": "null",
+                    "email": "null",
+                    "ice": "null",
+                    "id": "int",
+                    "if": "null",
+                    "nom": "string",
+                    "numero_archive": "null",
+                    "status": "string",
+                    "telephone": "null",
+                    "updated_at": "string",
+                    "ville": "string"
+                }
+            ],
+            "first_page_url": "string",
+            "from": "int",
+            "last_page": "int",
+            "last_page_url": "string",
+            "links": [
+                "[]",
+                {
+                    "active": "bool",
+                    "label": "string",
+                    "url": "string"
+                }
+            ],
+            "next_page_url": "string",
+            "path": "string",
+            "per_page": "int",
+            "prev_page_url": "null",
+            "to": "int",
+            "total": "int"
+        }
+    },
+    "GET /api/v1/chat/contacts": {
+        "statut": 200,
+        "forme": [
+            "[]"
+        ]
+    },
+    "GET /api/v1/clients": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "adresse": "string",
+                    "adresseAr": "null",
+                    "cin": "string",
+                    "createdAt": "string",
+                    "createdBy": "null",
+                    "email": "string",
+                    "entreprises": [
+                        "[]"
+                    ],
+                    "genre": "string",
+                    "id": "int",
+                    "naissance": "string",
+                    "nationalite": "string",
+                    "nom": "string",
+                    "nomAr": "null",
+                    "status": "string",
+                    "tel": "string",
+                    "tel2": "null",
+                    "updatedAt": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/clients/{id}": {
+        "statut": 200,
+        "forme": {
+            "data": {
+                "adresse": "string",
+                "adresseAr": "null",
+                "cin": "string",
+                "createdAt": "string",
+                "createdBy": "null",
+                "email": "string",
+                "entreprises": [
+                    "[]",
+                    {
+                        "centreDomiciliation": "string",
+                        "denomination": "string",
+                        "forme": "string",
+                        "ice": "null",
+                        "id": "int",
+                        "if": "null",
+                        "local": "null",
+                        "situation": "string"
+                    }
+                ],
+                "genre": "string",
+                "id": "int",
+                "naissance": "string",
+                "nationalite": "string",
+                "nom": "string",
+                "nomAr": "null",
+                "status": "string",
+                "tel": "string",
+                "tel2": "null",
+                "updatedAt": "string"
+            }
+        }
+    },
+    "GET /api/v1/data-center": {
+        "statut": 200,
+        "forme": {
+            "current_page": "int",
+            "data": [
+                "[]"
+            ],
+            "first_page_url": "string",
+            "from": "null",
+            "last_page": "int",
+            "last_page_url": "string",
+            "links": [
+                "[]",
+                {
+                    "active": "bool",
+                    "label": "string",
+                    "url": "string"
+                }
+            ],
+            "next_page_url": "null",
+            "path": "string",
+            "per_page": "int",
+            "prev_page_url": "null",
+            "to": "null",
+            "total": "int"
+        }
+    },
+    "GET /api/v1/declarations/tva": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "annee": "int",
+                    "clientIf": "string",
+                    "date": "string",
+                    "entrepriseId": "int",
+                    "id": "int",
+                    "identifiantPaiement": "string",
+                    "lignes": [
+                        "[]",
+                        {
+                            "dateFac": "null",
+                            "datePaie": "null",
+                            "designation": "string",
+                            "factNum": "string",
+                            "ht": "string",
+                            "ice": "null",
+                            "id": "int",
+                            "idPaie": "null",
+                            "identifiantFiscal": "null",
+                            "libelleFournisseur": "null",
+                            "ordreRef": "null",
+                            "taux": "string",
+                            "ttc": "string",
+                            "tva": "string"
+                        }
+                    ],
+                    "nomComplet": "string",
+                    "periode": "string",
+                    "periodeType": "string",
+                    "periodeValeur": "int",
+                    "regime": "string",
+                    "situation": "string",
+                    "status": "string",
+                    "totalHt": "string",
+                    "totalTtc": "string",
+                    "totalTva": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/domiciliations": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "centre": "string",
+                    "centreAdresse": "string",
+                    "centreIce": "null",
+                    "centreId": "int",
+                    "centreVille": "string",
+                    "client": "string",
+                    "clientAdresse": "string",
+                    "clientCin": "string",
+                    "createdAt": "string",
+                    "createdBy": "string",
+                    "dateDeclaration": "null",
+                    "dateDepart": "string",
+                    "dateFacture": "null",
+                    "dateFin": "string",
+                    "dateLegalisation": "null",
+                    "datePaiement": "null",
+                    "dateResiliation": "null",
+                    "denomination": "string",
+                    "docAttestation": "bool",
+                    "docContrat": "bool",
+                    "docFacture": "bool",
+                    "docProcuration": "bool",
+                    "documents": [
+                        "[]"
+                    ],
+                    "email": "string",
+                    "entrepriseId": "int",
+                    "etat": "string",
+                    "ice": "null",
+                    "id": "int",
+                    "if": "null",
+                    "modePaiement": "string",
+                    "moisGratuits": "int",
+                    "moisPayee": "int",
+                    "numeroArchive": "null",
+                    "observations": [
+                        "[]"
+                    ],
+                    "operations": [
+                        "[]"
+                    ],
+                    "prixParMois": "string",
+                    "prixTotal": "string",
+                    "renouvelleDeId": "null",
+                    "signatureSurFacture": "bool",
+                    "status": "string",
+                    "statutAffichage": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/domiciliations/{id}": {
+        "statut": 200,
+        "forme": {
+            "data": {
+                "centre": "string",
+                "centreAdresse": "string",
+                "centreIce": "null",
+                "centreId": "int",
+                "centreVille": "string",
+                "client": "string",
+                "clientAdresse": "string",
+                "clientCin": "string",
+                "createdAt": "string",
+                "createdBy": "string",
+                "dateDeclaration": "null",
+                "dateDepart": "string",
+                "dateFacture": "null",
+                "dateFin": "string",
+                "dateLegalisation": "null",
+                "datePaiement": "null",
+                "dateResiliation": "null",
+                "denomination": "string",
+                "docAttestation": "bool",
+                "docContrat": "bool",
+                "docFacture": "bool",
+                "docProcuration": "bool",
+                "documents": [
+                    "[]"
+                ],
+                "email": "string",
+                "entrepriseId": "int",
+                "etat": "string",
+                "ice": "null",
+                "id": "int",
+                "if": "null",
+                "modePaiement": "string",
+                "moisGratuits": "int",
+                "moisPayee": "int",
+                "numeroArchive": "null",
+                "observations": [
+                    "[]"
+                ],
+                "operations": [
+                    "[]"
+                ],
+                "prixParMois": "string",
+                "prixTotal": "string",
+                "renouvelleDeId": "null",
+                "signatureSurFacture": "bool",
+                "status": "string",
+                "statutAffichage": "string"
+            }
+        }
+    },
+    "GET /api/v1/entreprises": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "associes": [
+                        "[]"
+                    ],
+                    "capital": "null",
+                    "centreDomiciliation": "string",
+                    "centreDomiciliationId": "int",
+                    "client": "string",
+                    "clientId": "int",
+                    "cnss": "null",
+                    "createdAt": "string",
+                    "createdBy": "null",
+                    "dateDebut": "null",
+                    "denomination": "string",
+                    "documents": [
+                        "[]"
+                    ],
+                    "forme": "string",
+                    "ice": "null",
+                    "id": "int",
+                    "if": "null",
+                    "local": "null",
+                    "numArchive": "null",
+                    "numDossier": "null",
+                    "observation": "null",
+                    "observations": "null",
+                    "observationsListe": [
+                        "[]"
+                    ],
+                    "periode": "string",
+                    "rc": "null",
+                    "secteurs": [
+                        "[]"
+                    ],
+                    "single": "null",
+                    "situation": "string",
+                    "status": "string",
+                    "tp": "null",
+                    "tribunal": "null",
+                    "updatedAt": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/entreprises/{id}": {
+        "statut": 200,
+        "forme": {
+            "data": {
+                "associes": [
+                    "[]"
+                ],
+                "capital": "null",
+                "centreDomiciliation": "string",
+                "centreDomiciliationId": "int",
+                "client": "string",
+                "clientId": "int",
+                "cnss": "null",
+                "createdAt": "string",
+                "createdBy": "null",
+                "dateDebut": "null",
+                "denomination": "string",
+                "documents": [
+                    "[]"
+                ],
+                "forme": "string",
+                "ice": "null",
+                "id": "int",
+                "if": "null",
+                "local": "null",
+                "numArchive": "null",
+                "numDossier": "null",
+                "observation": "null",
+                "observations": "null",
+                "observationsListe": [
+                    "[]"
+                ],
+                "periode": "string",
+                "rc": "null",
+                "secteurs": [
+                    "[]"
+                ],
+                "single": "null",
+                "situation": "string",
+                "status": "string",
+                "tp": "null",
+                "tribunal": "null",
+                "updatedAt": "string"
+            }
+        }
+    },
+    "GET /api/v1/facturation/avoir": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "dateCredit": "null",
+                    "dateDocument": "string",
+                    "datePaiement": "null",
+                    "emetteur": "string",
+                    "id": "int",
+                    "lignes": [
+                        "[]",
+                        {
+                            "designation": "string",
+                            "id": "int",
+                            "prixUnitaire": "string",
+                            "quantite": "string",
+                            "remisePourcent": "string",
+                            "serviceId": "int",
+                            "totalHt": "string",
+                            "totalNetHt": "string",
+                            "totalTtc": "string",
+                            "totalTva": "string",
+                            "tvaPourcent": "string"
+                        }
+                    ],
+                    "modePaiement": "null",
+                    "note": "null",
+                    "numero": "string",
+                    "partyId": "int",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "responsable": "null",
+                    "signature": "bool",
+                    "status": "string",
+                    "tiers": "string",
+                    "tiersCin": "string",
+                    "tiersIce": "null",
+                    "tiersType": "string",
+                    "totalHt": "string",
+                    "totalNetHt": "string",
+                    "totalRemise": "string",
+                    "totalTtc": "string",
+                    "totalTva": "string",
+                    "type": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/facturation/bl": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "dateCredit": "null",
+                    "dateDocument": "string",
+                    "datePaiement": "null",
+                    "emetteur": "string",
+                    "id": "int",
+                    "lignes": [
+                        "[]",
+                        {
+                            "designation": "string",
+                            "id": "int",
+                            "prixUnitaire": "string",
+                            "quantite": "string",
+                            "remisePourcent": "string",
+                            "serviceId": "int",
+                            "totalHt": "string",
+                            "totalNetHt": "string",
+                            "totalTtc": "string",
+                            "totalTva": "string",
+                            "tvaPourcent": "string"
+                        }
+                    ],
+                    "modePaiement": "null",
+                    "note": "null",
+                    "numero": "string",
+                    "partyId": "int",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "responsable": "null",
+                    "signature": "bool",
+                    "status": "string",
+                    "tiers": "string",
+                    "tiersCin": "string",
+                    "tiersIce": "null",
+                    "tiersType": "string",
+                    "totalHt": "string",
+                    "totalNetHt": "string",
+                    "totalRemise": "string",
+                    "totalTtc": "string",
+                    "totalTva": "string",
+                    "type": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/facturation/devis": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "dateCredit": "null",
+                    "dateDocument": "string",
+                    "datePaiement": "null",
+                    "emetteur": "string",
+                    "id": "int",
+                    "lignes": [
+                        "[]",
+                        {
+                            "designation": "string",
+                            "id": "int",
+                            "prixUnitaire": "string",
+                            "quantite": "string",
+                            "remisePourcent": "string",
+                            "serviceId": "int",
+                            "totalHt": "string",
+                            "totalNetHt": "string",
+                            "totalTtc": "string",
+                            "totalTva": "string",
+                            "tvaPourcent": "string"
+                        }
+                    ],
+                    "modePaiement": "null",
+                    "note": "null",
+                    "numero": "string",
+                    "partyId": "int",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "responsable": "null",
+                    "signature": "bool",
+                    "status": "string",
+                    "tiers": "string",
+                    "tiersCin": "string",
+                    "tiersIce": "null",
+                    "tiersType": "string",
+                    "totalHt": "string",
+                    "totalNetHt": "string",
+                    "totalRemise": "string",
+                    "totalTtc": "string",
+                    "totalTva": "string",
+                    "type": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/facturation/facture": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "dateCredit": "null",
+                    "dateDocument": "string",
+                    "datePaiement": "null",
+                    "emetteur": "string",
+                    "id": "int",
+                    "lignes": [
+                        "[]",
+                        {
+                            "designation": "string",
+                            "id": "int",
+                            "prixUnitaire": "string",
+                            "quantite": "string",
+                            "remisePourcent": "string",
+                            "serviceId": "int",
+                            "totalHt": "string",
+                            "totalNetHt": "string",
+                            "totalTtc": "string",
+                            "totalTva": "string",
+                            "tvaPourcent": "string"
+                        }
+                    ],
+                    "modePaiement": "null",
+                    "note": "null",
+                    "numero": "string",
+                    "partyId": "int",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "responsable": "null",
+                    "signature": "bool",
+                    "status": "string",
+                    "tiers": "string",
+                    "tiersCin": "string",
+                    "tiersIce": "null",
+                    "tiersType": "string",
+                    "totalHt": "string",
+                    "totalNetHt": "string",
+                    "totalRemise": "string",
+                    "totalTtc": "string",
+                    "totalTva": "string",
+                    "type": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/facturation/facture/numero-propose?emetteur=bureau_comptabilite": {
+        "statut": 200,
+        "forme": {
+            "numero": "string",
+            "responsable": "null"
+        }
+    },
+    "GET /api/v1/facturation/facture/{id}": {
+        "statut": 200,
+        "forme": {
+            "data": {
+                "dateCredit": "null",
+                "dateDocument": "string",
+                "datePaiement": "null",
+                "emetteur": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "remisePourcent": "string",
+                        "serviceId": "int",
+                        "totalHt": "string",
+                        "totalNetHt": "string",
+                        "totalTtc": "string",
+                        "totalTva": "string",
+                        "tvaPourcent": "string"
+                    }
+                ],
+                "modePaiement": "null",
+                "note": "null",
+                "numero": "string",
+                "partyId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "tiers": "string",
+                "tiersCin": "string",
+                "tiersIce": "null",
+                "tiersType": "string",
+                "totalHt": "string",
+                "totalNetHt": "string",
+                "totalRemise": "string",
+                "totalTtc": "string",
+                "totalTva": "string",
+                "type": "string"
+            }
+        }
+    },
+    "GET /api/v1/fichiers": {
+        "statut": 200,
+        "forme": [
+            "[]"
+        ]
+    },
+    "GET /api/v1/mails": {
+        "statut": 200,
+        "forme": [
+            "[]",
+            {
+                "client": "string",
+                "clientId": "null",
+                "dateDepart": "string",
+                "derniereOperation": "string",
+                "entrepriseId": "int",
+                "id": "int",
+                "observation": "null",
+                "operations": [
+                    "[]"
+                ],
+                "partyId": "int",
+                "status": "string",
+                "statut": {
+                    "couleurFond": "string",
+                    "couleurTexte": "string",
+                    "id": "int",
+                    "nom": "string"
+                }
+            }
+        ]
+    },
+    "GET /api/v1/mouvements/facture": {
+        "statut": 200,
+        "forme": {
+            "annees": [
+                "[]",
+                "int"
+            ],
+            "lignes": [
+                "[]",
+                {
+                    "client": "string",
+                    "clientId": "int",
+                    "dateDocument": "string",
+                    "entrepriseId": "null",
+                    "id": "int",
+                    "numero": "string",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "responsable": "null",
+                    "totalHt": "string",
+                    "totalTtc": "string"
+                }
+            ],
+            "totaux": {
+                "montantHt": "string",
+                "montantPaye": "string",
+                "montantTotal": "string"
+            }
+        }
+    },
+    "GET /api/v1/mouvements/recu": {
+        "statut": 200,
+        "forme": {
+            "annees": [
+                "[]",
+                "int"
+            ],
+            "lignes": [
+                "[]",
+                {
+                    "client": "string",
+                    "clientId": "int",
+                    "dateCredit": "null",
+                    "dateOperation": "string",
+                    "entrepriseId": "null",
+                    "id": "int",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "prixTotal": "string",
+                    "reference": "string",
+                    "regle": "bool",
+                    "responsable": "null"
+                }
+            ],
+            "totaux": {
+                "montantPaye": "string",
+                "montantRestante": "string",
+                "montantTotal": "string"
+            }
+        }
+    },
+    "GET /api/v1/notes": {
+        "statut": 200,
+        "forme": [
+            "[]"
+        ]
+    },
+    "GET /api/v1/paiements": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "client": "string",
+                    "clientCin": "string",
+                    "clientId": "int",
+                    "clientTelephone": "string",
+                    "dateCredit": "null",
+                    "dateOperation": "string",
+                    "documentId": "int",
+                    "emetteur": "string",
+                    "entrepriseIce": "null",
+                    "entrepriseId": "null",
+                    "factureNumero": "string",
+                    "id": "int",
+                    "lignes": [
+                        "[]",
+                        {
+                            "designation": "string",
+                            "id": "int",
+                            "prixUnitaire": "string",
+                            "quantite": "string",
+                            "serviceId": "int",
+                            "total": "string"
+                        }
+                    ],
+                    "modePaiement": "string",
+                    "observation": "null",
+                    "partyId": "int",
+                    "pieceJointeChemin": "null",
+                    "pieceJointeNom": "null",
+                    "prixPaye": "string",
+                    "prixRestant": "string",
+                    "reference": "string",
+                    "responsable": "null",
+                    "signature": "bool",
+                    "status": "string",
+                    "total": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/paiements/factures-disponibles": {
+        "statut": 200,
+        "forme": [
+            "[]",
+            {
+                "id": "int",
+                "numero": "string",
+                "partyId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "tiers": "string",
+                "totalTtc": "string"
+            }
+        ]
+    },
+    "GET /api/v1/paiements/gestion": {
+        "statut": 200,
+        "forme": [
+            "[]",
+            {
+                "client": "string",
+                "clientId": "int",
+                "dateCredit": "null",
+                "dateOperation": "string",
+                "entrepriseId": "null",
+                "id": "int",
+                "paiementId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "prixTotal": "string",
+                "reference": "string",
+                "regle": "bool",
+                "responsable": "null",
+                "service": "string"
+            }
+        ]
+    },
+    "GET /api/v1/paiements/{id}": {
+        "statut": 200,
+        "forme": {
+            "data": {
+                "client": "string",
+                "clientCin": "string",
+                "clientId": "int",
+                "clientTelephone": "string",
+                "dateCredit": "null",
+                "dateOperation": "string",
+                "documentId": "int",
+                "emetteur": "string",
+                "entrepriseIce": "null",
+                "entrepriseId": "null",
+                "factureNumero": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "serviceId": "int",
+                        "total": "string"
+                    }
+                ],
+                "modePaiement": "string",
+                "observation": "null",
+                "partyId": "int",
+                "pieceJointeChemin": "null",
+                "pieceJointeNom": "null",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "reference": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "total": "string"
+            }
+        }
+    },
+    "GET /api/v1/permissions": {
+        "statut": 200,
+        "forme": [
+            "[]",
+            {
+                "action": "string",
+                "id": "int",
+                "module": "string"
+            }
+        ]
+    },
+    "GET /api/v1/rapports": {
+        "statut": 200,
+        "forme": [
+            "[]"
+        ]
+    },
+    "GET /api/v1/service-statuses": {
+        "statut": 200,
+        "forme": {
+            "current_page": "int",
+            "data": [
+                "[]"
+            ],
+            "first_page_url": "string",
+            "from": "null",
+            "last_page": "int",
+            "last_page_url": "string",
+            "links": [
+                "[]",
+                {
+                    "active": "bool",
+                    "label": "string",
+                    "url": "string"
+                }
+            ],
+            "next_page_url": "null",
+            "path": "string",
+            "per_page": "int",
+            "prev_page_url": "null",
+            "to": "null",
+            "total": "int"
+        }
+    },
+    "GET /api/v1/services": {
+        "statut": 200,
+        "forme": [
+            "[]",
+            {
+                "created_at": "string",
+                "created_by": "null",
+                "deleted_at": "null",
+                "description": "null",
+                "id": "int",
+                "maitre": "null",
+                "nom": "string",
+                "prix": "string",
+                "status": "string",
+                "updated_at": "string",
+                "via_experts": "bool"
+            }
+        ]
+    },
+    "GET /api/v1/services-en-cours": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "client": "string",
+                    "clientId": "int",
+                    "dateDepart": "string",
+                    "derniereOperation": "string",
+                    "id": "int",
+                    "operations": [
+                        "[]"
+                    ],
+                    "service": "string",
+                    "serviceId": "int",
+                    "status": "string",
+                    "statut": "null"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/services-en-cours/activite": {
+        "statut": 200,
+        "forme": [
+            "[]"
+        ]
+    },
+    "GET /api/v1/settings/cabinet": {
+        "statut": 200,
+        "forme": {
+            "afficher_entreprise_info_recu": "bool",
+            "avoir_prefixe": "null",
+            "avoir_prochain_numero": "null",
+            "avoir_suffixe": "null",
+            "bl_prefixe": "null",
+            "bl_prochain_numero": "null",
+            "bl_suffixe": "null",
+            "created_at": "string",
+            "devis_prefixe": "null",
+            "devis_prochain_numero": "null",
+            "devis_suffixe": "null",
+            "entreprise_info": "null",
+            "facture_prefixe": "null",
+            "facture_prochain_numero": "null",
+            "facture_suffixe": "null",
+            "ice_societe": "null",
+            "id": "int",
+            "logo_path": "null",
+            "nom_societe": "null",
+            "references_recu": "null",
+            "signature_path": "null",
+            "updated_at": "string"
+        }
+    },
+    "GET /api/v1/settings/domiciliation": {
+        "statut": 201,
+        "forme": {
+            "created_at": "string",
+            "id": "int",
+            "updated_at": "string"
+        }
+    },
+    "GET /api/v1/users": {
+        "statut": 200,
+        "forme": {
+            "data": [
+                "[]",
+                {
+                    "createdAt": "string",
+                    "email": "string",
+                    "fonction": "null",
+                    "id": "int",
+                    "isAdmin": "bool",
+                    "name": "string",
+                    "permissions": [
+                        "[]"
+                    ],
+                    "telephone": "string"
+                }
+            ]
+        }
+    },
+    "GET /api/v1/users/{id}": {
+        "statut": 200,
+        "forme": {
+            "data": {
+                "createdAt": "string",
+                "email": "string",
+                "fonction": "null",
+                "id": "int",
+                "isAdmin": "bool",
+                "name": "string",
+                "permissions": [
+                    "[]"
+                ],
+                "telephone": "string"
+            }
+        }
+    },
+    "GET /api/v1/users/{id}/permissions": {
+        "statut": 200,
+        "forme": [
+            "[]"
+        ]
+    },
+    "POST /api/v1/cachets": {
+        "statut": 201,
+        "forme": {
+            "client": "string",
+            "clientId": "null",
+            "dateDepart": "string",
+            "derniereOperation": "string",
+            "entrepriseId": "int",
+            "id": "int",
+            "lignes": "int",
+            "operations": [
+                "[]"
+            ],
+            "partyId": "int",
+            "status": "string",
+            "statut": {
+                "couleurFond": "string",
+                "couleurTexte": "string",
+                "id": "int",
+                "nom": "string"
+            }
+        }
+    },
+    "POST /api/v1/declarations/tva": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "annee": "int",
+                "clientIf": "string",
+                "date": "string",
+                "entrepriseId": "int",
+                "id": "int",
+                "identifiantPaiement": "string",
+                "lignes": [
+                    "[]",
+                    {
+                        "dateFac": "null",
+                        "datePaie": "null",
+                        "designation": "string",
+                        "factNum": "string",
+                        "ht": "string",
+                        "ice": "null",
+                        "id": "int",
+                        "idPaie": "null",
+                        "identifiantFiscal": "null",
+                        "libelleFournisseur": "null",
+                        "ordreRef": "null",
+                        "taux": "string",
+                        "ttc": "string",
+                        "tva": "string"
+                    }
+                ],
+                "nomComplet": "string",
+                "periode": "string",
+                "periodeType": "string",
+                "periodeValeur": "int",
+                "regime": "string",
+                "situation": "string",
+                "status": "string",
+                "totalHt": "string",
+                "totalTtc": "string",
+                "totalTva": "string"
+            }
+        }
+    },
+    "POST /api/v1/domiciliations": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "centre": "string",
+                "centreAdresse": "string",
+                "centreIce": "null",
+                "centreId": "int",
+                "centreVille": "string",
+                "client": "string",
+                "clientAdresse": "string",
+                "clientCin": "string",
+                "createdAt": "string",
+                "createdBy": "string",
+                "dateDeclaration": "null",
+                "dateDepart": "string",
+                "dateFacture": "null",
+                "dateFin": "string",
+                "dateLegalisation": "null",
+                "datePaiement": "null",
+                "dateResiliation": "null",
+                "denomination": "string",
+                "docAttestation": "bool",
+                "docContrat": "bool",
+                "docFacture": "bool",
+                "docProcuration": "bool",
+                "documents": [
+                    "[]"
+                ],
+                "email": "string",
+                "entrepriseId": "int",
+                "etat": "string",
+                "ice": "null",
+                "id": "int",
+                "if": "null",
+                "modePaiement": "string",
+                "moisGratuits": "int",
+                "moisPayee": "int",
+                "numeroArchive": "null",
+                "observations": [
+                    "[]"
+                ],
+                "operations": [
+                    "[]"
+                ],
+                "prixParMois": "string",
+                "prixTotal": "string",
+                "renouvelleDeId": "null",
+                "signatureSurFacture": "bool",
+                "status": "string",
+                "statutAffichage": "string"
+            }
+        }
+    },
+    "POST /api/v1/facturation/avoir": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "dateCredit": "null",
+                "dateDocument": "string",
+                "datePaiement": "null",
+                "emetteur": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "remisePourcent": "string",
+                        "serviceId": "int",
+                        "totalHt": "string",
+                        "totalNetHt": "string",
+                        "totalTtc": "string",
+                        "totalTva": "string",
+                        "tvaPourcent": "string"
+                    }
+                ],
+                "modePaiement": "null",
+                "note": "null",
+                "numero": "string",
+                "partyId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "tiers": "string",
+                "tiersCin": "string",
+                "tiersIce": "null",
+                "tiersType": "string",
+                "totalHt": "string",
+                "totalNetHt": "string",
+                "totalRemise": "string",
+                "totalTtc": "string",
+                "totalTva": "string",
+                "type": "string"
+            }
+        }
+    },
+    "POST /api/v1/facturation/bl": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "dateCredit": "null",
+                "dateDocument": "string",
+                "datePaiement": "null",
+                "emetteur": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "remisePourcent": "string",
+                        "serviceId": "int",
+                        "totalHt": "string",
+                        "totalNetHt": "string",
+                        "totalTtc": "string",
+                        "totalTva": "string",
+                        "tvaPourcent": "string"
+                    }
+                ],
+                "modePaiement": "null",
+                "note": "null",
+                "numero": "string",
+                "partyId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "tiers": "string",
+                "tiersCin": "string",
+                "tiersIce": "null",
+                "tiersType": "string",
+                "totalHt": "string",
+                "totalNetHt": "string",
+                "totalRemise": "string",
+                "totalTtc": "string",
+                "totalTva": "string",
+                "type": "string"
+            }
+        }
+    },
+    "POST /api/v1/facturation/devis": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "dateCredit": "null",
+                "dateDocument": "string",
+                "datePaiement": "null",
+                "emetteur": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "remisePourcent": "string",
+                        "serviceId": "int",
+                        "totalHt": "string",
+                        "totalNetHt": "string",
+                        "totalTtc": "string",
+                        "totalTva": "string",
+                        "tvaPourcent": "string"
+                    }
+                ],
+                "modePaiement": "null",
+                "note": "null",
+                "numero": "string",
+                "partyId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "tiers": "string",
+                "tiersCin": "string",
+                "tiersIce": "null",
+                "tiersType": "string",
+                "totalHt": "string",
+                "totalNetHt": "string",
+                "totalRemise": "string",
+                "totalTtc": "string",
+                "totalTva": "string",
+                "type": "string"
+            }
+        }
+    },
+    "POST /api/v1/facturation/facture": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "dateCredit": "null",
+                "dateDocument": "string",
+                "datePaiement": "null",
+                "emetteur": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "remisePourcent": "string",
+                        "serviceId": "int",
+                        "totalHt": "string",
+                        "totalNetHt": "string",
+                        "totalTtc": "string",
+                        "totalTva": "string",
+                        "tvaPourcent": "string"
+                    }
+                ],
+                "modePaiement": "null",
+                "note": "null",
+                "numero": "string",
+                "partyId": "int",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "tiers": "string",
+                "tiersCin": "string",
+                "tiersIce": "null",
+                "tiersType": "string",
+                "totalHt": "string",
+                "totalNetHt": "string",
+                "totalRemise": "string",
+                "totalTtc": "string",
+                "totalTva": "string",
+                "type": "string"
+            }
+        }
+    },
+    "POST /api/v1/mails": {
+        "statut": 201,
+        "forme": {
+            "client": "string",
+            "clientId": "null",
+            "dateDepart": "string",
+            "derniereOperation": "string",
+            "entrepriseId": "int",
+            "id": "int",
+            "observation": "null",
+            "operations": [
+                "[]"
+            ],
+            "partyId": "int",
+            "status": "string",
+            "statut": {
+                "couleurFond": "string",
+                "couleurTexte": "string",
+                "id": "int",
+                "nom": "string"
+            }
+        }
+    },
+    "POST /api/v1/paiements": {
+        "statut": 201,
+        "forme": {
+            "data": {
+                "client": "string",
+                "clientCin": "string",
+                "clientId": "int",
+                "clientTelephone": "string",
+                "dateCredit": "null",
+                "dateOperation": "string",
+                "documentId": "int",
+                "emetteur": "string",
+                "entrepriseIce": "null",
+                "entrepriseId": "null",
+                "factureNumero": "string",
+                "id": "int",
+                "lignes": [
+                    "[]",
+                    {
+                        "designation": "string",
+                        "id": "int",
+                        "prixUnitaire": "string",
+                        "quantite": "string",
+                        "serviceId": "int",
+                        "total": "string"
+                    }
+                ],
+                "modePaiement": "string",
+                "observation": "null",
+                "partyId": "int",
+                "pieceJointeChemin": "null",
+                "pieceJointeNom": "null",
+                "prixPaye": "string",
+                "prixRestant": "string",
+                "reference": "string",
+                "responsable": "null",
+                "signature": "bool",
+                "status": "string",
+                "total": "string"
+            }
+        }
+    }
+}
