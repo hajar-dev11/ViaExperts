@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { nav } from '../components/navConfig.js'
 import { MODES_PAIEMENT as MODES_PARTAGES } from '../shared/constants/documents.js'
 import { MODES_PAIEMENT as MODES_DOMICILIATION } from '../api/domiciliations.js'
-import { aujourdhui, calculerDateFin, classerNouveauRenouveler } from '../utils/domiciliation.js'
+import { aujourdhui } from '../shared/utils/date.js'
+import { calculerDateFin, classerNouveauRenouveler } from '../utils/domiciliation.js'
 import { DOCUMENTS_DOMICILIATION, documentsDisponibles } from '../utils/documentsDomiciliation.js'
 
 const SRC = path.resolve(__dirname, '..')
@@ -100,5 +101,44 @@ describe('utils/documentsDomiciliation.js : documents du dossier', () => {
     expect(documentsDisponibles({ docFacture: true, docAttestation: true }).map((d) => d.cle)).toEqual(['facture', 'attestation'])
     expect(documentsDisponibles({})).toEqual([])
     expect(documentsDisponibles(null)).toEqual([])
+  })
+})
+
+// ---- Frontières : Facturation et Paiements ne dépendent pas de Domiciliation (étape 17) -------------------------
+function fichiers(dossier, sortie = []) {
+  for (const e of fs.readdirSync(dossier, { withFileTypes: true })) {
+    const p = path.join(dossier, e.name)
+    if (e.isDirectory()) fichiers(p, sortie)
+    else if (/\.(js|jsx)$/.test(e.name)) sortie.push(p)
+  }
+  return sortie
+}
+const importsDe = (f) => [...fs.readFileSync(f, 'utf8').matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]/g)]
+  .map((m) => path.relative(SRC, path.resolve(path.dirname(f), m[1])).split(path.sep).join('/'))
+const estDomiciliation = (rel) => /^(modules\/domiciliation|api\/domiciliations|api\/centres|utils\/(domiciliation|documentsDomiciliation|factureDomiciliation|attestation|contrat|procuration)|components\/(Domiciliation|DocumentDomiciliation|StatutDomiciliation)|pages\/(Domiciliation|CentreDomiciliation|AttestationDomiciliation|ContratDomiciliation|ProcurationDomiciliation))/.test(rel)
+
+describe('Frontières : Facturation et Paiements ne dépendent pas de Domiciliation', () => {
+  const rel = (f) => path.relative(SRC, f).split(path.sep).join('/')
+  const facturationEtPaiements = fichiers(SRC).filter((f) => {
+    const r = rel(f)
+    return r.startsWith('modules/facturation/') || r.startsWith('modules/paiements/') || /^pages\/Paiement(Form|Gestion|List)\.jsx$/.test(r)
+  })
+
+  it('le jeu de fichiers examiné est non vide', () => {
+    expect(facturationEtPaiements.length).toBeGreaterThan(5)
+  })
+
+  it('aucun import vers du code Domiciliation', () => {
+    for (const f of facturationEtPaiements) {
+      for (const cible of importsDe(f)) expect(estDomiciliation(cible), `${rel(f)} -> ${cible}`).toBe(false)
+    }
+  })
+
+  it('`aujourdhui` est dans shared/utils/date.js, consommée par Facturation, Paiements et Domiciliation', () => {
+    const consommateurs = fichiers(SRC).filter((f) => !rel(f).startsWith('__tests__/') && importsDe(f).includes('shared/utils/date.js')).map(rel).sort()
+    expect(consommateurs).toEqual([
+      'components/DomiciliationActions.jsx', 'modules/facturation/pages/DocumentForm.jsx',
+      'pages/DomiciliationForm.jsx', 'pages/PaiementForm.jsx',
+    ])
   })
 })

@@ -9,7 +9,7 @@ import { ApiError } from '../../../api/http.js'
 import { listClients } from '../../../api/clients.js'
 import { listEntreprises } from '../../../api/entreprises.js'
 import { listServices } from '../../../api/services.js'
-import { aujourdhui } from '../../../utils/domiciliation.js'
+import { aujourdhui } from '../../../shared/utils/date.js'
 import {
   EMETTEURS, MODES_PAIEMENT, createDocument, updateDocument, getDocument, getNumeroPropose,
 } from '../api/facturation.js'

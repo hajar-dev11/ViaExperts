@@ -8,7 +8,8 @@ import Modal from './ui/Modal.jsx'
 import { Field, FileInput, Input, Select, Textarea, Checkbox, CheckboxCard } from './Field.jsx'
 import { MODES_PAIEMENT } from '../api/domiciliations.js'
 import { documentsDisponibles } from '../utils/documentsDomiciliation.js'
-import { aujourdhui, calculerDateFin, chargerPrixServiceDomiciliation } from '../utils/domiciliation.js'
+import { calculerDateFin, chargerPrixServiceDomiciliation } from '../utils/domiciliation.js'
+import { aujourdhui } from '../shared/utils/date.js'
 
 /**
  * « Imprimer » — propose les documents cochés à l'enregistrement de la

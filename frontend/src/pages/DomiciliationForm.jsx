@@ -16,7 +16,8 @@ import { listEntreprises } from '../api/entreprises.js'
 import { ApiError } from '../api/http.js'
 import { chargerSignatureDomiciliation } from '../utils/documentsDomiciliation.js'
 import { getDomiciliationSettings } from '../api/settings.js'
-import { aujourdhui, calculerDateFin } from '../utils/domiciliation.js'
+import { calculerDateFin } from '../utils/domiciliation.js'
+import { aujourdhui } from '../shared/utils/date.js'
 import { formatDateHeure } from '../utils/format.js'
 import {
   MODES_PAIEMENT, listDomiciliations, createDomiciliation, updateDomiciliation,

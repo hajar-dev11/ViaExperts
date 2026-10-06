@@ -1,13 +1,5 @@
 import { listServices } from '../api/services.js'
 
-/** Date du jour au format attendu par `<input type="date">`, jamais codée en dur. */
-export function aujourdhui() {
-  const d = new Date()
-  const mois = String(d.getMonth() + 1).padStart(2, '0')
-  const jour = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${mois}-${jour}`
-}
-
 /**
  * Date de fin = date de départ + nombre de mois de domiciliation.
  *
