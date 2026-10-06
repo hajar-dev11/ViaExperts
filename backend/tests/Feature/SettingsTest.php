@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\CentreDomiciliation;
+use App\Modules\Domiciliation\Models\CentreDomiciliation;
 use App\Models\Entreprise;
 use App\Models\Party;
 use App\Models\ServiceStatus;

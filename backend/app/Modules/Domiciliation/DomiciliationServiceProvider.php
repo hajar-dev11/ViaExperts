@@ -2,14 +2,17 @@
 
 namespace App\Modules\Domiciliation;
 
+use App\Modules\Domiciliation\Contracts\CentresDomiciliationReference;
 use App\Modules\Domiciliation\Contracts\CompteursDomiciliations;
+use App\Modules\Domiciliation\Services\CentresDomiciliationReferenceEloquent;
 use App\Modules\Domiciliation\Services\CompteursDomiciliationsEloquent;
 use Illuminate\Support\ServiceProvider;
 
 /**
  * Point d'entrée du module Domiciliation (enregistré dans `config/app.php`).
  *
- * - Liaisons : le contrat public `CompteursDomiciliations` (compteurs de la page Archive).
+ * - Liaisons : les contrats publics `CompteursDomiciliations` (compteurs de la page Archive) et `CentresDomiciliationReference`
+ *   (nom / identifiant du centre d'une entreprise, pour Parties).
  * - Routes : `routes.php` du module, chargé par `routes/api.php` via {@see self::routes()} aux positions exactes des anciens
  *   blocs (l'ORDRE global des routes est verrouillé par un snapshot). Les routes `settings/domiciliation` ne font pas partie
  *   du module : ce sont des réglages (Paramètres) et elles restent dans `routes/api.php`.
@@ -23,6 +26,7 @@ class DomiciliationServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         CompteursDomiciliations::class => CompteursDomiciliationsEloquent::class,
+        CentresDomiciliationReference::class => CentresDomiciliationReferenceEloquent::class,
     ];
 
     /**

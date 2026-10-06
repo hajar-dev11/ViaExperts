@@ -34,7 +34,7 @@ class ClientResource extends JsonResource
                 'if' => $e->if,
                 'situation' => $e->situation,
                 'local' => $e->local,
-                'centreDomiciliation' => $e->centreDomiciliation?->nom,
+                'centreDomiciliation' => $e->nomCentreDomiciliation(),
             ])->values(), []),
 
             'createdAt' => $this->party->created_at,

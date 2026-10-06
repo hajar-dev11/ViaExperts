@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\Feature;
+namespace App\Modules\Domiciliation\Tests\Feature;
 
-use App\Models\CentreDomiciliation;
-use App\Models\Domiciliation;
+use App\Modules\Domiciliation\Models\CentreDomiciliation;
+use App\Modules\Domiciliation\Models\Domiciliation;
 use App\Models\Entreprise;
 use App\Models\Party;
 use App\Models\Permission;
@@ -95,7 +95,7 @@ class DomiciliationTest extends TestCase
         $admin = $this->admin();
         $domiciliation = $this->domiciliation();
 
-        $document = \App\Models\DomiciliationDocument::create([
+        $document = \App\Modules\Domiciliation\Models\DomiciliationDocument::create([
             'domiciliation_id' => $domiciliation->id,
             'nom' => 'Justificatif.pdf',
             'chemin' => 'domiciliations/justificatif.pdf',
@@ -137,7 +137,7 @@ class DomiciliationTest extends TestCase
         $admin = $this->admin();
         $domiciliation = $this->domiciliation();
 
-        $observation = \App\Models\DomiciliationObservation::create([
+        $observation = \App\Modules\Domiciliation\Models\DomiciliationObservation::create([
             'domiciliation_id' => $domiciliation->id,
             'contenu' => 'Note de test',
             'privee' => false,

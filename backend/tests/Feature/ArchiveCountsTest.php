@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\CentreDomiciliation;
+use App\Modules\Domiciliation\Models\CentreDomiciliation;
 use App\Models\Client;
-use App\Models\Domiciliation;
+use App\Modules\Domiciliation\Models\Domiciliation;
 use App\Models\Entreprise;
 use App\Models\Party;
 use App\Models\Service;

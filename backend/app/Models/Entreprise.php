@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Modules\Domiciliation\Contracts\CentresDomiciliationReference;
 use Illuminate\Database\Eloquent\Model;
 
 class Entreprise extends Model
@@ -44,11 +45,43 @@ class Entreprise extends Model
         return $this->belongsTo(Party::class, 'party_id', 'id');
     }
 
-    public function centreDomiciliation()
+    /**
+     * Noms de centres déjà résolus pour un lot d'entreprises (non persisté) : centre_domiciliation_id => nom|null.
+     *
+     * @var array<int, string|null>
+     */
+    protected array $nomsCentres = [];
+
+    /**
+     * Nom du centre de domiciliation, lu via le contrat PUBLIC de Domiciliation (plus de relation Eloquent vers le modèle
+     * CentreDomiciliation). Null sans centre, ou si celui-ci est introuvable / supprimé en douceur — comme l'ancienne relation.
+     */
+    public function nomCentreDomiciliation(): ?string
     {
-        return $this->belongsTo(CentreDomiciliation::class, 'centre_domiciliation_id');
+        if (! $this->centre_domiciliation_id) {
+            return null;
+        }
+
+        if (! array_key_exists($this->centre_domiciliation_id, $this->nomsCentres)) {
+            $this->nomsCentres[$this->centre_domiciliation_id] = app(CentresDomiciliationReference::class)
+                ->nomsParIds([$this->centre_domiciliation_id])[$this->centre_domiciliation_id] ?? null;
+        }
+
+        return $this->nomsCentres[$this->centre_domiciliation_id];
     }
 
+    /** Résout en UNE requête les noms de centres d'une liste d'entreprises (remplace l'ancien eager-loading). */
+    public static function chargerCentresDomiciliation(iterable $entreprises): void
+    {
+        $entreprises = collect($entreprises);
+        $noms = app(CentresDomiciliationReference::class)->nomsParIds($entreprises->pluck('centre_domiciliation_id')->all());
+
+        foreach ($entreprises as $entreprise) {
+            if ($entreprise->centre_domiciliation_id) {
+                $entreprise->nomsCentres[$entreprise->centre_domiciliation_id] = $noms[$entreprise->centre_domiciliation_id] ?? null;
+            }
+        }
+    }
     public function client()
     {
         return $this->belongsTo(Client::class, 'client_id', 'party_id');

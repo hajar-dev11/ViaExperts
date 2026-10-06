@@ -25,7 +25,7 @@ class EntrepriseResource extends JsonResource
             'single' => $this->single,
             'periode' => $this->periode_declaration_tva,
             'local' => $this->local,
-            'centreDomiciliation' => $this->centreDomiciliation?->nom,
+            'centreDomiciliation' => $this->nomCentreDomiciliation(),
             'centreDomiciliationId' => $this->centre_domiciliation_id,
             'numDossier' => $this->numero_dossier,
             'numArchive' => $this->numero_archive,

@@ -7,6 +7,7 @@ use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
+use App\Models\Entreprise;
 use App\Models\Party;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +57,10 @@ class ClientController extends Controller
     {
         abort_if(! $client->party, 404);
 
-        return new ClientResource($client->load('party.auteur', 'entreprises.centreDomiciliation'));
+        $client->load('party.auteur', 'entreprises');
+        Entreprise::chargerCentresDomiciliation($client->entreprises);
+
+        return new ClientResource($client);
     }
 
     public function update(UpdateClientRequest $request, Client $client)

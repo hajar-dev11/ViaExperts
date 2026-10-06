@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEntrepriseRequest;
 use App\Http\Requests\UpdateEntrepriseRequest;
 use App\Http\Resources\EntrepriseResource;
-use App\Models\CentreDomiciliation;
 use App\Models\Client;
 use App\Models\Entreprise;
 use App\Models\EntrepriseAssocie;
@@ -15,19 +14,24 @@ use App\Models\EntrepriseObservation;
 use App\Models\EntrepriseObservationFichier;
 use App\Models\EntrepriseSecteur;
 use App\Models\Party;
+use App\Modules\Domiciliation\Contracts\CentresDomiciliationReference;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class EntrepriseController extends Controller
 {
+    public function __construct(private CentresDomiciliationReference $centres)
+    {
+    }
+
     /**
      * Relations chargées pour toute fiche entreprise renvoyée par l'API.
      * `associes`, `documents` et `observationsListe` alimentent les blocs de la
      * page Détails ainsi que le bloc Client/CIN/Type du formulaire.
      */
     private const RELATIONS = [
-        'party.auteur', 'centreDomiciliation', 'client', 'secteurs',
+        'party.auteur', 'client', 'secteurs',
         'associes', 'documents.auteur', 'observationsListe.auteur',
         'observationsListe.fichiers',
     ];
@@ -51,7 +55,7 @@ class EntrepriseController extends Controller
 
         if (array_key_exists('centreDomiciliation', $data)) {
             $attributes['centre_domiciliation_id'] = $data['centreDomiciliation']
-                ? CentreDomiciliation::where('nom', $data['centreDomiciliation'])->value('id')
+                ? $this->centres->idParNom($data['centreDomiciliation'])
                 : null;
         }
 
@@ -109,6 +113,7 @@ class EntrepriseController extends Controller
             ->with(self::RELATIONS)
             ->orderByDesc('party_id')
             ->get();
+        Entreprise::chargerCentresDomiciliation($entreprises);
 
         return EntrepriseResource::collection($entreprises);
     }
