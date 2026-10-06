@@ -20,9 +20,10 @@ import { calculerDateFin } from '../utils/domiciliation.js'
 import { aujourdhui } from '../shared/utils/date.js'
 import { formatDateHeure } from '../utils/format.js'
 import {
-  MODES_PAIEMENT, listDomiciliations, createDomiciliation, updateDomiciliation,
+  listDomiciliations, createDomiciliation, updateDomiciliation,
   getDomiciliation, archiveDomiciliation, corbeilleDomiciliation,
 } from '../api/domiciliations.js'
+import { MODES_PAIEMENT } from '../shared/constants/documents.js'
 
 const DOCUMENTS_CASES = [
   { cle: 'doc_facture', titre: 'Ajouter Facture de domiciliation', label: 'Facture de domiciliation' },

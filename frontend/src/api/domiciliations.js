@@ -2,18 +2,6 @@ import { API_URL, apiFetch, apiUpload } from './http.js'
 
 const unwrap = (res) => res?.data ?? res
 
-export const MODES_PAIEMENT = [
-  'Virement',
-  'Chèque',
-  'Traite',
-  'Espèce',
-  'Versement',
-  'Carte bancaire',
-  'Affacturage',
-  'Crédit',
-  'Autres à déterminer',
-]
-
 // statut : active | alerte | declare | expire | resilie (filtre d'affichage, calculé côté serveur)
 export async function listDomiciliations({ status = 'actif', statut = '', entrepriseId = '' } = {}) {
   const params = new URLSearchParams({ status })

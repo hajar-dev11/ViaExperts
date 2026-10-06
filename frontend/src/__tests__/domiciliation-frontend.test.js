@@ -6,7 +6,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { nav } from '../components/navConfig.js'
 import { MODES_PAIEMENT as MODES_PARTAGES } from '../shared/constants/documents.js'
-import { MODES_PAIEMENT as MODES_DOMICILIATION } from '../api/domiciliations.js'
+import * as apiDomiciliations from '../api/domiciliations.js'
 import { aujourdhui } from '../shared/utils/date.js'
 import { calculerDateFin, classerNouveauRenouveler } from '../utils/domiciliation.js'
 import { DOCUMENTS_DOMICILIATION, documentsDisponibles } from '../utils/documentsDomiciliation.js'
@@ -49,15 +49,24 @@ describe('Menu Domiciliation', () => {
   })
 })
 
-describe('Constantes dupliquées : modes de paiement', () => {
-  // `api/domiciliations.js` garde sa propre copie de MODES_PAIEMENT (et le backend une 3ᵉ : StoreDomiciliationRequest).
-  // Ce test fige l'égalité avec la source partagée : à supprimer quand la copie sera remplacée par un import.
-  it('la copie de Domiciliation est identique à la source partagée (mais ce n\'est pas le même objet)', () => {
-    expect(MODES_DOMICILIATION).toEqual(MODES_PARTAGES)
-    expect(MODES_DOMICILIATION).not.toBe(MODES_PARTAGES)
+describe('Modes de paiement : une seule source frontend (shared)', () => {
+  // `api/domiciliations.js` avait sa propre copie de MODES_PAIEMENT ; elle a été supprimée à l'étape 17. Les formulaires
+  // Domiciliation consomment désormais la constante partagée. (Le backend garde sa propre liste de validation, voir la doc.)
+  it('api/domiciliations.js n\'exporte plus de copie', () => {
+    expect(apiDomiciliations.MODES_PAIEMENT).toBeUndefined()
+    expect(MODES_PARTAGES).toEqual([
+      'Virement', 'Chèque', 'Traite', 'Espèce', 'Versement', 'Carte bancaire', 'Affacturage', 'Crédit', 'Autres à déterminer',
+    ])
+  })
+
+  it('les 3 formulaires Domiciliation importent la constante partagée', () => {
+    for (const rel of ['components/DomiciliationActions.jsx', 'pages/DomiciliationForm.jsx', 'pages/EntrepriseForm.jsx']) {
+      const source = fs.readFileSync(path.join(SRC, rel), 'utf8')
+      expect(source, rel).toMatch(/import \{[^}]*\bMODES_PAIEMENT\b[^}]*\} from '\.\.\/shared\/constants\/documents\.js'/)
+      expect(source, rel).not.toMatch(/MODES_PAIEMENT[^\n]*from '\.\.\/api\/domiciliations\.js'/)
+    }
   })
 })
-
 describe('utils/domiciliation.js : fonctions pures', () => {
   it('aujourdhui() : format AAAA-MM-JJ', () => {
     expect(aujourdhui()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
