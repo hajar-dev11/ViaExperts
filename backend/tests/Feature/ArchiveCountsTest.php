@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\CentreDomiciliation;
 use App\Models\Client;
+use App\Models\Domiciliation;
+use App\Models\Entreprise;
 use App\Models\Party;
 use App\Models\Service;
 use App\Models\ServiceEnCours;
@@ -126,6 +129,76 @@ class ArchiveCountsTest extends TestCase
         $this->assertSame(16, $requetes->filter(fn ($q) => str_contains($q, 'count(*) as aggregate'))->count());
     }
 
+    // ---- Caractérisation du compteur « domiciliation » (écrite AVANT son contrat, étape 17) -------------------------
+
+    private function domiciliation(string $status = 'actif', bool $supprime = false): Domiciliation
+    {
+        $party = Party::create(['type' => 'entreprise', 'status' => 'actif']);
+        Entreprise::create(['party_id' => $party->id, 'type' => 'entreprise', 'denomination' => 'ENTREPRISE '.$party->id]);
+        $centre = CentreDomiciliation::create(['nom' => 'CENTRE '.$party->id]);
+
+        $domiciliation = Domiciliation::create([
+            'entreprise_id' => $party->id, 'centre_domiciliation_id' => $centre->id,
+            'date_depart' => '2026-01-01', 'date_fin' => '2026-12-31', 'status' => $status,
+        ]);
+        if ($supprime) {
+            $domiciliation->delete(); // suppression douce
+        }
+
+        return $domiciliation;
+    }
+
+    public function test_domiciliation_est_comptee_par_statut_sans_les_lignes_supprimees(): void
+    {
+        $this->domiciliation('actif');
+        $this->domiciliation('actif');
+        $this->domiciliation('archive');
+        $this->domiciliation('corbeille');
+        $this->domiciliation('corbeille');
+        $this->domiciliation('corbeille');
+        $this->domiciliation('actif', supprime: true);   // suppression douce : jamais comptée
+        $this->domiciliation('corbeille', supprime: true);
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=actif')->assertOk()->assertJsonPath('domiciliation', 2);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=archive')->assertOk()->assertJsonPath('domiciliation', 1);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=corbeille')->assertOk()->assertJsonPath('domiciliation', 3);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=inconnu')->assertOk()->assertJsonPath('domiciliation', 0);
+        // Sans paramètre, le statut par défaut est « archive ».
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts')->assertOk()->assertJsonPath('domiciliation', 1);
+    }
+
+    public function test_domiciliation_vaut_zero_sans_donnee_et_les_autres_compteurs_sont_independants(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=actif')->assertOk()->assertJsonPath('domiciliation', 0);
+
+        $this->domiciliation('actif');
+        $reponse = $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=actif')->assertOk();
+
+        $this->assertSame(1, $reponse->json('domiciliation'));
+        $this->assertSame(1, $reponse->json('entreprises'), 'Le helper crée 1 entreprise (Party) ; elle reste comptée à part.');
+        $this->assertSame(0, $reponse->json('services_en_cours'));
+        $this->assertSame(self::CLES, array_keys($reponse->json()), 'Clés et ordre inchangés.');
+    }
+
+    public function test_domiciliation_est_comptee_par_une_seule_requete_sans_n_plus_un(): void
+    {
+        foreach (range(1, 4) as $i) {
+            $this->domiciliation('actif');
+        }
+        $admin = $this->admin();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=actif')->assertOk()->assertJsonPath('domiciliation', 4);
+        $requetes = collect(DB::getQueryLog())->pluck('query');
+        DB::disableQueryLog();
+
+        $this->assertSame(1, $requetes->filter(fn ($q) => str_contains($q, 'from `domiciliations`'))->count());
+        $this->assertTrue($requetes->contains(fn ($q) => str_contains($q, 'select count(*) as aggregate from `domiciliations` where `status` = ? and `domiciliations`.`deleted_at` is null')));
+        $this->assertSame(16, $requetes->filter(fn ($q) => str_contains($q, 'count(*) as aggregate'))->count(), 'Toujours une requête de comptage par catégorie.');
+    }
     // ---- Découplage : Archive passe par le contrat de Services en cours -------------------------------------------
 
     public function test_le_contrat_est_resolu_et_lie_a_son_implementation(): void
@@ -185,5 +258,66 @@ class ArchiveCountsTest extends TestCase
         $this->assertStringNotContainsString('ServiceEnCours::', $source);
         $this->assertStringNotContainsString('CompteursServicesEnCoursEloquent', $source, 'Pas de connaissance de l\'implémentation concrète.');
         $this->assertStringContainsString('CompteursServicesEnCours', $source);
+    }
+
+    // ---- Découplage : Archive passe par le contrat de Domiciliation ------------------------------------------------
+
+    public function test_le_contrat_domiciliations_est_resolu_et_lie_a_son_implementation(): void
+    {
+        $this->assertInstanceOf(
+            \App\Services\Domiciliation\CompteursDomiciliationsEloquent::class,
+            app(\App\Contracts\Domiciliation\CompteursDomiciliations::class)
+        );
+    }
+
+    public function test_le_contrat_domiciliations_compte_comme_l_ancienne_requete_directe(): void
+    {
+        $this->domiciliation('actif');
+        $this->domiciliation('actif');
+        $this->domiciliation('archive');
+        $this->domiciliation('actif', supprime: true);
+        $contrat = app(\App\Contracts\Domiciliation\CompteursDomiciliations::class);
+
+        foreach (['actif', 'archive', 'corbeille', 'inconnu'] as $statut) {
+            $this->assertSame(Domiciliation::where('status', $statut)->count(), $contrat->compterParStatut($statut), $statut);
+        }
+        $this->assertSame(2, $contrat->compterParStatut('actif'));
+        $this->assertSame(0, $contrat->compterParStatut('corbeille'));
+    }
+
+    public function test_archive_obtient_domiciliation_depuis_le_contrat_avec_le_statut_demande(): void
+    {
+        $appels = [];
+        $this->app->instance(\App\Contracts\Domiciliation\CompteursDomiciliations::class, new class($appels) implements \App\Contracts\Domiciliation\CompteursDomiciliations {
+            public function __construct(public array &$appels)
+            {
+            }
+
+            public function compterParStatut(string $statut): int
+            {
+                $this->appels[] = $statut;
+
+                return 77;
+            }
+        });
+        $admin = $this->admin();
+
+        $reponse = $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=corbeille')->assertOk();
+        $this->assertSame(77, $reponse->json('domiciliation'));
+        $this->assertSame(['corbeille'], $appels, 'Un seul appel, avec le statut demandé.');
+        $this->assertSame(self::CLES, array_keys($reponse->json()), 'Les clés (et leur ordre) ne changent pas.');
+
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts')->assertOk();
+        $this->assertSame(['corbeille', 'archive'], $appels, 'Statut par défaut : archive.');
+    }
+
+    public function test_archive_controller_ne_reference_plus_le_modele_domiciliation(): void
+    {
+        $source = file_get_contents(base_path('app/Http/Controllers/Api/V1/ArchiveController.php'));
+
+        $this->assertStringNotContainsString('App\Models\Domiciliation;', $source);
+        $this->assertStringNotContainsString('Domiciliation::', $source);
+        $this->assertStringNotContainsString('CompteursDomiciliationsEloquent', $source, 'Pas de connaissance de l\'implémentation concrète.');
+        $this->assertStringContainsString('CompteursDomiciliations', $source);
     }
 }

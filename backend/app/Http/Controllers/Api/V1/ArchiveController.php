@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\Domiciliation\CompteursDomiciliations;
 use App\Contracts\ServicesEnCours\CompteursServicesEnCours;
 use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Http\Controllers\Controller;
 use App\Models\Cachet;
 use App\Models\DataCenterFiche;
 use App\Models\DeclarationTva;
-use App\Models\Domiciliation;
 use App\Models\Mail;
 use App\Models\Paiement;
 use App\Models\Party;
@@ -29,6 +29,7 @@ class ArchiveController extends Controller
     public function __construct(
         private StatistiquesDocuments $documents,
         private CompteursServicesEnCours $servicesEnCours,
+        private CompteursDomiciliations $domiciliations,
     ) {
     }
 
@@ -40,7 +41,7 @@ class ArchiveController extends Controller
         return response()->json([
             'clients' => Party::where('type', 'client')->where('status', $status)->count(),
             'entreprises' => Party::where('type', 'entreprise')->where('status', $status)->count(),
-            'domiciliation' => Domiciliation::where('status', $status)->count(),
+            'domiciliation' => $this->domiciliations->compterParStatut($status),
             'services' => Service::where('status', $status)->count(),
             'services_en_cours' => $this->servicesEnCours->compterParStatut($status),
             'facture' => $documents['facture'],
