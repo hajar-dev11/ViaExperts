@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import Alert from '../components/ui/Alert.jsx'
-import { ApiError } from '../api/http.js'
+import Alert from '../../../components/ui/Alert.jsx'
+import { ApiError } from '../../../api/http.js'
 import { listDomiciliations } from '../api/domiciliations.js'
 import { classerNouveauRenouveler } from '../utils/domiciliation.js'
 

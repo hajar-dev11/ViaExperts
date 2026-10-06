@@ -8,11 +8,11 @@
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { construireHtmlDocumentCommercial } from '../modules/facturation/index.js'
 import { construireHtmlRecuPdf } from '../modules/paiements/index.js'
-import { domiciliationEnFacture } from '../modules/domiciliation/index.js'
+import { domiciliationEnFacture } from '../modules/domiciliation/print/factureDomiciliation.js'
 import { formatDateFr } from '../utils/print/commun.js'
-import { attestationParDefaut, construireHtmlAttestation } from '../utils/attestation.js'
-import { construireHtmlContrat, contratParDefaut, qrContratDataUrl } from '../utils/contrat.js'
-import { construireHtmlProcuration, procurationParDefaut } from '../utils/procuration.js'
+import { attestationParDefaut, construireHtmlAttestation } from '../modules/domiciliation/documents/attestation.js'
+import { construireHtmlContrat, contratParDefaut, qrContratDataUrl } from '../modules/domiciliation/documents/contrat.js'
+import { construireHtmlProcuration, procurationParDefaut } from '../modules/domiciliation/documents/procuration.js'
 import { montantEnLettres } from '../utils/montantEnLettres.js'
 
 // ---- Jeux de données figés -----------------------------------------------------------------------------------

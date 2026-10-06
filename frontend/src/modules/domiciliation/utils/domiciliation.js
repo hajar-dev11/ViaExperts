@@ -1,4 +1,4 @@
-import { listServices } from '../api/services.js'
+import { listServices } from '../../../api/services.js'
 
 /**
  * Date de fin = date de départ + nombre de mois de domiciliation.

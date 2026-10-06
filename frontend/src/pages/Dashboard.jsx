@@ -12,7 +12,7 @@ import Popover from '../components/Popover.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import { API_URL } from '../api/http.js'
 import { formatDateHeure, formatDate, formatHeure } from '../utils/format.js'
-import { listDomiciliations } from '../api/domiciliations.js'
+import { listDomiciliations } from '../modules/domiciliation/index.js'
 import { listServicesEnCours, listActivite, getServiceEnCours } from '../api/servicesEnCours.js'
 
 /**

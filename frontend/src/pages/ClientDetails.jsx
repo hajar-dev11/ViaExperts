@@ -15,9 +15,8 @@ import BlocsEntreprise from '../components/BlocsEntreprise.jsx'
 import { SkeletonText } from '../components/ui/Skeleton.jsx'
 import { getClient, archiveClient, corbeilleClient, restoreClient } from '../api/clients.js'
 import { getEntreprise } from '../api/entreprises.js'
-import { listDomiciliations } from '../api/domiciliations.js'
+import { listDomiciliations, chargerSignatureDomiciliation } from '../modules/domiciliation/index.js'
 import { getDomiciliationSettings } from '../api/settings.js'
-import { chargerSignatureDomiciliation } from '../utils/factureDomiciliation.js'
 import { formatDate, formatDateHeure } from '../utils/format.js'
 
 /**

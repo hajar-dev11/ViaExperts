@@ -5,18 +5,18 @@ import {
   Folder, IdCard, ListTree, Lock, Mail, Paperclip, Pencil, RefreshCw, RotateCcw, ScanLine,
   Trash2, Wallet,
 } from 'lucide-react'
-import Button from '../components/ui/Button.jsx'
-import Alert from '../components/ui/Alert.jsx'
-import Modal from '../components/ui/Modal.jsx'
-import ActionMenu from '../components/ui/ActionMenu.jsx'
-import { useToast } from '../components/ui/Toast.jsx'
-import { SkeletonText } from '../components/ui/Skeleton.jsx'
-import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import DataTable from '../components/DataTable.jsx'
-import CarteBloc, { VUES_BLOC as VUES } from '../components/CarteBloc.jsx'
+import Button from '../../../components/ui/Button.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import Modal from '../../../components/ui/Modal.jsx'
+import ActionMenu from '../../../components/ui/ActionMenu.jsx'
+import { useToast } from '../../../components/ui/Toast.jsx'
+import { SkeletonText } from '../../../components/ui/Skeleton.jsx'
+import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
+import DataTable from '../../../components/DataTable.jsx'
+import CarteBloc, { VUES_BLOC as VUES } from '../../../components/CarteBloc.jsx'
 import StatutDomiciliation from '../components/StatutDomiciliation.jsx'
-import { Ligne, Section } from '../components/FicheInfos.jsx'
-import { Field, FileInput, Textarea } from '../components/Field.jsx'
+import { Ligne, Section } from '../../../components/FicheInfos.jsx'
+import { Field, FileInput, Textarea } from '../../../components/Field.jsx'
 import { FormulaireRenouvellement, FormulaireActionSimple, JournalOperations } from '../components/DomiciliationActions.jsx'
 import {
   getDomiciliation, listDomiciliations, archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation,
@@ -26,9 +26,9 @@ import {
   archiveObservation, corbeilleObservation, restoreObservation,
   observationFichierUrl,
 } from '../api/domiciliations.js'
-import { API_URL } from '../api/http.js'
-import { ApiError } from '../api/http.js'
-import { formatDate, formatDateHeure } from '../utils/format.js'
+import { API_URL } from '../../../api/http.js'
+import { ApiError } from '../../../api/http.js'
+import { formatDate, formatDateHeure } from '../../../utils/format.js'
 
 /** Poids d'un fichier en unité lisible. */
 function formatTaille(octets) {

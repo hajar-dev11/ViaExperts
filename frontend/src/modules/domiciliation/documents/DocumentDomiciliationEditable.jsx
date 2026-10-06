@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, FileText, Pencil, RotateCcw, X } from 'lucide-react'
-import Button from './ui/Button.jsx'
-import Alert from './ui/Alert.jsx'
-import Card, { CardHeader } from './ui/Card.jsx'
+import Button from '../../../components/ui/Button.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import Card, { CardHeader } from '../../../components/ui/Card.jsx'
 import { getDomiciliation } from '../api/domiciliations.js'
-import { getEntreprise } from '../api/entreprises.js'
-import { chargerIdentitePdf } from '../utils/print/identite.js'
-import { htmlDocumentComplet } from '../utils/exporters.js'
+import { getEntreprise } from '../../../api/entreprises.js'
+import { chargerIdentitePdf } from '../../../utils/print/identite.js'
+import { htmlDocumentComplet } from '../../../utils/exporters.js'
 
 // Identité de secours si les réglages sont inaccessibles (droits) : le document reste générable.
 const IDENTITE_SECOURS = { nomSociete: 'Via Experts', logo: '/logo-via-experts.jpg', signature: null, piedDePage: '', gerant: '' }

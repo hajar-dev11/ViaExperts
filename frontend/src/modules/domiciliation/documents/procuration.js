@@ -9,10 +9,10 @@
 // « Modifier » permet de corriger TOUT le texte (`contenu`) ; ces corrections ne servent QU'À cette
 // procuration : rien n'est enregistré, les données d'origine restent intactes.
 
-import { escapeHtml } from './exporters.js'
-import { formatDateFr } from './print/commun.js'
-import { ouvrirPdfApresClic } from './print/ouvrirPdf.js'
-import { getClient } from '../api/clients.js'
+import { escapeHtml } from '../../../utils/exporters.js'
+import { formatDateFr } from '../../../utils/print/commun.js'
+import { ouvrirPdfApresClic } from '../../../utils/print/ouvrirPdf.js'
+import { getClient } from '../../../api/clients.js'
 
 // ---------------------------------------------------------------------------------------
 // Données

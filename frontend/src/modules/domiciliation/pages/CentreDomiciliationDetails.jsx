@@ -3,18 +3,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Building2, IdCard, ScanLine, MapPin, Archive, Phone, Mail, Eye, Trash2,
 } from 'lucide-react'
-import Alert from '../components/ui/Alert.jsx'
-import Button from '../components/ui/Button.jsx'
-import { SkeletonText } from '../components/ui/Skeleton.jsx'
-import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import DataTable from '../components/DataTable.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import Button from '../../../components/ui/Button.jsx'
+import { SkeletonText } from '../../../components/ui/Skeleton.jsx'
+import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
+import DataTable from '../../../components/DataTable.jsx'
 import StatutDomiciliation from '../components/StatutDomiciliation.jsx'
-import { CarteFiche, Ligne, Section } from '../components/FicheInfos.jsx'
-import { RowBtn } from '../components/ListToolbar.jsx'
-import { useAuth } from '../context/AuthContext.jsx'
+import { CarteFiche, Ligne, Section } from '../../../components/FicheInfos.jsx'
+import { RowBtn } from '../../../components/ListToolbar.jsx'
+import { useAuth } from '../../../context/AuthContext.jsx'
 import { getCentre, deleteCentre } from '../api/centres.js'
-import { ApiError } from '../api/http.js'
-import { formatDate } from '../utils/format.js'
+import { ApiError } from '../../../api/http.js'
+import { formatDate } from '../../../utils/format.js'
 
 /**
  * « Informations Centre de domiciliation » — mêmes briques (`CarteFiche` /

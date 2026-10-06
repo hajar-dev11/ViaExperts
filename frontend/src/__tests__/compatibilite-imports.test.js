@@ -12,7 +12,6 @@ import { describe, expect, it } from 'vitest'
 import * as apiFacturation from '../modules/facturation/api/facturation.js'
 import * as facturation from '../modules/facturation/index.js'
 import * as paiements from '../modules/paiements/index.js'
-import * as domiciliation from '../modules/domiciliation/index.js'
 import * as constantes from '../shared/constants/documents.js'
 import * as commun from '../utils/print/commun.js'
 import * as identite from '../utils/print/identite.js'
@@ -58,9 +57,7 @@ describe('ex-documentPrint.js : les 12 noms existent toujours, chacun à sa plac
     expect(facturation.construireHtmlDocumentCommercial).toBe(documentCommercial.construireHtmlDocumentCommercial)
     expect(facturation.imprimerDocumentCommercial).toBe(documentCommercial.imprimerDocumentCommercial)
     for (const nom of Object.keys(recuPaiement)) expect(paiements[nom]).toBe(recuPaiement[nom])
-    for (const nom of Object.keys(factureDomiciliation)) expect(domiciliation[nom]).toBe(factureDomiciliation[nom])
     expect(Object.keys(paiements).sort()).toEqual(Object.keys(recuPaiement).sort())
-    expect(Object.keys(domiciliation).sort()).toEqual(Object.keys(factureDomiciliation).sort())
   })
 
   it('les anciens fichiers (façade et stubs) n\'existent plus', () => {

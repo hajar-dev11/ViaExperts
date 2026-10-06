@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Printer, FileText, RefreshCw, BadgeCheck, Ban, CircleCheck, Paperclip } from 'lucide-react'
 // `CircleCheck` alimente le libellé « Activée » du journal d'actions (menu « Activer »).
-import ActionMenu from './ui/ActionMenu.jsx'
-import Button from './ui/Button.jsx'
-import Modal from './ui/Modal.jsx'
-import { Field, FileInput, Input, Select, Textarea, Checkbox, CheckboxCard } from './Field.jsx'
-import { MODES_PAIEMENT } from '../shared/constants/documents.js'
-import { documentsDisponibles } from '../utils/documentsDomiciliation.js'
+import ActionMenu from '../../../components/ui/ActionMenu.jsx'
+import Button from '../../../components/ui/Button.jsx'
+import Modal from '../../../components/ui/Modal.jsx'
+import { Field, FileInput, Input, Select, Textarea, Checkbox, CheckboxCard } from '../../../components/Field.jsx'
+import { MODES_PAIEMENT } from '../../../shared/constants/documents.js'
+import { documentsDisponibles } from '../documents/documentsDomiciliation.js'
 import { calculerDateFin, chargerPrixServiceDomiciliation } from '../utils/domiciliation.js'
-import { aujourdhui } from '../shared/utils/date.js'
+import { aujourdhui } from '../../../shared/utils/date.js'
 
 /**
  * « Imprimer » — propose les documents cochés à l'enregistrement de la

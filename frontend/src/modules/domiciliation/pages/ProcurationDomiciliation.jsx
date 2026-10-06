@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
-import DocumentDomiciliationEditable from '../components/DocumentDomiciliationEditable.jsx'
+import DocumentDomiciliationEditable from '../documents/DocumentDomiciliationEditable.jsx'
 import {
   chargerClientProcuration, procurationParDefaut, construireHtmlProcuration, imprimerProcurationPdf, lireContenuProcuration,
-} from '../utils/procuration.js'
+} from '../documents/procuration.js'
 
 const CONFIG = {
   titre: 'Procuration',

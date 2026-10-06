@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
-import DocumentDomiciliationEditable from '../components/DocumentDomiciliationEditable.jsx'
+import DocumentDomiciliationEditable from '../documents/DocumentDomiciliationEditable.jsx'
 import {
   contratParDefaut, construireHtmlContrat, imprimerContratPdf, lireContenuContrat,
-} from '../utils/contrat.js'
+} from '../documents/contrat.js'
 
 const CONFIG = {
   titre: 'Contrat de domiciliation',

@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Pencil, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
-import ServerTable from '../components/ServerTable.jsx'
-import Alert from '../components/ui/Alert.jsx'
-import Modal from '../components/ui/Modal.jsx'
-import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import Button, { IconButton } from '../components/ui/Button.jsx'
-import { RowBtn } from '../components/ListToolbar.jsx'
-import { Field, Input } from '../components/Field.jsx'
+import ServerTable from '../../../components/ServerTable.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import Modal from '../../../components/ui/Modal.jsx'
+import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
+import Button, { IconButton } from '../../../components/ui/Button.jsx'
+import { RowBtn } from '../../../components/ListToolbar.jsx'
+import { Field, Input } from '../../../components/Field.jsx'
 import {
   listCentres, createCentre, updateCentre,
   archiveCentre, corbeilleCentre, restoreCentre, deleteCentre,
 } from '../api/centres.js'
-import { ApiError } from '../api/http.js'
+import { ApiError } from '../../../api/http.js'
 
 const columns = [
   {

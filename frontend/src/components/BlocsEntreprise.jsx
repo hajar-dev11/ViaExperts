@@ -13,18 +13,16 @@ import ConfirmDialog from './ConfirmDialog.jsx'
 import { RowBtn } from './ListToolbar.jsx'
 import { Field, FileInput, Input, Textarea } from './Field.jsx'
 import CarteBloc, { VUES_BLOC as VUES } from './CarteBloc.jsx'
-import StatutDomiciliationBadge from './StatutDomiciliation.jsx'
-import { FormulaireRenouvellement, MenuImprimer } from './DomiciliationActions.jsx'
+import {
+  StatutDomiciliation as StatutDomiciliationBadge, FormulaireRenouvellement, MenuImprimer,
+  archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation, renouvelerDomiciliation,
+} from '../modules/domiciliation/index.js'
 import {
   addEntrepriseDocument, entrepriseDocumentUrl, archiveEntrepriseDocument,
   corbeilleEntrepriseDocument, restoreEntrepriseDocument, deleteEntrepriseDocumentForever,
   addEntrepriseObservation, entrepriseObservationFichierUrl, archiveEntrepriseObservation,
   corbeilleEntrepriseObservation, restoreEntrepriseObservation, deleteEntrepriseObservationForever,
 } from '../api/entreprises.js'
-import {
-  archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation,
-  renouvelerDomiciliation,
-} from '../api/domiciliations.js'
 import { formatDate, formatDateHeure } from '../utils/format.js'
 
 /**

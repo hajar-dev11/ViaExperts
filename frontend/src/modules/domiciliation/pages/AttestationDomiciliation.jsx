@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
-import DocumentDomiciliationEditable from '../components/DocumentDomiciliationEditable.jsx'
+import DocumentDomiciliationEditable from '../documents/DocumentDomiciliationEditable.jsx'
 import {
   attestationParDefaut, construireHtmlAttestation, imprimerAttestationPdf, lireContenuAttestation,
-} from '../utils/attestation.js'
+} from '../documents/attestation.js'
 
 const CONFIG = {
   titre: 'Attestation de domiciliation',

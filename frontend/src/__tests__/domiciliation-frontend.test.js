@@ -6,10 +6,10 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { nav } from '../components/navConfig.js'
 import { MODES_PAIEMENT as MODES_PARTAGES } from '../shared/constants/documents.js'
-import * as apiDomiciliations from '../api/domiciliations.js'
+import * as apiDomiciliations from '../modules/domiciliation/api/domiciliations.js'
 import { aujourdhui } from '../shared/utils/date.js'
-import { calculerDateFin, classerNouveauRenouveler } from '../utils/domiciliation.js'
-import { DOCUMENTS_DOMICILIATION, documentsDisponibles } from '../utils/documentsDomiciliation.js'
+import { calculerDateFin, classerNouveauRenouveler } from '../modules/domiciliation/utils/domiciliation.js'
+import { DOCUMENTS_DOMICILIATION, documentsDisponibles } from '../modules/domiciliation/documents/documentsDomiciliation.js'
 
 const SRC = path.resolve(__dirname, '..')
 
@@ -60,10 +60,10 @@ describe('Modes de paiement : une seule source frontend (shared)', () => {
   })
 
   it('les 3 formulaires Domiciliation importent la constante partagée', () => {
-    for (const rel of ['components/DomiciliationActions.jsx', 'pages/DomiciliationForm.jsx', 'pages/EntrepriseForm.jsx']) {
+    for (const rel of ['modules/domiciliation/components/DomiciliationActions.jsx', 'modules/domiciliation/pages/DomiciliationForm.jsx', 'pages/EntrepriseForm.jsx']) {
       const source = fs.readFileSync(path.join(SRC, rel), 'utf8')
-      expect(source, rel).toMatch(/import \{[^}]*\bMODES_PAIEMENT\b[^}]*\} from '\.\.\/shared\/constants\/documents\.js'/)
-      expect(source, rel).not.toMatch(/MODES_PAIEMENT[^\n]*from '\.\.\/api\/domiciliations\.js'/)
+      expect(source, rel).toMatch(/import \{[^}]*\bMODES_PAIEMENT\b[^}]*\} from '(\.\.\/)+shared\/constants\/documents\.js'/)
+      expect(source, rel).not.toMatch(/MODES_PAIEMENT[^\n]*from '[^']*api\/domiciliations\.js'/)
     }
   })
 })
@@ -146,8 +146,112 @@ describe('Frontières : Facturation et Paiements ne dépendent pas de Domiciliat
   it('`aujourdhui` est dans shared/utils/date.js, consommée par Facturation, Paiements et Domiciliation', () => {
     const consommateurs = fichiers(SRC).filter((f) => !rel(f).startsWith('__tests__/') && importsDe(f).includes('shared/utils/date.js')).map(rel).sort()
     expect(consommateurs).toEqual([
-      'components/DomiciliationActions.jsx', 'modules/facturation/pages/DocumentForm.jsx',
-      'pages/DomiciliationForm.jsx', 'pages/PaiementForm.jsx',
+      'modules/domiciliation/components/DomiciliationActions.jsx', 'modules/domiciliation/pages/DomiciliationForm.jsx',
+      'modules/facturation/pages/DocumentForm.jsx', 'pages/PaiementForm.jsx',
     ])
+  })
+})
+
+// ---- Étape 20 : le frontend Domiciliation vit dans `modules/domiciliation/` ---------------------------------------
+const relSrc = (f) => path.relative(SRC, f).split(path.sep).join('/')
+describe('Frontend Domiciliation : structure du module', () => {
+  const MODULE_DOM = path.join(SRC, 'modules', 'domiciliation')
+  const existe = (rel) => fs.existsSync(path.join(SRC, rel))
+
+  it('les pages Domiciliation (10) résident dans le module et plus dans src/pages', () => {
+    const pages = ['DomiciliationList', 'DomiciliationForm', 'DomiciliationDetails', 'DomiciliationStatuts', 'DomiciliationCalendar',
+      'DomiciliationCentres', 'CentreDomiciliationDetails', 'AttestationDomiciliation', 'ContratDomiciliation', 'ProcurationDomiciliation']
+    for (const page of pages) {
+      expect(existe(`modules/domiciliation/pages/${page}.jsx`), page).toBe(true)
+      expect(existe(`pages/${page}.jsx`), `ancien emplacement de ${page}`).toBe(false)
+    }
+  })
+
+  it('les API, composants, documents et utilitaires Domiciliation résident dans le module', () => {
+    for (const rel of ['api/domiciliations.js', 'api/centres.js', 'components/DomiciliationActions.jsx', 'components/StatutDomiciliation.jsx',
+      'documents/DocumentDomiciliationEditable.jsx', 'documents/attestation.js', 'documents/contrat.js', 'documents/procuration.js',
+      'documents/documentsDomiciliation.js', 'utils/domiciliation.js', 'print/factureDomiciliation.js', 'index.js']) {
+      expect(existe(`modules/domiciliation/${rel}`), rel).toBe(true)
+    }
+  })
+
+  it('les anciens fichiers Domiciliation ont disparu de leur emplacement d\'origine (aucun stub conservé « par sécurité »)', () => {
+    for (const rel of ['api/domiciliations.js', 'api/centres.js', 'components/DomiciliationActions.jsx', 'components/StatutDomiciliation.jsx',
+      'components/DocumentDomiciliationEditable.jsx', 'utils/domiciliation.js', 'utils/documentsDomiciliation.js', 'utils/factureDomiciliation.js',
+      'utils/attestation.js', 'utils/contrat.js', 'utils/procuration.js']) {
+      expect(existe(rel), rel).toBe(false)
+    }
+  })
+
+  it('les éléments partagés sont restés dans shared / utils communs', () => {
+    for (const rel of ['shared/utils/date.js', 'shared/constants/documents.js', 'utils/print/commun.js', 'utils/print/identite.js',
+      'utils/print/ouvrirPdf.js', 'utils/pdfDocument.js', 'utils/exporters.js', 'utils/montantEnLettres.js', 'api/settings.js']) {
+      expect(existe(rel), rel).toBe(true)
+    }
+  })
+
+  it('tout import relatif de src/ pointe vers un fichier existant (aucun import vers un ancien chemin supprimé)', () => {
+    const cassés = []
+    for (const f of fichiers(SRC)) {
+      const source = fs.readFileSync(f, 'utf8')
+      for (const m of source.matchAll(/(?:import|export)\s+(?:[^'"]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]/g)) {
+        const cible = path.resolve(path.dirname(f), m[1])
+        const trouve = [cible, `${cible}.js`, `${cible}.jsx`, path.join(cible, 'index.js')].some((c) => fs.existsSync(c) && fs.statSync(c).isFile())
+        if (!trouve) cassés.push(`${relSrc(f)} -> ${m[1]}`)
+      }
+    }
+    // Seule exception connue, antérieure : `components/ui/index.js` ré-exporte un chemin construit autrement.
+    expect(cassés.filter((c) => !c.startsWith('components/ui/index.js'))).toEqual([])
+  })
+
+  it('hors du module, seuls les points d\'entrée publics sont importés ; consommateurs externes attendus', () => {
+    const importeurs = fichiers(SRC).filter((f) => !relSrc(f).startsWith('__tests__/') && !relSrc(f).startsWith('modules/domiciliation/'))
+      .filter((f) => importsDe(f).some((c) => c.startsWith('modules/domiciliation')))
+    expect(importeurs.map(relSrc).sort()).toEqual([
+      'App.jsx', 'components/BlocsEntreprise.jsx', 'components/Topbar.jsx', 'pages/Archive.jsx', 'pages/ClientDetails.jsx',
+      'pages/Dashboard.jsx', 'pages/EntrepriseDetails.jsx', 'pages/EntrepriseForm.jsx', 'pages/Parametres.jsx',
+    ])
+    for (const f of importeurs) {
+      for (const cible of importsDe(f).filter((c) => c.startsWith('modules/domiciliation'))) expect(cible, relSrc(f)).toBe('modules/domiciliation/index.js')
+    }
+  })
+
+  it('le point d\'entrée expose uniquement ce que l\'extérieur consomme', async () => {
+    const index = await import('../modules/domiciliation/index.js')
+    expect(Object.keys(index).sort()).toEqual([
+      'AttestationDomiciliation', 'CentreDomiciliationDetails', 'ContratDomiciliation', 'DomiciliationCalendar', 'DomiciliationCentres',
+      'DomiciliationDetails', 'DomiciliationForm', 'DomiciliationList', 'DomiciliationStatuts', 'FormulaireRenouvellement', 'MenuImprimer',
+      'ProcurationDomiciliation', 'StatutDomiciliation', 'archiveDomiciliation', 'calculerDateFin', 'chargerSignatureDomiciliation',
+      'corbeilleDomiciliation', 'createDomiciliation', 'deleteDomiciliationForever', 'listCentres', 'listDomiciliations',
+      'renouvelerDomiciliation', 'restoreDomiciliation',
+    ])
+    for (const page of ['DomiciliationList', 'DomiciliationForm', 'DomiciliationDetails', 'DomiciliationCentres']) expect(typeof index[page]).toBe('function')
+    expect(index.calculerDateFin).toBe(calculerDateFin)
+  })
+
+  it('les fichiers du module n\'importent aucune page d\'un autre domaine, et jamais l\'index du module lui-même', () => {
+    for (const f of fichiers(MODULE_DOM)) {
+      for (const cible of importsDe(f)) {
+        expect(cible, `${relSrc(f)} importe l'index du module (cycle potentiel)`).not.toBe('modules/domiciliation/index.js')
+        expect(/^pages\//.test(cible), `${relSrc(f)} -> ${cible}`).toBe(false)
+      }
+    }
+  })
+})
+
+describe('Facture de domiciliation : intégration avec Facturation par son point d\'entrée public', () => {
+  it('le rendu de la facture de domiciliation importe Facturation uniquement par modules/facturation/index.js', () => {
+    const imports = importsDe(path.join(SRC, 'modules/domiciliation/print/factureDomiciliation.js'))
+    expect(imports.filter((c) => c.startsWith('modules/facturation'))).toEqual(['modules/facturation/index.js'])
+  })
+
+  it('une domiciliation convertie est rendue par le modèle Facture de Facturation', async () => {
+    const { domiciliationEnFacture } = await import('../modules/domiciliation/print/factureDomiciliation.js')
+    const { construireHtmlDocumentCommercial } = await import('../modules/facturation/index.js')
+    const facture = domiciliationEnFacture({ id: 7, prixTotal: 1200, moisPayee: 12, dateFacture: '2026-08-01', denomination: 'ENTREPRISE TEST' })
+    const html = construireHtmlDocumentCommercial('facture', facture, { nomSociete: 'Via Experts', logo: 'data:image/png;base64,L', signature: null, piedDePage: '', gerant: '' })
+
+    expect(facture.numero).toBe('DOM-7/26')
+    expect(JSON.stringify(html)).toContain('DOM-7/26')
   })
 })

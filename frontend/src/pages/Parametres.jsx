@@ -31,7 +31,7 @@ import {
   uploadDomiciliationSignature,
   resetDomiciliationSignature,
 } from '../api/settings.js'
-import DomiciliationCentres from './DomiciliationCentres.jsx'
+import { DomiciliationCentres } from '../modules/domiciliation/index.js'
 import { serviceStatusApi, cachetStatusApi, mailStatusApi } from '../api/statuses.js'
 import { ApiError, API_URL } from '../api/http.js'
 

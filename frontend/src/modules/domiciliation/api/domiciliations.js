@@ -1,4 +1,4 @@
-import { API_URL, apiFetch, apiUpload } from './http.js'
+import { API_URL, apiFetch, apiUpload } from '../../../api/http.js'
 
 const unwrap = (res) => res?.data ?? res
 

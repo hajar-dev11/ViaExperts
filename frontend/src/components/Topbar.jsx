@@ -15,7 +15,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { formatFileSize, formatDateTime, formatDate } from '../utils/format.js'
 import { listClients } from '../api/clients.js'
 import { listEntreprises } from '../api/entreprises.js'
-import { listDomiciliations } from '../api/domiciliations.js'
+import { listDomiciliations } from '../modules/domiciliation/index.js'
 import { API_URL } from '../api/http.js'
 
 // Seuil d'alerte, aligné sur `Domiciliation::JOURS_ALERTE` côté backend.

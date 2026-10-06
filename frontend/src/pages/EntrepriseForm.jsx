@@ -11,11 +11,9 @@ import {
 import Alert from '../components/ui/Alert.jsx'
 import { SkeletonText } from '../components/ui/Skeleton.jsx'
 import { listClients } from '../api/clients.js'
-import { listCentres } from '../api/centres.js'
+import { listCentres, createDomiciliation, calculerDateFin } from '../modules/domiciliation/index.js'
 import { createEntreprise, updateEntreprise, getEntreprise } from '../api/entreprises.js'
-import { createDomiciliation } from '../api/domiciliations.js'
 import { MODES_PAIEMENT } from '../shared/constants/documents.js'
-import { calculerDateFin } from '../utils/domiciliation.js'
 import { ApiError } from '../api/http.js'
 
 const formes = ['SARL', 'SARL AU', 'SA', 'SNC', 'Auto-Entrepreneur', 'Établissement Public']

@@ -4,26 +4,26 @@ import {
   Save, Archive, Trash2, Building2, ListTree, Pencil,
   CalendarDays, Wallet, Coins, CreditCard, Stamp,
 } from 'lucide-react'
-import DataTable from '../components/DataTable.jsx'
-import EmptyState from '../components/EmptyState.jsx'
-import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import Alert from '../components/ui/Alert.jsx'
-import ActionMenu from '../components/ui/ActionMenu.jsx'
-import Button from '../components/ui/Button.jsx'
-import { FieldRow, Field, Input, Select, Checkbox, CheckboxCard, FormCard, FormActions } from '../components/Field.jsx'
+import DataTable from '../../../components/DataTable.jsx'
+import EmptyState from '../../../components/EmptyState.jsx'
+import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import ActionMenu from '../../../components/ui/ActionMenu.jsx'
+import Button from '../../../components/ui/Button.jsx'
+import { FieldRow, Field, Input, Select, Checkbox, CheckboxCard, FormCard, FormActions } from '../../../components/Field.jsx'
 import { MenuImprimer } from '../components/DomiciliationActions.jsx'
-import { listEntreprises } from '../api/entreprises.js'
-import { ApiError } from '../api/http.js'
-import { chargerSignatureDomiciliation } from '../utils/documentsDomiciliation.js'
-import { getDomiciliationSettings } from '../api/settings.js'
+import { listEntreprises } from '../../../api/entreprises.js'
+import { ApiError } from '../../../api/http.js'
+import { chargerSignatureDomiciliation } from '../documents/documentsDomiciliation.js'
+import { getDomiciliationSettings } from '../../../api/settings.js'
 import { calculerDateFin } from '../utils/domiciliation.js'
-import { aujourdhui } from '../shared/utils/date.js'
-import { formatDateHeure } from '../utils/format.js'
+import { aujourdhui } from '../../../shared/utils/date.js'
+import { formatDateHeure } from '../../../utils/format.js'
 import {
   listDomiciliations, createDomiciliation, updateDomiciliation,
   getDomiciliation, archiveDomiciliation, corbeilleDomiciliation,
 } from '../api/domiciliations.js'
-import { MODES_PAIEMENT } from '../shared/constants/documents.js'
+import { MODES_PAIEMENT } from '../../../shared/constants/documents.js'
 
 const DOCUMENTS_CASES = [
   { cle: 'doc_facture', titre: 'Ajouter Facture de domiciliation', label: 'Facture de domiciliation' },

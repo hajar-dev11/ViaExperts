@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, Plus, RefreshCw } from 'lucide-react'
-import DataTable from '../components/DataTable.jsx'
-import ExportMenu from '../components/ExportMenu.jsx'
-import { IconButton } from '../components/ui/Button.jsx'
-import Alert from '../components/ui/Alert.jsx'
-import { RowBtn } from '../components/ListToolbar.jsx'
+import DataTable from '../../../components/DataTable.jsx'
+import ExportMenu from '../../../components/ExportMenu.jsx'
+import { IconButton } from '../../../components/ui/Button.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import { RowBtn } from '../../../components/ListToolbar.jsx'
 import { FormulaireRenouvellement } from '../components/DomiciliationActions.jsx'
-import { ApiError } from '../api/http.js'
+import { ApiError } from '../../../api/http.js'
 import { listDomiciliations, renouvelerDomiciliation } from '../api/domiciliations.js'
 import { classerNouveauRenouveler } from '../utils/domiciliation.js'
-import { formatDate } from '../utils/format.js'
+import { formatDate } from '../../../utils/format.js'
 
 /**
  * Six tableaux, côte à côte, comme « List Domiciliation » de la référence.

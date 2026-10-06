@@ -12,7 +12,7 @@ import { listClients, corbeilleClient, restoreClient, deleteClientForever } from
 import { listEntreprises, corbeilleEntreprise, restoreEntreprise, deleteEntrepriseForever } from '../api/entreprises.js'
 import {
   listDomiciliations, corbeilleDomiciliation, restoreDomiciliation, deleteDomiciliationForever,
-} from '../api/domiciliations.js'
+} from '../modules/domiciliation/index.js'
 import { listServices, corbeilleService, restoreService, deleteServiceForever } from '../api/services.js'
 import {
   listServicesEnCours, corbeilleServiceEnCours, restoreServiceEnCours, deleteServiceEnCoursForever,

@@ -1,4 +1,4 @@
-import { apiFetch } from './http.js'
+import { apiFetch } from '../../../api/http.js'
 
 export async function listCentres({ page = 1, perPage = 10, search = '', status = 'actif' } = {}) {
   const params = new URLSearchParams({ page, per_page: perPage, status })

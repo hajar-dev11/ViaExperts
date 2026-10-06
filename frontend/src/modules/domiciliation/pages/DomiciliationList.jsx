@@ -4,20 +4,20 @@ import {
   Plus, Archive, Trash2, RotateCcw, FileText, CircleCheck, Pencil,
   MessageSquarePlus, BadgeCheck, Ban, ArrowLeft, RefreshCw, ListTree, Eye,
 } from 'lucide-react'
-import DataTable from '../components/DataTable.jsx'
-import ExportMenu from '../components/ExportMenu.jsx'
-import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import Alert from '../components/ui/Alert.jsx'
-import Modal from '../components/ui/Modal.jsx'
-import Button, { IconButton } from '../components/ui/Button.jsx'
-import { useToast } from '../components/ui/Toast.jsx'
-import ActionMenu from '../components/ui/ActionMenu.jsx'
-import { RowBtn } from '../components/ListToolbar.jsx'
-import { Field, FileInput, Textarea } from '../components/Field.jsx'
+import DataTable from '../../../components/DataTable.jsx'
+import ExportMenu from '../../../components/ExportMenu.jsx'
+import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
+import Alert from '../../../components/ui/Alert.jsx'
+import Modal from '../../../components/ui/Modal.jsx'
+import Button, { IconButton } from '../../../components/ui/Button.jsx'
+import { useToast } from '../../../components/ui/Toast.jsx'
+import ActionMenu from '../../../components/ui/ActionMenu.jsx'
+import { RowBtn } from '../../../components/ListToolbar.jsx'
+import { Field, FileInput, Textarea } from '../../../components/Field.jsx'
 import StatutDomiciliationBadge, { STATUT_LABELS } from '../components/StatutDomiciliation.jsx'
 import { FormulaireRenouvellement, FormulaireActionSimple } from '../components/DomiciliationActions.jsx'
-import { formatDate } from '../utils/format.js'
-import { ApiError } from '../api/http.js'
+import { formatDate } from '../../../utils/format.js'
+import { ApiError } from '../../../api/http.js'
 import {
   listDomiciliations, archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation,
   deleteDomiciliationForever, declarerDomiciliation, resilierDomiciliation,
