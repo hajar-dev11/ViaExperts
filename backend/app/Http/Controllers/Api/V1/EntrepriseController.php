@@ -15,6 +15,7 @@ use App\Models\EntrepriseObservationFichier;
 use App\Models\EntrepriseSecteur;
 use App\Models\Party;
 use App\Modules\Domiciliation\Contracts\CentresDomiciliationReference;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -256,7 +257,7 @@ class EntrepriseController extends Controller
         abort_if(! $entreprise->party, 404);
 
         $request->validate([
-            'fichier' => ['required', 'file', 'max:5120'],
+            'fichier' => ['required', 'file', FichierAutorise::document(), 'max:5120'],
             'nom' => ['nullable', 'string', 'max:200'],
         ]);
 
@@ -340,7 +341,7 @@ class EntrepriseController extends Controller
             'contenu' => ['required', 'string', 'max:5000'],
             'privee' => ['nullable', 'boolean'],
             'fichiers' => ['nullable', 'array', 'max:10'],
-            'fichiers.*' => ['file', 'max:5120'],
+            'fichiers.*' => ['file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         DB::transaction(function () use ($request, $entreprise, $data) {

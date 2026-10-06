@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\User;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -95,7 +96,7 @@ class ChatController extends Controller
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:5000'],
             // 20 Mo — le php.ini de la machine autorise jusqu'à 40 Mo par requête.
-            'fichier' => ['nullable', 'file', 'max:20480'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:20480'],
         ]);
 
         $fichier = $request->file('fichier');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rapport;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -31,7 +32,7 @@ class RapportController extends Controller
             'descriptive' => ['nullable', 'string', 'max:10000'],
             // Un seul fichier : la capture indique d'utiliser une archive ZIP/RAR
             // pour transmettre plusieurs documents.
-            'document' => ['nullable', 'file', 'max:20480'],
+            'document' => ['nullable', 'file', FichierAutorise::avecArchives(), 'max:20480'],
         ];
     }
 

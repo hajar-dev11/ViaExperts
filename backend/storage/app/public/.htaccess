@@ -1,0 +1,34 @@
+# Fichiers téléversés par les utilisateurs : JAMAIS exécutés (défense en profondeur, en plus de public/.htaccess).
+# Ce fichier est lu quand /storage (lien vers storage/app/public) est servi par Apache.
+
+Options -Indexes
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+<IfModule mod_mime.c>
+    RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .phtml .pht .phps .phar .cgi .pl .py
+    RemoveType .php .php3 .php4 .php5 .php7 .php8 .phtml .pht .phps .phar
+</IfModule>
+
+# Quel que soit le gestionnaire PHP du serveur (mod_php, FastCGI, php-fpm), ces fichiers sont refusés.
+<FilesMatch "(?i)\.(php[0-9]?|phtml|phar|pht|phps|cgi|pl|py|sh|exe|jsp|aspx?)(\.|$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>

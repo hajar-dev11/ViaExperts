@@ -67,6 +67,9 @@ export default function Login() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
         setError(Object.values(err.errors)[0]?.[0] ?? 'Identifiant ou mot de passe incorrect.')
+      } else if (err instanceof ApiError && err.status === 429) {
+        // Trop de tentatives : le serveur indique le délai d'attente dans son message.
+        setError(err.message || 'Trop de tentatives de connexion. Réessayez dans quelques instants.')
       } else {
         setError('Impossible de contacter le serveur. Réessayez dans quelques instants.')
       }

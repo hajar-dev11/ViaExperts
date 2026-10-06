@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Cachet;
 use App\Models\CachetOperation;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -100,7 +101,7 @@ class CachetController extends Controller
         $request->validate([
             'cachet_status_id' => ['nullable', 'integer', 'exists:cachet_statuses,id'],
             'commentaire' => ['nullable', 'string', 'max:2000'],
-            'fichier' => ['nullable', 'file', 'max:5120'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         $operation = [

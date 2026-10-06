@@ -10,3 +10,20 @@ storage/*.key
 storage/logs/
 
 .claude/
+
+# Sécurité : jamais de dumps de base, sauvegardes, clés ni certificats dans Git
+*.sql
+*.sql.gz
+*.dump
+*.bak
+*.backup
+backups/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+# Journaux et caches locaux
+*.log
+.phpunit.result.cache

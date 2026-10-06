@@ -6,10 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /** Échecs tolérés par fenêtre pour un même identifiant depuis une même IP. */
+    public const MAX_ECHECS_PAR_COMPTE = 5;
+
+    /** Échecs tolérés par fenêtre pour une même IP (tous identifiants confondus). */
+    public const MAX_ECHECS_PAR_IP = 30;
+
+    /** Durée de la fenêtre (et du blocage) en secondes. */
+    public const FENETRE_SECONDES = 60;
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -20,11 +31,35 @@ class AuthController extends Controller
 
         $remember = (bool) ($credentials['remember'] ?? false);
 
+        // Anti force brute : seuls les ÉCHECS comptent. Deux compteurs, sans verrouiller le compte lui-même
+        // (un tiers ne peut donc pas bloquer l'administrateur depuis une autre adresse) :
+        //   - identifiant + IP : MAX_ECHECS_PAR_COMPTE échecs par fenêtre ;
+        //   - IP seule : MAX_ECHECS_PAR_IP échecs par fenêtre (large, pour les bureaux derrière une même adresse).
+        $cleCompte = 'login:'.Str::lower(trim($credentials['email'])).'|'.$request->ip();
+        $cleIp = 'login-ip:'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($cleCompte, self::MAX_ECHECS_PAR_COMPTE)
+            || RateLimiter::tooManyAttempts($cleIp, self::MAX_ECHECS_PAR_IP)) {
+            $secondes = max(1, RateLimiter::availableIn($cleCompte), RateLimiter::availableIn($cleIp));
+            $message = "Trop de tentatives de connexion. Réessayez dans {$secondes} seconde".($secondes > 1 ? 's' : '').'.';
+
+            return response()->json([
+                'message' => $message,
+                'errors' => ['email' => [$message]],
+                'retry_after' => $secondes,
+            ], 429)->header('Retry-After', (string) $secondes);
+        }
+
         if (! Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['password']], $remember)) {
+            RateLimiter::hit($cleCompte, self::FENETRE_SECONDES);
+            RateLimiter::hit($cleIp, self::FENETRE_SECONDES);
+
             throw ValidationException::withMessages([
                 'email' => ['Identifiant ou mot de passe incorrect.'],
             ]);
         }
+
+        RateLimiter::clear($cleCompte);
 
         $request->session()->regenerate();
 

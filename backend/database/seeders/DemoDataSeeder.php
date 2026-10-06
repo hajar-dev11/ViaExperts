@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * DemoDataSeeder — jeu de données ENTIÈREMENT FICTIF pour tester l'application.
@@ -46,8 +47,8 @@ class DemoDataSeeder extends Seeder
     /** Domaine de messagerie réservé aux comptes de démonstration. */
     public const DOMAINE_DEMO = 'demo.viaexperts.test';
 
-    /** Mot de passe des comptes de démonstration (local uniquement). */
-    public const MOT_DE_PASSE_DEMO = 'DemoViaExperts2026!';
+    /** Mot de passe des comptes de démonstration : généré à chaque exécution, affiché une seule fois dans la console. */
+    private string $motDePasseDemo;
 
     private int $adminId;
     private Carbon $today;
@@ -61,6 +62,12 @@ class DemoDataSeeder extends Seeder
 
     public function run(): void
     {
+        // Jeu fictif avec comptes de démonstration : ne doit JAMAIS tourner en production.
+        if (app()->environment('production')) {
+            throw new \RuntimeException('DemoDataSeeder est interdit en production.');
+        }
+
+        $this->motDePasseDemo = Str::random(20);
         $this->today = Carbon::today();
         $this->adminId = (int) (DB::table('users')->where('is_admin', true)->min('id') ?? 1);
 
@@ -86,6 +93,7 @@ class DemoDataSeeder extends Seeder
             $this->creerChat();
         });
 
+        $this->command?->info('Mot de passe des comptes de démonstration (@'.self::DOMAINE_DEMO.') : '.$this->motDePasseDemo);
         $this->command?->info('Jeu de démonstration créé. Purge : php artisan db:seed --class=DemoDataPurgeSeeder --force');
     }
 
@@ -104,7 +112,7 @@ class DemoDataSeeder extends Seeder
             $id = DB::table('users')->insertGetId([
                 'name' => $nom,
                 'email' => $email,
-                'password' => Hash::make(self::MOT_DE_PASSE_DEMO),
+                'password' => Hash::make($this->motDePasseDemo),
                 'is_admin' => false,
                 'fonction' => $fonction,
                 'telephone' => '06 00 00 00 00',

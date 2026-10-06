@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Fichier;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,7 +25,7 @@ class FichierController extends Controller
     {
         $request->validate([
             'fichiers' => ['required', 'array', 'min:1'],
-            'fichiers.*' => ['file', 'max:20480'],
+            'fichiers.*' => ['file', FichierAutorise::avecArchives(), 'max:20480'],
         ]);
 
         $crees = [];

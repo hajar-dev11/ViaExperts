@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Sécurité : aucun script ne s'exécute depuis les fichiers téléversés (/storage). Toute URL de /storage dont un
+    # segment du nom contient une extension exécutable (a.php, a.php.jpg, a.phtml/x...) est refusée (403).
+    RewriteRule ^storage/.*\.(php[0-9]?|phtml|phar|pht|phps|cgi|pl|py|sh|exe|jsp|aspx?)(\.|/|$) - [F,NC,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

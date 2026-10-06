@@ -73,6 +73,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Administrateur initial (bootstrap contrôlé)
+    |--------------------------------------------------------------------------
+    |
+    | Lus UNIQUEMENT par `DatabaseSeeder`, pour créer le tout premier compte
+    | administrateur d'une base neuve. Aucune valeur par défaut : sans ces
+    | variables, aucun compte n'est créé. À retirer du `.env` après usage.
+    |
+    */
+
+    'bootstrap_admin' => [
+        'name' => env('BOOTSTRAP_ADMIN_NAME', 'Administrateur'),
+        'email' => env('BOOTSTRAP_ADMIN_EMAIL'),
+        'password' => env('BOOTSTRAP_ADMIN_PASSWORD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

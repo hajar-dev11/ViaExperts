@@ -8,6 +8,7 @@ use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaiementResource;
 use App\Models\Paiement;
+use App\Rules\FichierAutorise;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,7 @@ class PaiementController extends Controller
             'signature' => ['nullable', 'boolean'],
             'observation' => ['nullable', 'string', 'max:5000'],
             'prix_paye' => ['nullable', 'numeric', 'min:0'],
-            'piece_jointe' => ['nullable', 'file', 'max:5120'],
+            'piece_jointe' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
 
             'lignes' => [$partiel ? 'sometimes' : 'required', 'array', 'min:1'],
             'lignes.*.service_id' => ['nullable', 'integer', 'exists:services,id'],

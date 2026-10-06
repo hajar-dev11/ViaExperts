@@ -10,6 +10,7 @@ use App\Modules\Domiciliation\Models\Domiciliation;
 use App\Modules\Domiciliation\Models\DomiciliationDocument;
 use App\Modules\Domiciliation\Models\DomiciliationObservation;
 use App\Modules\Domiciliation\Models\DomiciliationOperation;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -156,7 +157,7 @@ class DomiciliationController extends Controller
             'doc_attestation' => ['nullable', 'boolean'],
             'doc_procuration' => ['nullable', 'boolean'],
             'commentaire' => ['nullable', 'string', 'max:5000'],
-            'fichier' => ['nullable', 'file', 'max:5120'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         $nouvelle = DB::transaction(function () use ($request, $domiciliation, $data) {
@@ -195,7 +196,7 @@ class DomiciliationController extends Controller
     {
         $request->validate([
             'commentaire' => ['nullable', 'string', 'max:5000'],
-            'fichier' => ['nullable', 'file', 'max:5120'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         DB::transaction(function () use ($request, $domiciliation) {
@@ -211,7 +212,7 @@ class DomiciliationController extends Controller
     {
         $request->validate([
             'commentaire' => ['nullable', 'string', 'max:5000'],
-            'fichier' => ['nullable', 'file', 'max:5120'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         DB::transaction(function () use ($request, $domiciliation) {
@@ -253,7 +254,7 @@ class DomiciliationController extends Controller
         $data = $request->validate([
             'contenu' => ['required', 'string', 'max:5000'],
             'privee' => ['nullable', 'boolean'],
-            'fichier' => ['nullable', 'file', 'max:5120'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         $file = $request->file('fichier');
@@ -287,7 +288,7 @@ class DomiciliationController extends Controller
     public function storeDocument(Request $request, Domiciliation $domiciliation)
     {
         $request->validate([
-            'fichier' => ['required', 'file', 'max:5120'],
+            'fichier' => ['required', 'file', FichierAutorise::document(), 'max:5120'],
             'nom' => ['nullable', 'string', 'max:200'],
         ]);
 

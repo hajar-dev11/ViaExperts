@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ServiceEnCoursResource;
 use App\Models\ServiceEnCours;
 use App\Models\ServiceEnCoursOperation;
+use App\Rules\FichierAutorise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -101,7 +102,7 @@ class ServiceEnCoursController extends Controller
         $request->validate([
             'service_status_id' => ['nullable', 'integer', 'exists:service_statuses,id'],
             'commentaire' => ['nullable', 'string', 'max:2000'],
-            'fichier' => ['nullable', 'file', 'max:5120'],
+            'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
 
         $operation = [
