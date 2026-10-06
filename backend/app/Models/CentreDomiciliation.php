@@ -1,26 +1,15 @@
 <?php
 
-namespace App\Models;
+/*
+ * COMPATIBILITÉ TEMPORAIRE — migration Modular Monolith (Domiciliation, étape 18).
+ *
+ * Ce modèle a été déplacé dans le module Domiciliation. Ce fichier ne contient AUCUNE logique : il déclare seulement l'ancien nom
+ * comme alias de la classe réelle, pour que le code qui référence encore l'ancien espace de noms (Entreprise, EntrepriseController,
+ * tests, ...) continue de fonctionner. À supprimer à l'étape 19, quand plus aucune référence à l'ancien nom ne subsistera.
+ *
+ * Classe réelle : App\Modules\Domiciliation\Models\CentreDomiciliation
+ */
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
-class CentreDomiciliation extends Model
-{
-    use SoftDeletes;
-
-    protected $table = 'centres_domiciliation';
-
-    protected $fillable = ['nom', 'if', 'ice', 'ville', 'adresse', 'numero_archive', 'telephone', 'email', 'status'];
-
-    /** Entreprises domiciliées dans ce centre, toutes périodes confondues. */
-    public function domiciliations()
-    {
-        return $this->hasMany(Domiciliation::class, 'centre_domiciliation_id');
-    }
-
-    public function scopeStatus($query, string $status)
-    {
-        return $query->where('status', $status);
-    }
+if (! class_exists('App\Models\CentreDomiciliation', false)) {
+    class_alias('App\Modules\Domiciliation\Models\CentreDomiciliation', 'App\Models\CentreDomiciliation');
 }

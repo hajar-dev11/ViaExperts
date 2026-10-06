@@ -1,39 +1,15 @@
 <?php
 
-namespace App\Models;
+/*
+ * COMPATIBILITÉ TEMPORAIRE — migration Modular Monolith (Domiciliation, étape 18).
+ *
+ * Ce modèle a été déplacé dans le module Domiciliation. Ce fichier ne contient AUCUNE logique : il déclare seulement l'ancien nom
+ * comme alias de la classe réelle, pour que le code qui référence encore l'ancien espace de noms (Entreprise, EntrepriseController,
+ * tests, ...) continue de fonctionner. À supprimer à l'étape 19, quand plus aucune référence à l'ancien nom ne subsistera.
+ *
+ * Classe réelle : App\Modules\Domiciliation\Models\DomiciliationObservation
+ */
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
-class DomiciliationObservation extends Model
-{
-    use SoftDeletes;
-
-    protected $fillable = ['domiciliation_id', 'contenu', 'privee', 'fichier_nom', 'fichier_chemin', 'created_by', 'status'];
-
-    protected $casts = ['privee' => 'boolean'];
-
-    public function domiciliation()
-    {
-        return $this->belongsTo(Domiciliation::class);
-    }
-
-    public function auteur()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Règle de visibilité d'une observation privée, identique à
-     * `EntrepriseObservation::estVisiblePar` : son auteur et les
-     * administrateurs uniquement. Non privée = lisible par tous.
-     */
-    public function estVisiblePar(?User $user): bool
-    {
-        if (! $this->privee) {
-            return true;
-        }
-
-        return $user !== null && ($user->is_admin || $this->created_by === $user->id);
-    }
+if (! class_exists('App\Models\DomiciliationObservation', false)) {
+    class_alias('App\Modules\Domiciliation\Models\DomiciliationObservation', 'App\Models\DomiciliationObservation');
 }

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Domiciliation;
+namespace App\Modules\Domiciliation\Services;
 
-use App\Contracts\Domiciliation\CompteursDomiciliations;
-use App\Models\Domiciliation;
+use App\Modules\Domiciliation\Contracts\CompteursDomiciliations;
+use App\Modules\Domiciliation\Models\Domiciliation;
 
 /** Implémentation du contrat {@see CompteursDomiciliations} : le comptage qui se trouvait dans ArchiveController. */
 class CompteursDomiciliationsEloquent implements CompteursDomiciliations

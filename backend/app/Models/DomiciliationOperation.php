@@ -1,29 +1,15 @@
 <?php
 
-namespace App\Models;
+/*
+ * COMPATIBILITÉ TEMPORAIRE — migration Modular Monolith (Domiciliation, étape 18).
+ *
+ * Ce modèle a été déplacé dans le module Domiciliation. Ce fichier ne contient AUCUNE logique : il déclare seulement l'ancien nom
+ * comme alias de la classe réelle, pour que le code qui référence encore l'ancien espace de noms (Entreprise, EntrepriseController,
+ * tests, ...) continue de fonctionner. À supprimer à l'étape 19, quand plus aucune référence à l'ancien nom ne subsistera.
+ *
+ * Classe réelle : App\Modules\Domiciliation\Models\DomiciliationOperation
+ */
 
-use Illuminate\Database\Eloquent\Model;
-
-/** Renouvellement, déclaration ou résiliation d'une domiciliation. */
-class DomiciliationOperation extends Model
-{
-    /** Doit rester aligné sur la migration `create_domiciliation_operations_table`. */
-    public const TYPES = ['renouvellement', 'declaration', 'resiliation', 'activation'];
-
-    protected $table = 'domiciliation_operations';
-
-    protected $fillable = [
-        'domiciliation_id', 'type', 'commentaire',
-        'fichier_nom', 'fichier_chemin', 'created_by',
-    ];
-
-    public function domiciliation()
-    {
-        return $this->belongsTo(Domiciliation::class);
-    }
-
-    public function auteur()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
+if (! class_exists('App\Models\DomiciliationOperation', false)) {
+    class_alias('App\Modules\Domiciliation\Models\DomiciliationOperation', 'App\Models\DomiciliationOperation');
 }

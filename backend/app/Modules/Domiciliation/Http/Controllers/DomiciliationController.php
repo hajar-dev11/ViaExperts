@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Modules\Domiciliation\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreDomiciliationRequest;
-use App\Http\Requests\UpdateDomiciliationRequest;
-use App\Http\Resources\DomiciliationResource;
-use App\Models\Domiciliation;
-use App\Models\DomiciliationDocument;
-use App\Models\DomiciliationObservation;
-use App\Models\DomiciliationOperation;
+use App\Modules\Domiciliation\Http\Requests\StoreDomiciliationRequest;
+use App\Modules\Domiciliation\Http\Requests\UpdateDomiciliationRequest;
+use App\Modules\Domiciliation\Http\Resources\DomiciliationResource;
+use App\Modules\Domiciliation\Models\Domiciliation;
+use App\Modules\Domiciliation\Models\DomiciliationDocument;
+use App\Modules\Domiciliation\Models\DomiciliationObservation;
+use App\Modules\Domiciliation\Models\DomiciliationOperation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;

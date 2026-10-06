@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Modules\Domiciliation\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreCentreDomiciliationRequest extends FormRequest
+class UpdateCentreDomiciliationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -13,8 +14,10 @@ class StoreCentreDomiciliationRequest extends FormRequest
 
     public function rules(): array
     {
+        $id = $this->route('centre');
+
         return [
-            'nom' => ['required', 'string', 'max:150', 'unique:centres_domiciliation,nom'],
+            'nom' => ['required', 'string', 'max:150', Rule::unique('centres_domiciliation', 'nom')->ignore($id)],
             'if' => ['nullable', 'string', 'max:20'],
             'ice' => ['nullable', 'string', 'max:20'],
             'ville' => ['nullable', 'string', 'max:80'],

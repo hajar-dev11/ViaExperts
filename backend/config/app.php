@@ -208,6 +208,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Modules\Facturation\FacturationServiceProvider::class,
+        App\Modules\Domiciliation\DomiciliationServiceProvider::class,
 
     ],
 

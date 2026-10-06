@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Domiciliation;
+namespace App\Modules\Domiciliation\Contracts;
 
 /**
  * Compteurs de Domiciliation pour les autres modules (aujourd'hui : la page Archive / Corbeille).

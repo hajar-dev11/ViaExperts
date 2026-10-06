@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Modules\Domiciliation\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCentreDomiciliationRequest;
-use App\Http\Requests\UpdateCentreDomiciliationRequest;
-use App\Models\CentreDomiciliation;
+use App\Modules\Domiciliation\Http\Requests\StoreCentreDomiciliationRequest;
+use App\Modules\Domiciliation\Http\Requests\UpdateCentreDomiciliationRequest;
+use App\Modules\Domiciliation\Models\CentreDomiciliation;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 

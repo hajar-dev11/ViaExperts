@@ -265,8 +265,8 @@ class ArchiveCountsTest extends TestCase
     public function test_le_contrat_domiciliations_est_resolu_et_lie_a_son_implementation(): void
     {
         $this->assertInstanceOf(
-            \App\Services\Domiciliation\CompteursDomiciliationsEloquent::class,
-            app(\App\Contracts\Domiciliation\CompteursDomiciliations::class)
+            \App\Modules\Domiciliation\Services\CompteursDomiciliationsEloquent::class,
+            app(\App\Modules\Domiciliation\Contracts\CompteursDomiciliations::class)
         );
     }
 
@@ -276,7 +276,7 @@ class ArchiveCountsTest extends TestCase
         $this->domiciliation('actif');
         $this->domiciliation('archive');
         $this->domiciliation('actif', supprime: true);
-        $contrat = app(\App\Contracts\Domiciliation\CompteursDomiciliations::class);
+        $contrat = app(\App\Modules\Domiciliation\Contracts\CompteursDomiciliations::class);
 
         foreach (['actif', 'archive', 'corbeille', 'inconnu'] as $statut) {
             $this->assertSame(Domiciliation::where('status', $statut)->count(), $contrat->compterParStatut($statut), $statut);
@@ -288,7 +288,7 @@ class ArchiveCountsTest extends TestCase
     public function test_archive_obtient_domiciliation_depuis_le_contrat_avec_le_statut_demande(): void
     {
         $appels = [];
-        $this->app->instance(\App\Contracts\Domiciliation\CompteursDomiciliations::class, new class($appels) implements \App\Contracts\Domiciliation\CompteursDomiciliations {
+        $this->app->instance(\App\Modules\Domiciliation\Contracts\CompteursDomiciliations::class, new class($appels) implements \App\Modules\Domiciliation\Contracts\CompteursDomiciliations {
             public function __construct(public array &$appels)
             {
             }

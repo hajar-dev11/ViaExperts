@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\Domiciliation\CompteursDomiciliations;
+use App\Modules\Domiciliation\Contracts\CompteursDomiciliations;
 use App\Contracts\ServicesEnCours\CompteursServicesEnCours;
 use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Http\Controllers\Controller;
