@@ -5,7 +5,7 @@
 //
 // Mise à jour volontaire (après un changement de design assumé) :  npm test -- -u   puis relire le diff Git.
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { construireHtmlDocumentCommercial } from '../modules/facturation/index.js'
 import { construireHtmlRecuPdf } from '../modules/paiements/index.js'
 import { domiciliationEnFacture } from '../modules/domiciliation/index.js'
@@ -90,10 +90,13 @@ const ENTREPRISE = { forme: 'SARL AU', clientId: 5 }
 const CLIENT = { genre: 'Mr', naissance: '1966-12-30', tel: '+212 661-620104', email: 'liftel.service@gmail.com' }
 
 // La « date du jour » des documents de domiciliation est figée pour que les instantanés soient stables.
-beforeAll(() => {
-  vi.useFakeTimers()
-  vi.setSystemTime(new Date('2026-10-05T10:00:00'))
-})
+// IMPORTANT : l'horloge doit être figée AU CHARGEMENT du fichier et non dans `beforeAll` : les `describe` ci-dessous calculent
+// leurs valeurs par défaut (`attestationParDefaut`, `contratParDefaut`, `procurationParDefaut`) pendant la collecte, donc avant
+// tout `beforeAll`. Figée seulement dans `beforeAll`, la date réelle s'y glissait et les 11 instantanés « date du jour »
+// échouaient dès le lendemain de leur enregistrement (constaté le 06/10/2026, sur le dépôt intact). Les instantanés eux-mêmes
+// ne sont pas modifiés.
+vi.useFakeTimers()
+vi.setSystemTime(new Date('2026-10-05T10:00:00'))
 afterAll(() => vi.useRealTimers())
 
 // ---- Documents commerciaux -----------------------------------------------------------------------------------
