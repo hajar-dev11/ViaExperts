@@ -95,6 +95,7 @@
                 {
                     "active": "bool",
                     "label": "string",
+                    "page": "int",
                     "url": "string"
                 }
             ],
@@ -193,6 +194,7 @@
                 {
                     "active": "bool",
                     "label": "string",
+                    "page": "int",
                     "url": "string"
                 }
             ],
@@ -965,6 +967,7 @@
                 {
                     "active": "bool",
                     "label": "string",
+                    "page": "int",
                     "url": "string"
                 }
             ],
