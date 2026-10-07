@@ -97,9 +97,13 @@ return [
     | will be used by the PHP date and date-time functions. We have gone
     | ahead and set this to a sensible default for you out of the box.
     |
+    | Via Experts : heure légale du Maroc (UTC+1, UTC+0 pendant le Ramadan, gérée par la base de fuseaux PHP).
+    | Les horodatages créés par le serveur (création, dernière opération, lecture d'un message…) sont écrits dans
+    | ce fuseau. Les lignes antérieures à ce changement ont été enregistrées en UTC (voir docs/ pour l'impact).
+    |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Africa/Casablanca',
 
     /*
     |--------------------------------------------------------------------------

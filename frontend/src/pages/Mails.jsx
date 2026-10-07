@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal.jsx'
 import Button, { IconButton } from '../components/ui/Button.jsx'
 import { Field, Input, Select, Textarea } from '../components/Field.jsx'
 import { API_URL, ApiError } from '../api/http.js'
+import { maintenantLocal } from '../shared/utils/date.js'
 import { listClients } from '../api/clients.js'
 import { listEntreprises } from '../api/entreprises.js'
 import { mailStatusApi } from '../api/statuses.js'
@@ -131,7 +132,7 @@ export default function Mails() {
       if (editing) {
         mail = await updateMail(editing.id, payload)
       } else {
-        mail = await createMail({ ...payload, date_depart: new Date().toISOString().slice(0, 19).replace('T', ' ') })
+        mail = await createMail({ ...payload, date_depart: maintenantLocal() })
       }
       if (fichier) await addOperation(mail.id, { fichier })
       setSuccess(editing ? 'Mail modifié.' : 'Mail ajouté.')

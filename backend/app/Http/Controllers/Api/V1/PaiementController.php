@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Modules\Facturation\Contracts\FactureExiste;
+use App\Modules\Facturation\Contracts\FactureReference;
+use App\Modules\Facturation\Contracts\MontantFacture;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
@@ -13,6 +15,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class PaiementController extends Controller
 {
@@ -22,9 +25,92 @@ class PaiementController extends Controller
         private FacturesDisponibles $factures,
         private AssureServicesEnCours $servicesEnCours,
         private FactureExiste $factureExiste,
+        private MontantFacture $montantFacture,
+        private FactureReference $factureReference,
     ) {
     }
 
+    /** Montant au format français pour les messages d'erreur : « 7 200,00 Dh ». */
+    private function dh(float $montant): string
+    {
+        return number_format($montant, 2, ',', ' ').' Dh';
+    }
+
+    /**
+     * Refuse le surpaiement côté serveur (HTTP 422, champ `prix_paye`, message en français) : à appeler SOUS le verrou
+     * de création/modification, avant toute écriture, pour que deux paiements simultanés ne dépassent jamais ensemble le
+     * reste à payer.
+     *
+     *  - le montant payé ne peut pas dépasser le total des lignes du paiement (`$verifierTotal`) ;
+     *  - s'il est rattaché à une facture : il ne peut pas dépasser le reste à payer de celle-ci
+     *    (total TTC − paiements ACTIFS déjà enregistrés, hors `$paiementId` lui-même).
+     */
+    private function refuserSurpaiement(float $prixPaye, float $totalLignes, ?int $documentId, ?int $paiementId, bool $verifierTotal = true): void
+    {
+        $tolerance = 0.005;
+
+        if ($verifierTotal && $prixPaye > $totalLignes + $tolerance) {
+            throw ValidationException::withMessages(['prix_paye' => [sprintf(
+                'Le montant payé (%s) dépasse le total du paiement (%s). Le paiement n\'a pas été enregistré.',
+                $this->dh($prixPaye),
+                $this->dh($totalLignes)
+            )]]);
+        }
+
+        if (! $documentId) {
+            return;
+        }
+
+        $totalFacture = $this->montantFacture->totalTtc($documentId);
+
+        if ($totalFacture === null) {
+            return;
+        }
+
+        $dejaPaye = (float) Paiement::where('document_id', $documentId)
+            ->where('status', 'actif')
+            ->when($paiementId, fn ($q) => $q->where('id', '!=', $paiementId))
+            ->sum('prix_paye');
+        $reste = round($totalFacture - $dejaPaye, 2);
+
+        if ($prixPaye > $reste + $tolerance) {
+            $numero = $this->factureReference->numeros([$documentId])[$documentId] ?? "#{$documentId}";
+
+            throw ValidationException::withMessages(['prix_paye' => [sprintf(
+                'Le montant payé (%s) dépasse le reste à payer de la facture n° %s (%s). Le paiement n\'a pas été enregistré.',
+                $this->dh($prixPaye),
+                $numero,
+                $this->dh(max(0.0, $reste))
+            )]]);
+        }
+    }
+
+    /** Total des lignes saisies : même calcul que `Paiement::recalculerTotal()`. */
+    private function totalDesLignes(array $lignes): float
+    {
+        return round(array_reduce($lignes, fn (float $total, array $l) => $total + (float) $l['quantite'] * (float) $l['prix_unitaire'], 0.0), 2);
+    }
+
+    /**
+     * Exécute `$operation` en exclusion mutuelle avec les autres créations de paiement (verrou nommé MySQL, partagé
+     * entre processus). La référence `#N` dérive du dernier identifiant et la facture est resynchronisée dans la même
+     * transaction : sans ce verrou, des paiements enregistrés au même instant se heurtent (référence en double,
+     * interblocages) et répondent HTTP 500. La section critique est courte ; le verrou est toujours relâché.
+     */
+    private function enExclusionMutuelle(Closure $operation): mixed
+    {
+        $verrou = 'via_experts.paiements.creation';
+
+        if ((int) (DB::selectOne('SELECT GET_LOCK(?, 20) AS ok', [$verrou])->ok ?? 0) !== 1) {
+            abort(503, 'Le serveur est occupé, veuillez réessayer dans un instant.');
+        }
+
+        try {
+            return $operation();
+        } finally {
+            DB::select('SELECT RELEASE_LOCK(?)', [$verrou]);
+        }
+    }
     private function regles(bool $partiel = false): array
     {
         $r = $partiel ? 'sometimes' : 'required';
@@ -147,15 +233,21 @@ class PaiementController extends Controller
         $lignes = $data['lignes'];
         unset($data['lignes'], $data['piece_jointe']);
 
-        $paiement = DB::transaction(function () use ($request, $data, $lignes) {
-            $data['reference'] = Paiement::prochaineReference();
-            $data['created_by'] = $request->user()->id;
+        $data['created_by'] = $request->user()->id;
 
-            if ($request->hasFile('piece_jointe')) {
-                $file = $request->file('piece_jointe');
-                $data['piece_jointe_chemin'] = $file->store('paiements', 'public');
-                $data['piece_jointe_nom'] = $file->getClientOriginalName();
-            }
+        // Stockée avant la section critique pour qu'elle reste la plus courte possible.
+        if ($request->hasFile('piece_jointe')) {
+            $file = $request->file('piece_jointe');
+            $data['piece_jointe_chemin'] = $file->store('paiements', 'public');
+            $data['piece_jointe_nom'] = $file->getClientOriginalName();
+        }
+
+        $paiement = $this->enExclusionMutuelle(fn () => DB::transaction(function () use ($request, $data, $lignes) {
+            // Surpaiement refusé AVANT toute écriture (sous le verrou : le reste à payer est celui de cet instant).
+            $this->refuserSurpaiement((float) ($data['prix_paye'] ?? 0), $this->totalDesLignes($lignes), $data['document_id'] ?? null, null);
+
+            // Référence calculée sous verrou (voir enExclusionMutuelle).
+            $data['reference'] = Paiement::prochaineReference();
 
             $paiement = Paiement::create($data);
 
@@ -173,7 +265,7 @@ class PaiementController extends Controller
             Paiement::synchroniserFacture($paiement->document_id);
 
             return $paiement;
-        });
+        }));
 
         return (new PaiementResource($paiement->fresh(self::RELATIONS)))
             ->response()
@@ -190,7 +282,9 @@ class PaiementController extends Controller
 
         $ancienDocument = $paiement->document_id;
 
-        DB::transaction(function () use ($request, $paiement, $data, $lignes, $ancienDocument) {
+        $this->enExclusionMutuelle(fn () => DB::transaction(function () use ($request, $paiement, $data, $lignes, $ancienDocument) {
+            $this->verifierModification($paiement, $data, $lignes);
+
             if ($request->hasFile('piece_jointe')) {
                 if ($paiement->piece_jointe_chemin) {
                     Storage::disk('public')->delete($paiement->piece_jointe_chemin);
@@ -218,9 +312,30 @@ class PaiementController extends Controller
             // Resynchroniser l'ancienne facture si le rattachement a changé.
             Paiement::synchroniserFacture($ancienDocument);
             Paiement::synchroniserFacture($paiement->document_id);
-        });
+        }));
 
         return new PaiementResource($paiement->fresh(self::RELATIONS));
+    }
+
+    /**
+     * Surpaiement à la modification. Un paiement ancien qui dépasse déjà (données antérieures à cette règle) reste
+     * modifiable tant qu'on n'AGGRAVE pas la situation (montant payé en hausse, total en baisse, autre facture) :
+     * on ne bloque pas la correction d'une simple observation.
+     */
+    private function verifierModification(Paiement $paiement, array $data, ?array $lignes): void
+    {
+        $prixPaye = array_key_exists('prix_paye', $data) ? (float) ($data['prix_paye'] ?? 0) : (float) $paiement->prix_paye;
+        $total = $lignes !== null ? $this->totalDesLignes($lignes) : (float) $paiement->total;
+        $documentId = array_key_exists('document_id', $data) ? ($data['document_id'] ?: null) : $paiement->document_id;
+        $statut = $data['status'] ?? $paiement->status;
+
+        $aggrave = $prixPaye > (float) $paiement->prix_paye + 0.005
+            || $total < (float) $paiement->total - 0.005
+            || (int) $documentId !== (int) $paiement->document_id;
+
+        if ($aggrave && $statut === 'actif') {
+            $this->refuserSurpaiement($prixPaye, $total, $documentId, $paiement->id);
+        }
     }
 
     private function changerStatut(Paiement $paiement, string $status): PaiementResource
@@ -251,7 +366,12 @@ class PaiementController extends Controller
     {
         abort_unless($request->user()->hasPermission('paiements', 'archive'), 403);
 
-        return $this->changerStatut($paiement, 'actif');
+        // Remettre un paiement en vigueur ne doit pas non plus faire dépasser le reste à payer de sa facture.
+        return $this->enExclusionMutuelle(function () use ($paiement) {
+            $this->refuserSurpaiement((float) $paiement->prix_paye, (float) $paiement->total, $paiement->document_id, $paiement->id, false);
+
+            return $this->changerStatut($paiement, 'actif');
+        });
     }
 
     public function destroy(Request $request, Paiement $paiement)

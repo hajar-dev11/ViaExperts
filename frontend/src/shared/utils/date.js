@@ -9,3 +9,10 @@ export function aujourdhui() {
   const jour = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}-${mois}-${jour}`
 }
+
+/** Date et heure LOCALES « AAAA-MM-JJ HH:mm:ss » (format attendu par l'API), jamais en UTC : le serveur écrit lui aussi en heure du Maroc. */
+export function maintenantLocal() {
+  const d = new Date()
+  const deux = (n) => String(n).padStart(2, '0')
+  return `${aujourdhui()} ${deux(d.getHours())}:${deux(d.getMinutes())}:${deux(d.getSeconds())}`
+}

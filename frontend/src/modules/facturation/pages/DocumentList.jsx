@@ -10,9 +10,11 @@ import Button, { IconButton } from '../../../components/ui/Button.jsx'
 import { RowBtn } from '../../../components/ListToolbar.jsx'
 import { Select } from '../../../components/Field.jsx'
 import { ApiError } from '../../../api/http.js'
+import { formatDate } from '../../../utils/format.js'
 import { imprimerDocumentCommercial } from '../print/documentCommercial.js'
+import { cleResponsable, listerResponsables } from '../utils/responsables.js'
 import {
-  listDocuments, archiveDocument, corbeilleDocument, restoreDocument, deleteDocumentForever,
+  EMETTEURS, listDocuments, archiveDocument, corbeilleDocument, restoreDocument, deleteDocumentForever,
 } from '../api/facturation.js'
 
 // « Actifs » a été retiré : c'est la vue par défaut, et « Retour à la liste »
@@ -52,13 +54,11 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
 
   useEffect(load, [load])
 
-  // Filtre « Tous les Responsables » de la capture de référence.
-  const responsables = useMemo(
-    () => [...new Set(rows.map((r) => r.responsable).filter(Boolean))],
-    [rows],
-  )
+  // Filtre « Tous les Responsables » de la capture de référence : une seule entrée par responsable, sans tenir compte
+  // de la casse (« Via Experts » / « via Experts »). Les données des documents ne sont pas modifiées.
+  const responsables = useMemo(() => listerResponsables(rows, EMETTEURS), [rows])
   const visibles = useMemo(
-    () => (responsable ? rows.filter((r) => r.responsable === responsable) : rows),
+    () => (responsable ? rows.filter((r) => r.responsable && cleResponsable(r.responsable) === responsable) : rows),
     [rows, responsable],
   )
 
@@ -88,7 +88,8 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
         </Link>
       ),
     },
-    { key: 'dateDocument', header: 'Date Facturation' },
+    // L'API renvoie un datetime (« 2026-05-06 00:00:00 ») alors que la date est saisie sans heure : affichage JJ/MM/AAAA.
+    { key: 'dateDocument', header: 'Date Facturation', value: (r) => r.dateDocument, render: (r) => formatDate(r.dateDocument) },
     { key: 'totalTtc', header: 'Total TTC', value: (r) => r.totalTtc, render: (r) => dh(r.totalTtc) },
     { key: 'prixPaye', header: 'Prix Payer', value: (r) => r.prixPaye, render: (r) => dh(r.prixPaye) },
     {
@@ -126,7 +127,7 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
             <div className="w-full sm:w-56">
               <Select value={responsable} onChange={(e) => setResponsable(e.target.value)}>
                 <option value="">Tous les Responsables</option>
-                {responsables.map((r) => <option key={r} value={r}>{r}</option>)}
+                {responsables.map((r) => <option key={r.cle} value={r.cle}>{r.libelle}</option>)}
               </Select>
             </div>
           </div>

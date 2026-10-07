@@ -232,6 +232,7 @@ class PaiementTest extends TestCase
         $service = Service::create(['nom' => 'Déclaration TVA', 'prix' => 450, 'status' => 'actif']);
 
         $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, [
+            'prix_paye' => 450, // un paiement ne peut pas dépasser le total de ses lignes (450)
             'lignes' => [
                 ['service_id' => $service->id, 'designation' => 'Règlement TVA T2', 'quantite' => 1, 'prix_unitaire' => 450],
             ],
@@ -379,6 +380,7 @@ class PaiementTest extends TestCase
 
         $id = $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, [
             'document_id' => $facture->id,
+            'prix_paye' => 150, // = total des lignes (100 + 50) : un paiement ne peut pas dépasser son total
             'lignes' => [
                 ['service_id' => $a->id, 'designation' => 'A', 'quantite' => 1, 'prix_unitaire' => 100],
                 ['service_id' => null, 'designation' => 'Libre', 'quantite' => 1, 'prix_unitaire' => 50],
@@ -391,7 +393,7 @@ class PaiementTest extends TestCase
         $this->assertSame($admin->id, $espion->appels[0]['creePar']);
         $this->assertGreaterThan($niveauHorsTransaction, $espion->appels[0]['niveauTransaction'], 'Appelé DANS la transaction.');
         $this->assertSame('0.00', $espion->appels[0]['prixPayeFacture'], 'Appelé AVANT la resynchronisation de la facture (même ordre qu\'avant).');
-        $this->assertSame('500.00', $facture->fresh()->prix_paye, 'La resynchronisation a bien eu lieu ensuite.');
+        $this->assertSame('150.00', $facture->fresh()->prix_paye, 'La resynchronisation a bien eu lieu ensuite.');
 
         $this->actingAs($admin)->postJson("/api/v1/paiements/{$id}", [
             'lignes' => [
@@ -414,6 +416,7 @@ class PaiementTest extends TestCase
         $this->espionServicesEnCours(); // le faux contrat n'écrit rien
 
         $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, [
+            'prix_paye' => 100,
             'lignes' => [['service_id' => $service->id, 'designation' => 'A', 'quantite' => 1, 'prix_unitaire' => 100]],
         ]))->assertStatus(201);
 
@@ -460,9 +463,9 @@ class PaiementTest extends TestCase
 
     private const MESSAGE_DOCUMENT_INVALIDE = 'The selected document id is invalid.';
 
-    private function creerPaiementAvecDocument(User $admin, Party $party, $documentId)
+    private function creerPaiementAvecDocument(User $admin, Party $party, $documentId, array $override = [])
     {
-        return $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $documentId]));
+        return $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $documentId] + $override));
     }
 
     public function test_document_id_existant_est_accepte_quel_que_soit_son_type_et_son_statut(): void
@@ -477,7 +480,8 @@ class PaiementTest extends TestCase
         DocumentCommercial::whereKey($devisId)->update(['status' => 'archive']);
 
         $this->creerPaiementAvecDocument($admin, $party, $facture->id)->assertStatus(201)->assertJsonPath('data.documentId', $facture->id);
-        $this->creerPaiementAvecDocument($admin, $party, $devisId)->assertStatus(201)->assertJsonPath('data.documentId', $devisId);
+        // Le devis ne vaut que 10 Dh TTC : le montant payé ne peut pas dépasser ce reste à payer.
+        $this->creerPaiementAvecDocument($admin, $party, $devisId, ['prix_paye' => 10])->assertStatus(201)->assertJsonPath('data.documentId', $devisId);
         $this->creerPaiementAvecDocument($admin, $party, null)->assertStatus(201)->assertJsonPath('data.documentId', null);
         // L'identifiant peut arriver sous forme de chaîne numérique (formulaire multipart).
         $this->creerPaiementAvecDocument($admin, $party, (string) $facture->id)->assertStatus(201);

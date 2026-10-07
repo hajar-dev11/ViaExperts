@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal.jsx'
 import Button, { IconButton } from '../components/ui/Button.jsx'
 import { Field, Input, Select, Textarea } from '../components/Field.jsx'
 import { API_URL, ApiError } from '../api/http.js'
+import { maintenantLocal } from '../shared/utils/date.js'
 import { listClients } from '../api/clients.js'
 import { listEntreprises } from '../api/entreprises.js'
 import { cachetStatusApi } from '../api/statuses.js'
@@ -131,7 +132,7 @@ export default function Cachets() {
       if (editing) {
         cachet = await updateCachet(editing.id, payload)
       } else {
-        cachet = await createCachet({ ...payload, date_depart: new Date().toISOString().slice(0, 19).replace('T', ' ') })
+        cachet = await createCachet({ ...payload, date_depart: maintenantLocal() })
       }
       if (fichier) await addOperation(cachet.id, { fichier })
       setSuccess(editing ? 'Cachet modifié.' : 'Cachet ajouté.')

@@ -9,6 +9,7 @@ import { RowBtn } from '../components/ListToolbar.jsx'
 import { Field, Input, Textarea, FormCard, FormActions } from '../components/Field.jsx'
 import { ApiError } from '../api/http.js'
 import { EMETTEURS } from '../shared/constants/documents.js'
+import { aujourdhui } from '../shared/utils/date.js'
 import { listRapports, getRapport, createRapport, updateRapport, urlDocument } from '../api/rapports.js'
 
 const dh = (v) => `${Number(v ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} Dh`
@@ -30,7 +31,8 @@ export function RapportForm() {
   const isEdit = !!id
 
   const [form, setForm] = useState({
-    date_rapport: new Date().toISOString().slice(0, 10),
+    // Date LOCALE du jour : `toISOString()` donnait la date UTC, donc la veille entre minuit et 1 h (UTC+1).
+    date_rapport: aujourdhui(),
     rapport_de: EMETTEURS[0].label,
     montant_restant: 0, revenu_local: 0, revenu_externe: 0, depense_jour: 0,
     solde_caisse: '', descriptive: '',
@@ -203,7 +205,9 @@ export function RapportList() {
     setError('')
     listRapports('actif')
       .then(setRows)
-      .catch(() => setError('Impossible de charger les rapports.'))
+      .catch((err) => setError(err instanceof ApiError && err.status === 403
+        ? "Vous n'avez pas la permission de consulter les rapports."
+        : 'Impossible de charger les rapports.'))
       .finally(() => setLoading(false))
   }, [])
 

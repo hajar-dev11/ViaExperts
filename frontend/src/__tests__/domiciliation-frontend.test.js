@@ -147,7 +147,10 @@ describe('Frontières : Facturation et Paiements ne dépendent pas de Domiciliat
     const consommateurs = fichiers(SRC).filter((f) => !rel(f).startsWith('__tests__/') && importsDe(f).includes('shared/utils/date.js')).map(rel).sort()
     expect(consommateurs).toEqual([
       'modules/domiciliation/components/DomiciliationActions.jsx', 'modules/domiciliation/pages/DomiciliationForm.jsx',
-      'modules/facturation/pages/DocumentForm.jsx', 'pages/PaiementForm.jsx',
+      'modules/facturation/pages/DocumentForm.jsx', 'pages/Cachets.jsx', 'pages/Mails.jsx', 'pages/PaiementForm.jsx',
+      // Audit global (étape 23) : date locale du jour par défaut (au lieu de la date UTC) ; heure de départ des cachets et
+      // courriers en heure locale, comme le serveur (fuseau Africa/Casablanca).
+      'pages/Rapports.jsx',
     ])
   })
 })
