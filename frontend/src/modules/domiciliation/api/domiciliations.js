@@ -1,4 +1,5 @@
 import { API_URL, apiFetch, apiUpload } from '../../../api/http.js'
+import { EVT_DOMICILIATIONS_MODIFIEES } from '../../../shared/constants/evenements.js'
 
 const unwrap = (res) => res?.data ?? res
 
@@ -65,8 +66,12 @@ export const activerDomiciliation = (id) => envoyerAction(id, 'activer')
  * « Renouveler » — crée une NOUVELLE période rattachée à celle d'origine.
  * `champs` reprend la même forme que le formulaire de domiciliation.
  */
-export const renouvelerDomiciliation = (id, champs, fichier = null) =>
-  envoyerAction(id, 'renouveler', champs, fichier)
+export async function renouvelerDomiciliation(id, champs, fichier = null) {
+  const nouvelle = await envoyerAction(id, 'renouveler', champs, fichier)
+  // Le renouvellement déplace l'échéance : le bandeau d'alerte (Topbar) doit se recalculer immédiatement.
+  window.dispatchEvent(new CustomEvent(EVT_DOMICILIATIONS_MODIFIEES, { detail: { entrepriseId: nouvelle?.entrepriseId ?? null } }))
+  return nouvelle
+}
 
 /** Le téléchargement passe par le navigateur : le cookie de session suit. */
 export const operationFichierUrl = (id, operationId) =>

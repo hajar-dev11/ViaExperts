@@ -68,6 +68,9 @@ class Domiciliation extends Model
 
     protected $appends = ['statut_affichage'];
 
+    // Colonne calculée par `scopeAvecRenouvellement` : un détail interne, jamais exposé.
+    protected $hidden = ['renouvelee'];
+
     public function entreprise()
     {
         return $this->belongsTo(Entreprise::class, 'entreprise_id', 'party_id');
@@ -110,6 +113,36 @@ class Domiciliation extends Model
         return $this->belongsTo(Domiciliation::class, 'renouvelle_de_id');
     }
 
+    /** Périodes créées par « Renouveler » à partir de celle-ci. */
+    public function renouvellements()
+    {
+        return $this->hasMany(Domiciliation::class, 'renouvelle_de_id');
+    }
+
+    /**
+     * Cette période a-t-elle été prolongée par une période de renouvellement encore active ?
+     *
+     * Une période renouvelée n'est plus une échéance à surveiller : c'est la période qui la prolonge qui porte désormais
+     * l'échéance. Une période de renouvellement mise à la corbeille ou archivée ne compte pas : l'échéance n'est plus couverte.
+     *
+     * La liste précharge ce test en une seule requête (`withExists(... as renouvelee)`, voir `scopeAvecRenouvellement`) ;
+     * partout ailleurs (fiche, action…) il est calculé à la demande.
+     */
+    public function estRenouvelee(): bool
+    {
+        if (array_key_exists('renouvelee', $this->attributes)) {
+            return (bool) $this->attributes['renouvelee'];
+        }
+
+        return $this->renouvellements()->where('status', 'actif')->exists();
+    }
+
+    /** Précharge `renouvelee` (voir `estRenouvelee`) pour éviter une requête par ligne dans les listes. */
+    public function scopeAvecRenouvellement($query)
+    {
+        return $query->withExists(['renouvellements as renouvelee' => fn ($q) => $q->where('status', 'actif')]);
+    }
+
     public function getStatutAffichageAttribute(): string
     {
         if ($this->etat === 'resilie') {
@@ -123,12 +156,13 @@ class Domiciliation extends Model
         if ($this->date_fin) {
             $today = now()->startOfDay();
 
+            // « Expiré » et « Alerte » ne concernent que l'échéance EN COURS : une période déjà renouvelée n'en est plus une.
             if ($this->date_fin->lt($today)) {
-                return 'expire';
+                return $this->estRenouvelee() ? 'active' : 'expire';
             }
 
             if ($this->date_fin->lte($today->copy()->addDays(self::JOURS_ALERTE))) {
-                return 'alerte';
+                return $this->estRenouvelee() ? 'active' : 'alerte';
             }
         }
 

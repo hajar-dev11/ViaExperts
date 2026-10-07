@@ -17,9 +17,8 @@ import { listClients } from '../api/clients.js'
 import { listEntreprises } from '../api/entreprises.js'
 import { listDomiciliations } from '../modules/domiciliation/index.js'
 import { API_URL } from '../api/http.js'
-
-// Seuil d'alerte, aligné sur `Domiciliation::JOURS_ALERTE` côté backend.
-const JOURS_ALERTE = 30
+import { calculerAlertesEcheance, JOURS_ALERTE } from '../utils/alertesDomiciliation.js'
+import { EVT_DOMICILIATIONS_MODIFIEES } from '../shared/constants/evenements.js'
 
 // Clé de persistance du bandeau d'alerte : évite qu'il disparaisse le temps
 // qu'un F5 relance la requête (voire qu'un échec réseau ponctuel l'efface).
@@ -92,60 +91,60 @@ export default function Topbar({ onMenuClick }) {
   const [indexAlerte, setIndexAlerte] = useState(0)
 
   useEffect(() => {
-    // Même requête que le tableau de bord : `api/http.js` déduplique les deux
-    // appels, aucun trafic réseau supplémentaire n'est généré.
-    listDomiciliations({ status: 'actif' })
-      .then((res) => {
-        const lignes = Array.isArray(res) ? res : (res?.data ?? [])
-        const aujourdhui = new Date()
-        aujourdhui.setHours(0, 0, 0, 0)
-        const limite = new Date(aujourdhui)
-        limite.setDate(limite.getDate() + JOURS_ALERTE)
+    let actif = true
 
-        // RÈGLE : une entreprise reste en alerte tant qu'elle n'est pas
-        // renouvelée. On ne regarde donc pas chaque contrat isolément, mais le
-        // contrat le PLUS RÉCENT de chaque entreprise :
-        //   • si sa date de fin est déjà passée ou tombe sous 30 jours → alerte,
-        //     et elle le reste après l'échéance (aucune borne basse) ;
-        //   • dès qu'un contrat plus récent repousse l'échéance au-delà du
-        //     seuil, l'entreprise disparaît d'elle-même de l'alerte ;
-        //   • un contrat résilié n'est pas une échéance à renouveler.
-        const dernierParEntreprise = new Map()
-        lignes.forEach((d) => {
-          if (!d.denomination || !d.dateFin) return
-          const cle = d.entrepriseId ?? d.denomination
-          const actuel = dernierParEntreprise.get(cle)
-          if (!actuel || String(d.dateFin) > String(actuel.dateFin)) {
-            dernierParEntreprise.set(cle, d)
-          }
+    const memoriser = (liste) => {
+      setAlertes(liste)
+      try {
+        sessionStorage.setItem(CLE_ALERTES, JSON.stringify(liste))
+      } catch {
+        // Stockage indisponible (navigation privée…) : le bandeau reste
+        // fonctionnel, seule la persistance entre rechargements est perdue.
+      }
+    }
+
+    const charger = () => {
+      // Même requête que le tableau de bord : `api/http.js` déduplique les deux
+      // appels, aucun trafic réseau supplémentaire n'est généré.
+      listDomiciliations({ status: 'actif' })
+        .then((res) => {
+          if (!actif) return
+          // Les règles (contrat le plus récent par entreprise, résilié ignoré, période renouvelée ignorée)
+          // sont dans `calculerAlertesEcheance`.
+          memoriser(calculerAlertesEcheance(Array.isArray(res) ? res : (res?.data ?? [])))
         })
+        // Un échec réseau ponctuel (ex. juste après un F5) ne doit pas effacer
+        // la dernière alerte connue — elle reste affichée jusqu'au prochain
+        // chargement réussi.
+        .catch(() => {})
+    }
 
-        const proches = [...dernierParEntreprise.values()]
-          .filter((d) => {
-            if (d.etat === 'resilie' || d.statutAffichage === 'resilie') return false
-            const fin = new Date(d.dateFin)
-            if (Number.isNaN(fin.getTime())) return false
-            return fin <= limite
-          })
-          .sort((a, b) => String(a.dateFin).localeCompare(String(b.dateFin)))
-          .map((d) => ({
-            nom: d.denomination,
-            dateFin: d.dateFin,
-            expiree: new Date(d.dateFin) < aujourdhui,
-          }))
+    // Une échéance vient d'être déplacée (« Renouveler ») : on retire tout de suite l'ancienne alerte de l'entreprise
+    // — y compris de la copie conservée pour les rechargements —, puis on recalcule à partir des données à jour. Si le
+    // recalcul échoue, l'ancienne alerte ne reste donc pas affichée.
+    const surModification = (e) => {
+      const entrepriseId = e.detail?.entrepriseId ?? null
+      if (entrepriseId !== null) {
+        setAlertes((courantes) => {
+          const restantes = courantes.filter((a) => a.entrepriseId !== entrepriseId)
+          try {
+            sessionStorage.setItem(CLE_ALERTES, JSON.stringify(restantes))
+          } catch {
+            // voir ci-dessus
+          }
+          return restantes
+        })
+      }
+      charger()
+    }
 
-        setAlertes(proches)
-        try {
-          sessionStorage.setItem(CLE_ALERTES, JSON.stringify(proches))
-        } catch {
-          // Stockage indisponible (navigation privée…) : le bandeau reste
-          // fonctionnel, seule la persistance entre rechargements est perdue.
-        }
-      })
-      // Un échec réseau ponctuel (ex. juste après un F5) ne doit pas effacer
-      // la dernière alerte connue — elle reste affichée jusqu'au prochain
-      // chargement réussi.
-      .catch(() => {})
+    charger()
+    window.addEventListener(EVT_DOMICILIATIONS_MODIFIEES, surModification)
+
+    return () => {
+      actif = false
+      window.removeEventListener(EVT_DOMICILIATIONS_MODIFIEES, surModification)
+    }
   }, [])
 
   // Plusieurs entreprises concernées : on les fait défiler l'une après l'autre.

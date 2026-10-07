@@ -48,6 +48,7 @@ class DomiciliationController extends Controller
     public function index(Request $request)
     {
         $query = Domiciliation::with(self::RELATIONS)
+            ->avecRenouvellement()
             ->status($request->query('status', 'actif'))
             ->orderByDesc('id');
 
