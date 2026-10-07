@@ -401,8 +401,8 @@ function ArchivedPanel({ pageTitle, status, showDeleteForever }) {
       </div>
 
       <div>
-        {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
-        {confirmation && <Alert tone="success" className="mb-3">{confirmation}</Alert>}
+        {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+        {confirmation && <Alert tone="success" onAutoClose={() => setConfirmation(null)} className="mb-3">{confirmation}</Alert>}
 
         {inaccessible ? (
           <div className="rounded-xl bg-white shadow-card">

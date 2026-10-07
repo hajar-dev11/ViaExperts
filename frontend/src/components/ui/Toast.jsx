@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react'
+import { DUREE_FONDU, DUREE_MESSAGE } from './messages.js'
 
 /**
  * Toast — retour transitoire après une action (enregistré, archivé, supprimé…).
@@ -36,47 +37,80 @@ const TONES = {
   info: { cls: 'text-info-700', bar: 'bg-info-500', Icon: Info },
 }
 
-const DEFAULT_DURATION = 4000
-
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
-  const timers = useRef(new Map())
+  // Copie synchrone de la liste : `show` / `dismiss` s'appellent en rafale (ancien message qui part, nouveau qui arrive).
+  const liste = useRef([])
+  const timers = useRef(new Map()) // id -> minuterie d'effacement
+  const sorties = useRef(new Map()) // id -> minuterie de retrait après le fondu
 
+  const maj = useCallback((suivante) => {
+    liste.current = suivante
+    setToasts(suivante)
+  }, [])
+
+  // Un message quitte l'écran en deux temps : fondu (`leaving`), puis retrait.
   const dismiss = useCallback((id) => {
-    setToasts((list) => list.filter((t) => t.id !== id))
-    const timer = timers.current.get(id)
-    if (timer) {
-      clearTimeout(timer)
+    const minuterie = timers.current.get(id)
+    if (minuterie) {
+      clearTimeout(minuterie)
       timers.current.delete(id)
     }
-  }, [])
+    const courant = liste.current.find((t) => t.id === id)
+    if (!courant || courant.leaving) return
+    maj(liste.current.map((t) => (t.id === id ? { ...t, leaving: true } : t)))
+    sorties.current.set(
+      id,
+      setTimeout(() => {
+        sorties.current.delete(id)
+        maj(liste.current.filter((t) => t.id !== id))
+      }, DUREE_FONDU)
+    )
+  }, [maj])
+
+  const planifier = useCallback((id, duration) => {
+    const ancienne = timers.current.get(id)
+    if (ancienne) clearTimeout(ancienne)
+    if (duration > 0) timers.current.set(id, setTimeout(() => dismiss(id), duration))
+  }, [dismiss])
 
   const show = useCallback(
     (message, options = {}) => {
       if (!message) return undefined
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       const tone = options.tone ?? 'info'
-      const duration = options.duration ?? DEFAULT_DURATION
+      const duration = options.duration ?? DUREE_MESSAGE
 
-      setToasts((list) => [...list.slice(-3), { id, message, tone, title: options.title }])
-
-      if (duration > 0) {
-        timers.current.set(
-          id,
-          setTimeout(() => dismiss(id), duration)
-        )
+      // Même message déjà à l'écran : on relance simplement sa durée au lieu de l'empiler.
+      const doublon = liste.current.find(
+        (t) => !t.leaving && t.message === message && t.tone === tone && t.title === options.title
+      )
+      if (doublon) {
+        planifier(doublon.id, duration)
+        return doublon.id
       }
+
+      // Un nouveau message remplace l'ancien : aucun message d'une action précédente ne reste bloqué.
+      liste.current.filter((t) => !t.leaving).forEach((t) => dismiss(t.id))
+
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      maj([...liste.current, { id, message, tone, title: options.title }])
+      planifier(id, duration)
       return id
     },
-    [dismiss]
+    [dismiss, maj, planifier]
   )
 
   // Nettoyage des minuteurs au démontage.
-  const timersRef = timers
-  useEffect(() => () => {
-    timersRef.current.forEach((t) => clearTimeout(t))
-    timersRef.current.clear()
-  }, [timersRef])
+  useEffect(() => {
+    const aEffacer = timers.current
+    const aRetirer = sorties.current
+    return () => {
+      aEffacer.forEach((t) => clearTimeout(t))
+      aEffacer.clear()
+      aRetirer.forEach((t) => clearTimeout(t))
+      aRetirer.clear()
+    }
+  }, [])
 
   const api = useMemo(
     () => ({
@@ -103,7 +137,10 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={t.id}
-              className="ve-toast-in pointer-events-auto flex items-start gap-3 overflow-hidden rounded-lg bg-white py-3 pr-3 pl-0 shadow-menu"
+              className={`ve-toast-in flex items-start gap-3 overflow-hidden rounded-lg bg-white py-3 pr-3 pl-0 shadow-menu transition-[opacity,transform] ease-in ${
+                t.leaving ? 'pointer-events-none translate-x-4 opacity-0' : 'pointer-events-auto'
+              }`}
+              style={{ transitionDuration: `${DUREE_FONDU}ms` }}
             >
               <span className={`w-1 self-stretch ${bar}`} />
               <Icon size={17} className={`mt-0.5 shrink-0 ${cls}`} />

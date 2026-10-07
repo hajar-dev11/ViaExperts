@@ -80,7 +80,7 @@ export default function ForgotPassword() {
           </div>
         ) : (
           <form onSubmit={submit} className="mt-8 space-y-5">
-            {error && <Alert tone="danger">{error}</Alert>}
+            {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
 
             <div>
               <label htmlFor="forgot-email" className="mb-2 block text-[15px] text-ink-800">

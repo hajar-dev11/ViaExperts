@@ -248,7 +248,7 @@ export default function EntrepriseForm() {
   return (
     <div>
       <form onSubmit={submit}>
-        {globalError && <Alert tone="danger" className="mb-4">{globalError}</Alert>}
+        {globalError && <Alert tone="danger" onAutoClose={() => setGlobalError('')} className="mb-4">{globalError}</Alert>}
         <FormCard title={id ? 'Modifier Entreprise' : 'Ajouter Entreprise'}>
           {/* Libellé à GAUCHE du champ, deux paires par ligne : c'est la
               disposition exacte de « Ajouter Entreprise » dans la référence. */}

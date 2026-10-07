@@ -210,8 +210,8 @@ export default function Mails() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
-      {success && <Alert tone="success" className="mb-3">{success}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2">

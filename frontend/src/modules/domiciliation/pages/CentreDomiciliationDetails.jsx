@@ -80,7 +80,7 @@ export default function CentreDomiciliationDetails() {
         <ArrowLeft size={15} /> Retour aux Centres des Domiciliation
       </button>
 
-      {erreur && <Alert tone="danger" className="col-span-full" onClose={() => setErreur('')}>{erreur}</Alert>}
+      {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} className="col-span-full" onClose={() => setErreur('')}>{erreur}</Alert>}
 
       <CarteFiche icon={Building2} titre="Informations Centre de domiciliation">
         <Section>À propos</Section>

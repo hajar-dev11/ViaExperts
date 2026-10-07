@@ -166,7 +166,7 @@ export default function DomiciliationDetails() {
           <StatutDomiciliation statut={d.statutAffichage} />
         </div>
 
-        {erreur && <Alert tone="danger" className="mt-4" onClose={() => setErreur('')}>{erreur}</Alert>}
+        {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} className="mt-4" onClose={() => setErreur('')}>{erreur}</Alert>}
 
         <Section>À propos</Section>
         <Ligne icon={FileText} label="Denomination" value={d.denomination} />

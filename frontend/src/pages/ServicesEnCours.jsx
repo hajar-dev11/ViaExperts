@@ -172,8 +172,8 @@ export default function ServicesEnCours() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
-      {success && <Alert tone="success" className="mb-3">{success}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
       {/* Ouverte par un clic sur le badge de statut d'une ligne — même modale
           que sur l'Accueil (ServiceEnCoursActions.jsx). */}

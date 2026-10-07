@@ -77,7 +77,7 @@ export default function ClientForm() {
 
   return (
     <form onSubmit={submit}>
-      {globalError && <Alert tone="danger" className="mb-4">{globalError}</Alert>}
+      {globalError && <Alert tone="danger" onAutoClose={() => setGlobalError('')} className="mb-4">{globalError}</Alert>}
 
       <FormCard
         title={titre}

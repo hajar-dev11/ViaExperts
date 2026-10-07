@@ -111,7 +111,7 @@ export function RapportForm() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <form onSubmit={submit}>
         {/* Un seul cadre, pleine largeur — titre, tous les champs et les
@@ -234,7 +234,7 @@ export function RapportList() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <DataTable
         title="List Raports"

@@ -170,7 +170,7 @@ export default function BlocsEntreprise({
 
   return (
     <>
-      {erreur && <Alert tone="danger">{erreur}</Alert>}
+      {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')}>{erreur}</Alert>}
 
       {/* Documents */}
       <CarteBloc

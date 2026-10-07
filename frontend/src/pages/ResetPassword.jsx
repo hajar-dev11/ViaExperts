@@ -85,7 +85,7 @@ export default function ResetPassword() {
           </Alert>
         ) : (
           <form onSubmit={submit} className="mt-8 space-y-5">
-            {error && <Alert tone="danger">{error}</Alert>}
+            {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
 
             <div>
               <label htmlFor="reset-password" className="mb-2 block text-[15px] text-ink-800">

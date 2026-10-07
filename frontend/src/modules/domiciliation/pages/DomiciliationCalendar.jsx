@@ -121,7 +121,7 @@ export default function DomiciliationCalendar() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,18rem)_1fr]">
         {/* ---- Colonne gauche : mini-calendrier + filtres ----------------- */}

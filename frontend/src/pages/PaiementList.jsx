@@ -233,7 +233,7 @@ export default function PaiementList() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <DataTable
         title="List Des Paiements"

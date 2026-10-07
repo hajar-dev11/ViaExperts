@@ -143,7 +143,7 @@ export default function Login() {
           <p className="mt-1.5 text-sm text-ink-600">Connectez-vous avec votre identifiant Via Experts.</p>
 
           <form onSubmit={submit} className="mt-8 space-y-5">
-            {error && <Alert tone="danger">{error}</Alert>}
+            {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
 
             <div>
               <label htmlFor="login-email" className="mb-2 block text-[15px] text-ink-800">

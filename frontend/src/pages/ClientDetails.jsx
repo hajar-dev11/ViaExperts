@@ -207,7 +207,7 @@ export default function ClientDetails() {
 
       {/* ---- Colonne droite ------------------------------------------------ */}
       <div className="space-y-6 xl:col-span-2">
-        {erreur && <Alert tone="danger" onClose={() => setErreur('')}>{erreur}</Alert>}
+        {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} onClose={() => setErreur('')}>{erreur}</Alert>}
 
         {/* Entreprise dont ce client est le titulaire. */}
         <div className="overflow-hidden rounded-xl bg-white shadow-card">

@@ -248,7 +248,7 @@ function Formulaire({ type, titre, listTo, avecExportsComplets }) {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       {/* Un seul cadre, pleine largeur — titre, champs, lignes, totaux et
           boutons Sauvegarder dans le même bloc blanc. */}
@@ -466,7 +466,7 @@ function Liste({ type, titre, editBase, addTo, addLabel, avecExportsComplets }) 
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <DataTable
         title={titre}

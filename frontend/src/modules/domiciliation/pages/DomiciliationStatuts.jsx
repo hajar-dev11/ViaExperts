@@ -103,8 +103,8 @@ export default function DomiciliationStatuts() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3" onClose={() => setError('')}>{error}</Alert>}
-      {success && <Alert tone="success" className="mb-3" onClose={() => setSuccess('')}>{success}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3" onClose={() => setSuccess('')}>{success}</Alert>}
 
       {renouvellementFor && (
         <FormulaireRenouvellement

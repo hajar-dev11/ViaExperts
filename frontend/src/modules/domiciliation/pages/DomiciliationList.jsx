@@ -136,7 +136,7 @@ export default function DomiciliationList() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
       {status !== 'actif' && (
         <Alert tone="neutral" className="mb-3">
           Vous consultez <span className="font-semibold text-ink-900">{status === 'archive' ? 'les domiciliations archivées' : 'la corbeille'}</span>.

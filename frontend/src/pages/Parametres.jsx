@@ -167,8 +167,8 @@ function AccountTab() {
 
       {subTab === 'profil' ? (
         <form onSubmit={saveProfile} className="max-w-xl space-y-5">
-          {profileError && <Alert tone="danger">{profileError}</Alert>}
-          {profileSuccess && <Alert tone="success">{profileSuccess}</Alert>}
+          {profileError && <Alert tone="danger" onAutoClose={() => setProfileError('')}>{profileError}</Alert>}
+          {profileSuccess && <Alert tone="success" onAutoClose={() => setProfileSuccess('')}>{profileSuccess}</Alert>}
           <div className="flex items-center gap-4">
             <div className="h-20 w-20 rounded-full bg-surface grid place-items-center text-ink-600 overflow-hidden shrink-0">
               {user?.photo_path
@@ -225,8 +225,8 @@ function AccountTab() {
         </form>
       ) : (
         <form onSubmit={savePassword} className="max-w-xl space-y-5">
-          {passwordError && <Alert tone="danger">{passwordError}</Alert>}
-          {passwordSuccess && <Alert tone="success">{passwordSuccess}</Alert>}
+          {passwordError && <Alert tone="danger" onAutoClose={() => setPasswordError('')}>{passwordError}</Alert>}
+          {passwordSuccess && <Alert tone="success" onAutoClose={() => setPasswordSuccess('')}>{passwordSuccess}</Alert>}
           <Field label="Mot de passe actuel" required>
             <Input
               type="password"
@@ -652,8 +652,8 @@ function AssistanceTab() {
         </Button>
       </div>
 
-      {error && <Alert tone="danger">{error}</Alert>}
-      {success && <Alert tone="success">{success}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
+      {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
       <FormCard
         title={editingUser ? `Modifier ${editingUser.name}` : 'Ajouter Assistance'}
@@ -978,8 +978,8 @@ function BureauTab() {
   return (
     <FormCard title="Bureau de Comptabilité">
       <form onSubmit={save} className="space-y-6">
-        {error && <Alert tone="danger">{error}</Alert>}
-        {success && <Alert tone="success">{success}</Alert>}
+        {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
         <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
           <LogoSignatureField buttonLabel="Choisir le Logo" imageUrl={logoUrl(form.logo_path)} uploading={uploadingLogo} onUpload={handleUploadLogo} onReset={handleResetLogo} />
@@ -1149,8 +1149,8 @@ function CentreSettingsForm() {
   return (
     <FormCard title="Centre Domiciliation">
       <form onSubmit={save} className="space-y-6">
-        {error && <Alert tone="danger">{error}</Alert>}
-        {success && <Alert tone="success">{success}</Alert>}
+        {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
         <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
           <LogoSignatureField buttonLabel="Choisir le Logo" imageUrl={logoUrl(form.logo_path)} uploading={uploadingLogo} onUpload={handleUploadLogo} onReset={handleResetLogo} />
@@ -1351,8 +1351,8 @@ function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
           </Button>
         </div>
       )}
-      {error && <Alert tone="danger">{error}</Alert>}
-      {success && <Alert tone="success">{success}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
+      {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
       <div className="grid lg:grid-cols-[360px_1fr] gap-4 items-start">
         <FormCard title={editing ? 'Modifier le statut' : addTitle}>

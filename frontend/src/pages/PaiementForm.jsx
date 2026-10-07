@@ -158,7 +158,7 @@ export default function PaiementForm() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <form onSubmit={submit}>
         <FormCard

@@ -131,8 +131,8 @@ export default function DomiciliationCentres() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
-      {success && <Alert tone="success" className="mb-3">{success}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
       {status !== 'actif' && (
         <div className="mb-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm text-ink-700">
           Vous consultez <span className="font-semibold text-ink-900">{status === 'archive' ? 'les centres archivés' : 'la corbeille'}</span>.

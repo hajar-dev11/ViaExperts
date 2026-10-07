@@ -178,7 +178,7 @@ export default function Chat() {
 
   return (
     <div>
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <div className="rounded-xl bg-white shadow-card overflow-hidden grid grid-cols-1 md:grid-cols-[280px_1fr] h-[600px]">
         <div className="border-r border-line flex flex-col min-h-0">

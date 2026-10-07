@@ -100,7 +100,7 @@ function VueMouvement({
         </div>
       </div>
 
-      {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
+      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
 
       <div className="rounded-xl bg-white shadow-card mb-4 overflow-hidden">
         <div className="px-5 py-4 border-b border-line">

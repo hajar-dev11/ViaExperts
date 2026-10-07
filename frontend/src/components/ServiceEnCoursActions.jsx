@@ -106,7 +106,7 @@ export function ModalChangerStatut({ open, row, statuts = [], onClose, onSaved }
         </>
       }
     >
-      {erreur && <Alert tone="danger" className="mb-4">{erreur}</Alert>}
+      {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} className="mb-4">{erreur}</Alert>}
 
       {statuts.length === 0 ? (
         <Alert tone="warning">

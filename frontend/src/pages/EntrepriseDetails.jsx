@@ -247,7 +247,7 @@ export default function EntrepriseDetails() {
 
       {/* ---- Colonne droite ------------------------------------------------ */}
       <div className="space-y-6 xl:col-span-2">
-        {erreur && <Alert tone="danger" onClose={() => setErreur('')}>{erreur}</Alert>}
+        {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} onClose={() => setErreur('')}>{erreur}</Alert>}
 
         {/* Personnes rattachées : un onglet par personne, comme la référence. */}
         <div className="overflow-hidden rounded-xl bg-white shadow-card">
