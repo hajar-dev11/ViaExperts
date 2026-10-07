@@ -243,7 +243,8 @@ class NumerotationDocumentsTest extends TestCase
         $pdo = new PDOException($message, 23000);
         $pdo->errorInfo = ['23000', $codeMysql, $message];
 
-        return new QueryException('insert into documents_commerciaux ...', [], $pdo);
+        // Laravel 10 : le constructeur reçoit d'abord le nom de la connexion.
+        return new QueryException('mysql', 'insert into documents_commerciaux ...', [], $pdo);
     }
 
     public function test_seule_la_collision_sur_l_index_unique_des_numeros_est_convertie(): void

@@ -42,8 +42,9 @@ class PaiementController extends Controller
      * reste à payer.
      *
      *  - le montant payé ne peut pas dépasser le total des lignes du paiement (`$verifierTotal`) ;
-     *  - s'il est rattaché à une facture : il ne peut pas dépasser le reste à payer de celle-ci
-     *    (total TTC − paiements ACTIFS déjà enregistrés, hors `$paiementId` lui-même).
+     *  - s'il est rattaché à une facture : il ne peut pas dépasser le reste à payer de celle-ci, soit le total TTC moins
+     *    ce qui est déjà payé : les paiements ACTIFS enregistrés (hors `$paiementId` lui-même) ET le montant « payé »
+     *    saisi à la main sur la facture sans paiement correspondant (Paiement::partManuelle).
      */
     private function refuserSurpaiement(float $prixPaye, float $totalLignes, ?int $documentId, ?int $paiementId, bool $verifierTotal = true): void
     {
@@ -70,7 +71,7 @@ class PaiementController extends Controller
         $dejaPaye = (float) Paiement::where('document_id', $documentId)
             ->where('status', 'actif')
             ->when($paiementId, fn ($q) => $q->where('id', '!=', $paiementId))
-            ->sum('prix_paye');
+            ->sum('prix_paye') + Paiement::partManuelle($documentId);
         $reste = round($totalFacture - $dejaPaye, 2);
 
         if ($prixPaye > $reste + $tolerance) {
@@ -246,6 +247,9 @@ class PaiementController extends Controller
             // Surpaiement refusé AVANT toute écriture (sous le verrou : le reste à payer est celui de cet instant).
             $this->refuserSurpaiement((float) ($data['prix_paye'] ?? 0), $this->totalDesLignes($lignes), $data['document_id'] ?? null, null);
 
+            // Montant « payé » saisi à la main sur la facture : conservé par la resynchronisation (lu AVANT toute écriture).
+            $partManuelle = Paiement::partManuelle($data['document_id'] ?? null);
+
             // Référence calculée sous verrou (voir enExclusionMutuelle).
             $data['reference'] = Paiement::prochaineReference();
 
@@ -262,7 +266,7 @@ class PaiementController extends Controller
             $this->servicesEnCours->assurerPourTiers($paiement->party_id, $paiement->lignes->pluck('service_id'), $request->user()->id);
 
             // Option C : la facture rattachée est resynchronisée dans la même transaction.
-            Paiement::synchroniserFacture($paiement->document_id);
+            Paiement::synchroniserFacture($paiement->document_id, $partManuelle);
 
             return $paiement;
         }));
@@ -284,6 +288,11 @@ class PaiementController extends Controller
 
         $this->enExclusionMutuelle(fn () => DB::transaction(function () use ($request, $paiement, $data, $lignes, $ancienDocument) {
             $this->verifierModification($paiement, $data, $lignes);
+
+            // Parts saisies à la main (ancienne et nouvelle facture), lues AVANT toute écriture.
+            $nouveauDocument = array_key_exists('document_id', $data) ? ($data['document_id'] ?: null) : $ancienDocument;
+            $partAncienne = Paiement::partManuelle($ancienDocument);
+            $partNouvelle = (int) $nouveauDocument === (int) $ancienDocument ? $partAncienne : Paiement::partManuelle($nouveauDocument);
 
             if ($request->hasFile('piece_jointe')) {
                 if ($paiement->piece_jointe_chemin) {
@@ -310,8 +319,10 @@ class PaiementController extends Controller
             $this->servicesEnCours->assurerPourTiers($paiement->party_id, $paiement->lignes->pluck('service_id'), $request->user()->id);
 
             // Resynchroniser l'ancienne facture si le rattachement a changé.
-            Paiement::synchroniserFacture($ancienDocument);
-            Paiement::synchroniserFacture($paiement->document_id);
+            Paiement::synchroniserFacture($ancienDocument, $partAncienne);
+            if ((int) $paiement->document_id !== (int) $ancienDocument) {
+                Paiement::synchroniserFacture($paiement->document_id, $partNouvelle);
+            }
         }));
 
         return new PaiementResource($paiement->fresh(self::RELATIONS));
@@ -341,8 +352,9 @@ class PaiementController extends Controller
     private function changerStatut(Paiement $paiement, string $status): PaiementResource
     {
         DB::transaction(function () use ($paiement, $status) {
+            $partManuelle = Paiement::partManuelle($paiement->document_id); // lue AVANT le changement de statut
             $paiement->update(['status' => $status]);
-            Paiement::synchroniserFacture($paiement->document_id);
+            Paiement::synchroniserFacture($paiement->document_id, $partManuelle);
         });
 
         return new PaiementResource($paiement->fresh(self::RELATIONS));
@@ -352,14 +364,14 @@ class PaiementController extends Controller
     {
         abort_unless($request->user()->hasPermission('paiements', 'archive'), 403);
 
-        return $this->changerStatut($paiement, 'archive');
+        return $this->enExclusionMutuelle(fn () => $this->changerStatut($paiement, 'archive'));
     }
 
     public function corbeille(Request $request, Paiement $paiement)
     {
         abort_unless($request->user()->hasPermission('paiements', 'corbeille'), 403);
 
-        return $this->changerStatut($paiement, 'corbeille');
+        return $this->enExclusionMutuelle(fn () => $this->changerStatut($paiement, 'corbeille'));
     }
 
     public function restore(Request $request, Paiement $paiement)
@@ -384,16 +396,17 @@ class PaiementController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($paiement) {
+        $this->enExclusionMutuelle(fn () => DB::transaction(function () use ($paiement) {
             $documentId = $paiement->document_id;
+            $partManuelle = Paiement::partManuelle($documentId);
 
             if ($paiement->piece_jointe_chemin) {
                 Storage::disk('public')->delete($paiement->piece_jointe_chemin);
             }
 
             $paiement->delete();
-            Paiement::synchroniserFacture($documentId);
-        });
+            Paiement::synchroniserFacture($documentId, $partManuelle);
+        }));
 
         return response()->json(['message' => 'Paiement supprimé définitivement.']);
     }

@@ -14,4 +14,11 @@ class MontantFactureEloquent implements MontantFacture
 
         return $document ? round((float) $document->total_ttc, 2) : null;
     }
+
+    public function prixPaye(int $documentId): ?float
+    {
+        $document = DocumentCommercial::withTrashed()->find($documentId);
+
+        return $document ? round((float) $document->prix_paye, 2) : null;
+    }
 }

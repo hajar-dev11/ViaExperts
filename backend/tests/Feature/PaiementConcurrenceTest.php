@@ -157,4 +157,31 @@ class PaiementConcurrenceTest extends TestCase
         $references = Paiement::where('document_id', $petite->id)->pluck('reference');
         $this->assertSame($references->all(), $references->unique()->values()->all(), 'Références uniques.');
     }
+
+    /** Même règle quand une partie du « payé » a été saisie à la main sur la facture (sans paiement correspondant). */
+    public function test_des_paiements_simultanes_tiennent_compte_du_paye_saisi_a_la_main(): void
+    {
+        $id = $this->actingAs($this->admin)->postJson('/api/v1/facturation/facture', [
+            'emetteur' => 'bureau_comptabilite',
+            'party_id' => $this->party->id,
+            'numero' => 'PAYCONC-MANUEL-'.uniqid(),
+            'date_document' => '2026-10-06 09:00:00',
+            'prix_paye' => 300, // 300 Dh déjà payés à la main : il reste 700 Dh sur 1 000 Dh TTC
+            'lignes' => [['designation' => 'Service', 'quantite' => 1, 'prix_unitaire' => 1000, 'tva_pourcent' => 0]],
+        ])->json('data.id');
+        $facture = DocumentCommercial::findOrFail($id);
+        $this->autresFactures[] = $facture->id;
+
+        $statuts = $this->lancerEnParallele($facture); // 24 demandes de 100 Dh
+
+        $acceptes = count(array_filter($statuts, fn ($s) => $s === 201));
+        fwrite(STDERR, "\n[concurrence payé manuel] 24 demandes de 100 Dh, reste réel 700 Dh -> {$acceptes} acceptées, "
+            .count(array_filter($statuts, fn ($s) => $s === 422)).' refusées (422), '.count(array_filter($statuts, fn ($s) => $s === 500))." erreurs 500\n");
+
+        $this->assertNotContains(500, $statuts);
+        $this->assertSame(7, $acceptes, 'Exactement 7 paiements de 100 Dh tiennent dans les 700 Dh restants.');
+        $this->assertSame(17, count(array_filter($statuts, fn ($s) => $s === 422)));
+        $this->assertEquals(700, (float) Paiement::where('document_id', $facture->id)->sum('prix_paye'));
+        $this->assertEquals(1000, (float) DocumentCommercial::find($facture->id)->prix_paye, '300 manuels conservés + 700 de paiements = facture soldée, jamais dépassée.');
+    }
 }

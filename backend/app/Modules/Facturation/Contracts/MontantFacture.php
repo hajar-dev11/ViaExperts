@@ -13,4 +13,10 @@ interface MontantFacture
      * {@see FactureExiste}) : ses paiements restent rattachés.
      */
     public function totalTtc(int $documentId): ?float;
+
+    /**
+     * Montant « payé » STOCKÉ sur le document (documents_commerciaux.prix_paye), ou null s'il n'existe pas. Il peut avoir été
+     * saisi à la main sur la facture, sans paiement enregistré correspondant.
+     */
+    public function prixPaye(int $documentId): ?float;
 }

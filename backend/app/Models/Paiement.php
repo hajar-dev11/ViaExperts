@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Modules\Facturation\Contracts\FactureReference;
+use App\Modules\Facturation\Contracts\MontantFacture;
 use App\Modules\Facturation\Contracts\SynchronisationPaiements;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -110,8 +111,12 @@ class Paiement extends Model
      *
      * Appelée dans la transaction qui crée / modifie / archive / supprime un paiement,
      * ce qui évite toute divergence entre la facture et ses paiements.
+     *
+     * `$partManuelle` : montant « payé » saisi à la main sur la facture, sans paiement enregistré correspondant (voir
+     * {@see partManuelle()}, à lire AVANT la modification du paiement). Il est conservé : sans cela, le premier paiement
+     * écraserait ce montant, et le reste à payer se rouvrirait à tort.
      */
-    public static function synchroniserFacture(?int $documentId): void
+    public static function synchroniserFacture(?int $documentId, float $partManuelle = 0.0): void
     {
         if (! $documentId) {
             return;
@@ -123,7 +128,29 @@ class Paiement extends Model
             ->sum('prix_paye');
 
         // L'écriture de `prix_paye` appartient à Facturation : elle passe par son contrat (même transaction).
-        app(SynchronisationPaiements::class)->appliquerTotalPaye($documentId, (float) $somme);
+        app(SynchronisationPaiements::class)->appliquerTotalPaye($documentId, (float) $somme + max(0.0, $partManuelle));
+    }
+
+    /**
+     * Part du montant « payé » de la facture qui n'est couverte par AUCUN paiement actif : un montant saisi à la main sur
+     * la facture (colonne `prix_paye` des documents, champ « payé » du formulaire). Vaut 0 quand la facture est
+     * synchronisée sur ses paiements (cas normal). À appeler sous le verrou de création/modification des paiements.
+     */
+    public static function partManuelle(?int $documentId): float
+    {
+        if (! $documentId) {
+            return 0.0;
+        }
+
+        $paye = app(MontantFacture::class)->prixPaye($documentId);
+
+        if ($paye === null) {
+            return 0.0;
+        }
+
+        $somme = (float) static::where('document_id', $documentId)->where('status', 'actif')->sum('prix_paye');
+
+        return max(0.0, round($paye - $somme, 2));
     }
 
     /** Référence séquentielle (#904 dans la capture). */
