@@ -87,7 +87,7 @@ const DOMICILIATION = {
   signatureSurFacture: true,
 }
 const ENTREPRISE = { forme: 'SARL AU', clientId: 5 }
-const CLIENT = { genre: 'Mr', naissance: '1966-12-30', tel: '+212 661-620104', email: 'liftel.service@gmail.com' }
+const CLIENT = { genre: 'Mr', naissance: '1970-01-01', tel: '+212 600-000000', email: 'client.test@exemple.ma' }
 
 // La « date du jour » des documents de domiciliation est figée pour que les instantanés soient stables.
 // IMPORTANT : l'horloge doit être figée AU CHARGEMENT du fichier et non dans `beforeAll` : les `describe` ci-dessous calculent
