@@ -10,11 +10,14 @@ use App\Modules\Domiciliation\Models\Domiciliation;
 use App\Modules\Domiciliation\Models\DomiciliationDocument;
 use App\Modules\Domiciliation\Models\DomiciliationObservation;
 use App\Modules\Domiciliation\Models\DomiciliationOperation;
+use App\Modules\Domiciliation\Services\PeriodesDomiciliation;
 use App\Rules\FichierAutorise;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class DomiciliationController extends Controller
 {
@@ -76,7 +79,14 @@ class DomiciliationController extends Controller
         $data = $request->validated();
         $data['created_by'] = $request->user()->id;
 
-        $domiciliation = Domiciliation::create($data);
+        // Une entreprise ne peut pas avoir deux périodes actives qui se chevauchent — contrôle sous verrou, pour que deux
+        // créations simultanées ne passent pas toutes les deux.
+        $domiciliation = DB::transaction(function () use ($data) {
+            PeriodesDomiciliation::verrouillerEntreprise((int) $data['entreprise_id']);
+            PeriodesDomiciliation::verifierAbsenceDeChevauchement((int) $data['entreprise_id'], $data['date_depart'], $data['date_fin'] ?? null);
+
+            return Domiciliation::create($data);
+        });
 
         // `etat` et `status` ont des valeurs par défaut posées par la base :
         // sans refresh, la réponse les renverrait à null.
@@ -92,7 +102,46 @@ class DomiciliationController extends Controller
 
     public function update(UpdateDomiciliationRequest $request, Domiciliation $domiciliation)
     {
-        $domiciliation->update($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($domiciliation, $data) {
+            // Valeurs ACTUELLES de la période, relues sous verrou (la requête a pu attendre une autre écriture).
+            PeriodesDomiciliation::verrouillerEntreprise(
+                (int) $domiciliation->entreprise_id,
+                (int) ($data['entreprise_id'] ?? $domiciliation->entreprise_id)
+            );
+            $domiciliation->refresh();
+
+            $entrepriseId = (int) ($data['entreprise_id'] ?? $domiciliation->entreprise_id);
+            $depart = isset($data['date_depart']) ? Carbon::parse($data['date_depart'])->toDateString() : $domiciliation->date_depart?->toDateString();
+            $fin = array_key_exists('date_fin', $data)
+                ? ($data['date_fin'] !== null ? Carbon::parse($data['date_fin'])->toDateString() : null)
+                : $domiciliation->date_fin?->toDateString();
+
+            // `after_or_equal` de la requête ne compare qu'aux champs ENVOYÉS : on contrôle ici le résultat final.
+            if ($depart !== null && $fin !== null && $fin < $depart) {
+                throw ValidationException::withMessages(['date_fin' => ['La date de fin doit être postérieure ou égale à la date de départ.']]);
+            }
+
+            $periodeModifiee = $entrepriseId !== (int) $domiciliation->entreprise_id
+                || $depart !== $domiciliation->date_depart?->toDateString()
+                || $fin !== $domiciliation->date_fin?->toDateString();
+
+            if ($periodeModifiee) {
+                // Une période déjà renouvelée appartient à l'historique : ni ses dates ni son entreprise ne changent.
+                if ($domiciliation->estRenouvelee()) {
+                    throw ValidationException::withMessages([
+                        'date_depart' => ['Cette période a déjà été renouvelée : ses dates et son entreprise ne peuvent plus être modifiées (historique).'],
+                    ]);
+                }
+
+                if (PeriodesDomiciliation::estBloquante($domiciliation)) {
+                    PeriodesDomiciliation::verifierAbsenceDeChevauchement($entrepriseId, $depart, $fin, $domiciliation->id);
+                }
+            }
+
+            $domiciliation->update($data);
+        });
 
         return new DomiciliationResource($domiciliation->load(self::RELATIONS));
     }
@@ -113,7 +162,22 @@ class DomiciliationController extends Controller
 
     public function restore(Domiciliation $domiciliation)
     {
-        $domiciliation->update(['status' => 'actif']);
+        // Une période qui redevient active ne doit pas chevaucher une autre période active de l'entreprise.
+        DB::transaction(function () use ($domiciliation) {
+            PeriodesDomiciliation::verrouillerEntreprise((int) $domiciliation->entreprise_id);
+            $domiciliation->refresh();
+
+            if ($domiciliation->etat !== 'resilie' && $domiciliation->date_depart) {
+                PeriodesDomiciliation::verifierAbsenceDeChevauchement(
+                    (int) $domiciliation->entreprise_id,
+                    $domiciliation->date_depart->toDateString(),
+                    $domiciliation->date_fin?->toDateString(),
+                    $domiciliation->id
+                );
+            }
+
+            $domiciliation->update(['status' => 'actif']);
+        });
 
         return new DomiciliationResource($domiciliation->load(self::RELATIONS));
     }
@@ -162,6 +226,27 @@ class DomiciliationController extends Controller
         ]);
 
         $nouvelle = DB::transaction(function () use ($request, $domiciliation, $data) {
+            // Tout se joue SOUS VERROU de l'entreprise : deux renouvellements simultanés (double-clic, deux onglets)
+            // s'exécutent l'un après l'autre, et le second voit le premier.
+            PeriodesDomiciliation::verrouillerEntreprise((int) $domiciliation->entreprise_id);
+            $domiciliation->refresh();
+
+            if ($domiciliation->status !== 'actif') {
+                throw ValidationException::withMessages(['domiciliation' => ['Seule une période active peut être renouvelée.']]);
+            }
+
+            if ($domiciliation->renouvellements()->where('status', 'actif')->exists()) {
+                throw ValidationException::withMessages(['domiciliation' => ['Cette période a déjà été renouvelée.']]);
+            }
+
+            // La nouvelle période ne doit chevaucher aucune période active de l'entreprise (y compris celle qu'elle prolonge) :
+            // un renouvellement valide démarre après l'échéance de la période renouvelée.
+            PeriodesDomiciliation::verifierAbsenceDeChevauchement(
+                (int) $domiciliation->entreprise_id,
+                $data['date_depart'],
+                $data['date_fin'] ?? null
+            );
+
             $booleens = ['signature_sur_facture', 'doc_facture', 'doc_contrat', 'doc_attestation', 'doc_procuration'];
             $attributs = [
                 'entreprise_id' => $domiciliation->entreprise_id,
@@ -232,6 +317,19 @@ class DomiciliationController extends Controller
     public function activer(Request $request, Domiciliation $domiciliation)
     {
         DB::transaction(function () use ($request, $domiciliation) {
+            // Une période résiliée qui redevient active ne doit pas chevaucher une autre période active de l'entreprise.
+            PeriodesDomiciliation::verrouillerEntreprise((int) $domiciliation->entreprise_id);
+            $domiciliation->refresh();
+
+            if ($domiciliation->status === 'actif' && $domiciliation->etat === 'resilie' && $domiciliation->date_depart) {
+                PeriodesDomiciliation::verifierAbsenceDeChevauchement(
+                    (int) $domiciliation->entreprise_id,
+                    $domiciliation->date_depart->toDateString(),
+                    $domiciliation->date_fin?->toDateString(),
+                    $domiciliation->id
+                );
+            }
+
             $domiciliation->update(['etat' => 'active', 'date_declaration' => null, 'date_resiliation' => null]);
             $this->journaliser($request, $domiciliation, 'activation');
         });

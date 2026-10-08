@@ -8,14 +8,26 @@ use Illuminate\Http\Request;
 
 /**
  * Notes personnelles (page « Notes » + widget de la Topbar).
- * Ouvert à tout utilisateur connecté, comme le reste des outils de la
- * Topbar : pas de permission dédiée, juste `auth:sanctum`.
+ * Ouvert à tout utilisateur connecté (pas de permission dédiée, juste `auth:sanctum`), mais PERSONNEL : chacun ne lit, ne
+ * modifie et ne supprime que ses propres notes. L'administrateur garde l'accès à toutes les notes.
  */
 class NoteController extends Controller
 {
-    public function index()
+    /** Une note n'est accessible qu'à son auteur (ou à un administrateur). */
+    private function autoriser(Request $request, Note $note): void
     {
-        return Note::with('auteur')->latest('updated_at')->get()->map(fn ($n) => $this->format($n));
+        $user = $request->user();
+
+        abort_unless($user->is_admin || (int) $note->created_by === (int) $user->id, 403, "Cette note appartient à un autre utilisateur.");
+    }
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        return Note::with('auteur')
+            ->when(! $user->is_admin, fn ($q) => $q->where('created_by', $user->id))
+            ->latest('updated_at')->get()->map(fn ($n) => $this->format($n));
     }
 
     public function store(Request $request)
@@ -33,6 +45,8 @@ class NoteController extends Controller
 
     public function update(Request $request, Note $note)
     {
+        $this->autoriser($request, $note);
+
         $note->update($request->validate([
             'titre' => ['sometimes', 'nullable', 'string', 'max:255'],
             'contenu' => ['sometimes', 'nullable', 'string'],
@@ -41,8 +55,10 @@ class NoteController extends Controller
         return $this->format($note->fresh('auteur'));
     }
 
-    public function destroy(Note $note)
+    public function destroy(Request $request, Note $note)
     {
+        $this->autoriser($request, $note);
+
         $note->delete();
 
         return response()->json(['message' => 'Note supprimée.']);

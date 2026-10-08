@@ -41,15 +41,17 @@ export function RapportForm() {
   const [documentActuel, setDocumentActuel] = useState(null)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [saving, setSaving] = useState(false)
   const [soldeTouche, setSoldeTouche] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!isEdit) return
     getRapport(id)
       .then((r) => {
+        setErreurChargement('')
         setForm({
           date_rapport: r.dateRapport ?? '',
           rapport_de: r.rapportDe ?? '',
@@ -63,8 +65,10 @@ export function RapportForm() {
         setDocumentActuel(r.documentNom ? { nom: r.documentNom } : null)
         setSoldeTouche(true)
       })
-      .catch(() => setError('Rapport introuvable.'))
+      .catch(() => setErreurChargement('Rapport introuvable.'))
   }, [id, isEdit])
+
+  useEffect(() => { charger() }, [charger])
 
   // Total Revenu du jour = Revenu Local + Revenu Externe (règle lisible sur la capture).
   const totalRevenu = useMemo(
@@ -112,6 +116,7 @@ export function RapportForm() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={() => { setErreurChargement(''); charger() }}>{erreurChargement}</Alert>}
 
       <form onSubmit={submit}>
         {/* Un seul cadre, pleine largeur — titre, tous les champs et les
@@ -199,13 +204,15 @@ export function RapportList() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
 
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listRapports('actif')
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les rapports."
         : 'Impossible de charger les rapports.'))
       .finally(() => setLoading(false))
@@ -235,6 +242,7 @@ export function RapportList() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <DataTable
         title="List Raports"

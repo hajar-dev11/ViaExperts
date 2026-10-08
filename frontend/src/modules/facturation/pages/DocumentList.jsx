@@ -38,15 +38,17 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
   const [confirm, setConfirm] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listDocuments(type, { status })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter ces documents."
         : 'Impossible de charger les documents.'))
       .finally(() => setLoading(false))
@@ -113,6 +115,7 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
       <DataTable

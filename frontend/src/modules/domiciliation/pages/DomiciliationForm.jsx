@@ -15,7 +15,7 @@ import { MenuImprimer } from '../components/DomiciliationActions.jsx'
 import { listEntreprises } from '../../../api/entreprises.js'
 import { ApiError } from '../../../api/http.js'
 import { chargerSignatureDomiciliation } from '../documents/documentsDomiciliation.js'
-import { getDomiciliationSettings } from '../../../api/settings.js'
+import { getIdentiteDomiciliation } from '../../../api/settings.js'
 import { calculerDateFin } from '../utils/domiciliation.js'
 import { aujourdhui } from '../../../shared/utils/date.js'
 import { formatDateHeure } from '../../../utils/format.js'
@@ -81,6 +81,7 @@ export default function DomiciliationForm() {
   const [rows, setRows] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirm, setConfirm] = useState(null)
@@ -95,14 +96,18 @@ export default function DomiciliationForm() {
 
   useEffect(() => {
     listEntreprises('actif').then(setEntreprises).catch(() => setEntreprises([]))
-    chargerSignatureDomiciliation(getDomiciliationSettings).then(setSignaturePath)
+    chargerSignatureDomiciliation(getIdentiteDomiciliation).then(setSignaturePath)
     loadRows()
   }, [loadRows])
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!isEdit) return
-    getDomiciliation(id).then((d) => setForm(toForm(d))).catch(() => setError('Domiciliation introuvable.'))
+    getDomiciliation(id).then((d) => { setErreurChargement(''); setForm(toForm(d)) }).catch(() => setErreurChargement('Domiciliation introuvable.'))
   }, [id, isEdit])
+
+  useEffect(() => {
+    charger()
+  }, [charger])
 
   // Entreprise choisie : dernière domiciliation connue (Ancienne Date de
   // départ/fin + Centre repris automatiquement), sinon le centre déjà associé
@@ -213,6 +218,7 @@ export default function DomiciliationForm() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-4">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-4" onRetry={() => { setErreurChargement(''); charger() }}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-4">{success}</Alert>}
 
       <form onSubmit={submit}>

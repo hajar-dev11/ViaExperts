@@ -60,6 +60,8 @@ return [
     */
 
     'middleware' => [
+        // Ferme les autres sessions d'un compte dont le mot de passe vient de changer (voir App\Support\SessionsUtilisateur).
+        'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
         'validate_csrf_token' => App\Http\Middleware\VerifyCsrfToken::class,
         'encrypt_cookies' => App\Http\Middleware\EncryptCookies::class,
     ],

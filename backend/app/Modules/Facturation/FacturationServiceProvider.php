@@ -6,6 +6,7 @@ use App\Modules\Facturation\Contracts\FactureExiste;
 use App\Modules\Facturation\Contracts\FactureReference;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Modules\Facturation\Contracts\FacturesPourMouvements;
+use App\Modules\Facturation\Contracts\InformationsFacture;
 use App\Modules\Facturation\Contracts\MontantFacture;
 use App\Modules\Facturation\Contracts\StatistiquesDocuments;
 use App\Modules\Facturation\Contracts\SynchronisationPaiements;
@@ -13,6 +14,7 @@ use App\Modules\Facturation\Services\FactureExisteEloquent;
 use App\Modules\Facturation\Services\FactureReferenceEloquent;
 use App\Modules\Facturation\Services\FacturesDisponiblesEloquent;
 use App\Modules\Facturation\Services\FacturesPourMouvementsEloquent;
+use App\Modules\Facturation\Services\InformationsFactureEloquent;
 use App\Modules\Facturation\Services\MontantFactureEloquent;
 use App\Modules\Facturation\Services\StatistiquesDocumentsEloquent;
 use App\Modules\Facturation\Services\SynchronisationPaiementsEloquent;
@@ -39,5 +41,6 @@ class FacturationServiceProvider extends ServiceProvider
         FactureReference::class => FactureReferenceEloquent::class,
         FactureExiste::class => FactureExisteEloquent::class,
         MontantFacture::class => MontantFactureEloquent::class,
+        InformationsFacture::class => InformationsFactureEloquent::class,
     ];
 }

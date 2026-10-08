@@ -35,7 +35,7 @@ class UserPermissionTest extends TestCase
             'name' => 'Nouvel Assistant',
             'email' => 'assistant@viaexperts.ma',
             'telephone' => '0600000000',
-            'password' => 'password123',
+            'password' => 'Mot-de-passe-123',
             'fonction' => 'Assistant',
         ]);
 
@@ -52,7 +52,7 @@ class UserPermissionTest extends TestCase
         $response = $this->actingAs($this->admin())->postJson('/api/v1/users', [
             'name' => 'Sans Droit',
             'email' => 'sansdroit@viaexperts.ma',
-            'password' => 'password123',
+            'password' => 'Mot-de-passe-123',
         ]);
 
         $userId = $response->json('data.id');
@@ -133,7 +133,7 @@ class UserPermissionTest extends TestCase
         $staff = $this->staff();
 
         $this->actingAs($staff)->postJson('/api/v1/users', [
-            'name' => 'Intrus', 'email' => 'intrus@viaexperts.ma', 'password' => 'password123',
+            'name' => 'Intrus', 'email' => 'intrus@viaexperts.ma', 'password' => 'Mot-de-passe-123',
         ])->assertStatus(403);
     }
 

@@ -39,6 +39,7 @@ export default function PaiementList() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [confirm, setConfirm] = useState(null)
   // Paiement dont l'utilisateur choisit le format de reçu (A5 / A4) avant impression.
   const [choixRecu, setChoixRecu] = useState(null)
@@ -54,13 +55,14 @@ export default function PaiementList() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listPaiements({
       status,
       documentId: filtreActif ? filtreDocumentId || undefined : undefined,
       id: filtreActif ? filtrePaiementId || undefined : undefined,
     })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les paiements."
         : 'Impossible de charger les paiements.'))
       .finally(() => setLoading(false))
@@ -234,6 +236,7 @@ export default function PaiementList() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <DataTable
         title="List Des Paiements"

@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Rules\MotDePasseFort;
+use App\Support\SessionsUtilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Mot de passe oublié — broker Laravel standard (`password_resets`, déjà
@@ -17,25 +20,39 @@ use Illuminate\Support\Str;
  */
 class PasswordResetController extends Controller
 {
+    /** Réponse unique, quel que soit le résultat (compte inconnu, envoi réussi, transport mail en panne). */
+    public const MESSAGE_NEUTRE = 'Si un compte existe avec cet email, un lien de réinitialisation vient de lui être envoyé.';
+
     /**
-     * Message volontairement identique que le compte existe ou non —
+     * Réponse volontairement identique que le compte existe ou non ET que l'envoi du mail réussisse ou non —
      * n'expose jamais si un email est enregistré (anti-énumération).
+     *
+     * L'envoi se fait APRÈS l'envoi de la réponse (callback `terminating`) : une panne SMTP ne peut donc ni changer le
+     * code HTTP, ni se voir dans le temps de réponse (un envoi réel est bien plus lent qu'un compte inconnu). L'échec
+     * éventuel est journalisé côté serveur, sans jamais écrire l'adresse, le jeton ni le lien.
      */
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => ['required', 'email']]);
 
-        // Le statut n'est jamais renvoyé au client (anti-énumération), mais on le
-        // journalise : sans ça, un échec réel (ex. transport mail en panne) serait
-        // indiscernable d'un email inconnu, et personne ne le remarquerait jamais.
-        $status = Password::sendResetLink($request->only('email'));
-        if ($status !== Password::RESET_LINK_SENT) {
-            Log::info('Demande de réinitialisation sans envoi de lien.', ['status' => $status]);
-        }
+        $identifiants = $request->only('email');
 
-        return response()->json([
-            'message' => 'Si un compte existe avec cet email, un lien de réinitialisation vient de lui être envoyé.',
-        ]);
+        app()->terminating(static function () use ($identifiants) {
+            try {
+                $statut = Password::sendResetLink($identifiants);
+
+                if ($statut !== Password::RESET_LINK_SENT) {
+                    Log::info('Demande de réinitialisation sans envoi de lien.', ['status' => $statut]);
+                }
+            } catch (Throwable $e) {
+                Log::error('Échec de l\'envoi du lien de réinitialisation du mot de passe.', [
+                    'exception' => $e::class,
+                    'message' => Str::limit($e->getMessage(), 300),
+                ]);
+            }
+        });
+
+        return response()->json(['message' => self::MESSAGE_NEUTRE]);
     }
 
     public function reset(Request $request)
@@ -43,7 +60,7 @@ class PasswordResetController extends Controller
         $data = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', new MotDePasseFort, 'confirmed'],
         ]);
 
         $status = Password::reset(
@@ -51,8 +68,10 @@ class PasswordResetController extends Controller
             function ($user, $password) {
                 $user->forceFill([
                     'password' => Hash::make($password),
-                    'remember_token' => Str::random(60),
                 ])->save();
+
+                // Toutes les sessions ouvertes de ce compte sont fermées (empreinte du mot de passe + jeton « se souvenir de moi »).
+                SessionsUtilisateur::apresChangementDeMotDePasse($user);
             }
         );
 

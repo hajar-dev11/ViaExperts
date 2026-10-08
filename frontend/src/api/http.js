@@ -1,4 +1,7 @@
-export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+// URL de l'API. En PRODUCTION, VITE_API_URL est obligatoire : le build s'arrête sinon (vite.verification-env.js), et le repli
+// local ci-dessous n'existe pas dans le code publié (`import.meta.env.DEV` vaut false et la branche est supprimée au build).
+// En développement (`npm run dev`), le repli local est explicite.
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')
 
 export class ApiError extends Error {
   constructor(message, status, errors) {

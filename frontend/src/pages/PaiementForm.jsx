@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Save, Plus, X } from 'lucide-react'
 import { Field, Input, Select, Textarea, Switch, FormCard, FormActions, FileInput } from '../components/Field.jsx'
@@ -49,6 +49,7 @@ export default function PaiementForm() {
   const [services, setServices] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [saving, setSaving] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -59,10 +60,11 @@ export default function PaiementForm() {
     listServices('actif').then(setServices).catch(() => setServices([]))
   }, [])
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!isEdit) return
     getPaiement(id)
       .then((p) => {
+        setErreurChargement('')
         setEmetteur(p.emetteur)
         setForm({
           party_id: p.partyId ?? '',
@@ -81,8 +83,12 @@ export default function PaiementForm() {
           prix_unitaire: l.prixUnitaire,
         })))
       })
-      .catch(() => setError('Paiement introuvable.'))
+      .catch(() => setErreurChargement('Paiement introuvable.'))
   }, [id, isEdit])
+
+  useEffect(() => {
+    charger()
+  }, [charger])
 
   // Même règle que le module Facturation : un service Via Experts ne se
   // propose que sous cet émetteur, un service Maître que sous l'autre.
@@ -159,6 +165,7 @@ export default function PaiementForm() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={() => { setErreurChargement(''); charger() }}>{erreurChargement}</Alert>}
 
       <form onSubmit={submit}>
         <FormCard

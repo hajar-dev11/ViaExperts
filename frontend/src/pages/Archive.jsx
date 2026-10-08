@@ -297,6 +297,7 @@ function ArchivedPanel({ pageTitle, status, showDeleteForever }) {
   const [counts, setCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [confirmation, setConfirmation] = useState(null)
   const [confirmDialog, setConfirmDialog] = useState(null)
 
@@ -318,6 +319,7 @@ function ArchivedPanel({ pageTitle, status, showDeleteForever }) {
   const load = (cle = active) => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     // Une catégorie sans permission renvoie 403 : elle est marquée inaccessible
     // (null) au lieu de faire échouer la page.
     CATEGORIES[cle].list(status)
@@ -325,7 +327,7 @@ function ArchivedPanel({ pageTitle, status, showDeleteForever }) {
       .catch((err) => {
         setRowsByCategory((prev) => ({ ...prev, [cle]: null }))
         if (!(err instanceof ApiError) || err.status !== 403) {
-          setError('Impossible de charger cette catégorie.')
+          setErreurChargement('Impossible de charger cette catégorie.')
         }
       })
       .finally(() => setLoading(false))
@@ -340,6 +342,7 @@ function ArchivedPanel({ pageTitle, status, showDeleteForever }) {
 
   const choisirCategorie = (cle) => {
     setActive(cle)
+    setErreurChargement('')
     setConfirmation('')
     if (rowsByCategory[cle] === undefined) load(cle)
   }
@@ -402,6 +405,7 @@ function ArchivedPanel({ pageTitle, status, showDeleteForever }) {
 
       <div>
         {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+        {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={() => load()}>{erreurChargement}</Alert>}
         {confirmation && <Alert tone="success" onAutoClose={() => setConfirmation(null)} className="mb-3">{confirmation}</Alert>}
 
         {inaccessible ? (

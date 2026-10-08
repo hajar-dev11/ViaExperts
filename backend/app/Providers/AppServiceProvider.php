@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\Paiements\PaiementsDeFacture;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Contracts\ServicesEnCours\CompteursServicesEnCours;
+use App\Services\Paiements\PaiementsDeFactureEloquent;
 use App\Services\ServicesEnCours\AssureServicesEnCoursEloquent;
 use App\Services\ServicesEnCours\CompteursServicesEnCoursEloquent;
 use Illuminate\Support\ServiceProvider;
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public array $bindings = [
         AssureServicesEnCours::class => AssureServicesEnCoursEloquent::class,
         CompteursServicesEnCours::class => CompteursServicesEnCoursEloquent::class,
+        PaiementsDeFacture::class => PaiementsDeFactureEloquent::class,
     ];
 
     /**

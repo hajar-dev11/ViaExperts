@@ -32,6 +32,7 @@ export default function ServicesEnCours() {
   const [statuts, setStatuts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
 
   const [formOpen, setFormOpen] = useState(false)
@@ -52,9 +53,10 @@ export default function ServicesEnCours() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     Promise.all([listServicesEnCours(status), listActivite(15)])
       .then(([list, feed]) => { setRows(list); setActivite(feed) })
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les services en cours."
         : 'Impossible de charger les services en cours.'))
       .finally(() => setLoading(false))
@@ -173,6 +175,7 @@ export default function ServicesEnCours() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
       {/* Ouverte par un clic sur le badge de statut d'une ligne — même modale

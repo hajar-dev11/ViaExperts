@@ -1,7 +1,7 @@
 // Identité de l'émetteur (logo, signature, pied de page) pour l'impression — noyau PARTAGÉ par la Facturation,
 // les Paiements et la Domiciliation. Extrait tel quel de documentPrint.js.
 
-import { getCabinetSettings, getDomiciliationSettings } from '../../api/settings.js'
+import { getIdentiteImpression } from '../../api/settings.js'
 import { API_URL } from '../../api/http.js'
 
 const fichierUrl = (path) => (path ? `${API_URL}/storage/${path}` : null)
@@ -12,7 +12,7 @@ const fichierUrl = (path) => (path ? `${API_URL}/storage/${path}` : null)
  * Bureau / Centre), déjà en place avant cette fonctionnalité.
  */
 export async function chargerIdentite(emetteur) {
-  const s = emetteur === 'via_experts' ? await getDomiciliationSettings() : await getCabinetSettings()
+  const s = await getIdentiteImpression(emetteur)
   return {
     nomSociete: s.nom_societe || 'Via Experts',
     logo: fichierUrl(s.logo_path) || '/logo-via-experts.jpg',

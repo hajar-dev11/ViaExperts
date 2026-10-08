@@ -16,7 +16,7 @@ import { SkeletonText } from '../components/ui/Skeleton.jsx'
 import { getClient, archiveClient, corbeilleClient, restoreClient } from '../api/clients.js'
 import { getEntreprise } from '../api/entreprises.js'
 import { listDomiciliations, chargerSignatureDomiciliation } from '../modules/domiciliation/index.js'
-import { getDomiciliationSettings } from '../api/settings.js'
+import { getIdentiteDomiciliation } from '../api/settings.js'
 import { formatDate, formatDateHeure } from '../utils/format.js'
 
 /**
@@ -76,7 +76,7 @@ export default function ClientDetails() {
 
   // Cachet utilisé à l'impression des documents de domiciliation.
   useEffect(() => {
-    chargerSignatureDomiciliation(getDomiciliationSettings).then(setSignaturePath)
+    chargerSignatureDomiciliation(getIdentiteDomiciliation).then(setSignaturePath)
   }, [])
 
   // Une fois le client connu, on va chercher la fiche complète de son

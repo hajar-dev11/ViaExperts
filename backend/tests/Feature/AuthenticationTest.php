@@ -93,6 +93,12 @@ class AuthenticationTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['email' => ['a'], 'password' => 'x'])->assertStatus(422)->assertJsonValidationErrors(['email']);
     }
 
+    public function test_une_requete_non_authentifiee_sans_en_tete_json_repond_401_et_non_500(): void
+    {
+        // Lien de téléchargement ouvert dans le navigateur après l'expiration de la session : pas d'en-tête Accept JSON.
+        $this->get('/api/v1/auth/me')->assertStatus(401);
+        $this->get('/api/v1/fichiers')->assertStatus(401);
+    }
     public function test_les_routes_protegees_exigent_la_session(): void
     {
         $this->getJson('/api/v1/auth/me')->assertStatus(401);

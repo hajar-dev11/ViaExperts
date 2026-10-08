@@ -15,6 +15,17 @@ class TrustProxies extends Middleware
     protected $proxies;
 
     /**
+     * Proxys de confiance : lus dans config/security.php (variable TRUSTED_PROXIES), jamais écrits en dur.
+     * Vide = aucun proxy n'est cru (comportement historique).
+     */
+    protected function proxies()
+    {
+        $valeur = config('security.trusted_proxies');
+
+        return is_string($valeur) && trim($valeur) !== '' ? trim($valeur) : parent::proxies();
+    }
+
+    /**
      * The headers that should be used to detect proxies.
      *
      * @var int

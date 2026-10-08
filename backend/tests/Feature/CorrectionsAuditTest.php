@@ -255,7 +255,7 @@ class CorrectionsAuditTest extends TestCase
 
         $this->actingAs($staff)->getJson('/api/v1/users')->assertStatus(403);
         $this->actingAs($staff)->postJson('/api/v1/users', [
-            'name' => 'X', 'email' => 'x@example.com', 'password' => 'password123',
+            'name' => 'X', 'email' => 'x@example.com', 'password' => 'Mot-de-passe-123',
         ])->assertStatus(403);
         $this->actingAs($staff)->getJson('/api/v1/permissions')->assertStatus(403);
         $this->actingAs($staff)->putJson("/api/v1/users/{$this->admin()->id}/permissions", [

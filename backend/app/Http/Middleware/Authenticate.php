@@ -14,8 +14,9 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        if (! $request->expectsJson()) {
-            return route('login');
-        }
+        // Application d'API pure : aucune page de connexion côté serveur (le SPA gère /login). Toujours 401, jamais une
+        // redirection vers une route inexistante — ce qui donnait une erreur 500 pour un lien de téléchargement ouvert
+        // dans le navigateur (sans en-tête Accept: application/json) après l'expiration de la session.
+        return null;
     }
 }

@@ -45,15 +45,17 @@ export default function ClientsList() {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [suppressionPour, setSuppressionPour] = useState(null)
   const [suppressionDefinitivePour, setSuppressionDefinitivePour] = useState(null)
 
   const load = () => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listClients(status)
       .then(setClients)
-      .catch(() => setError('Impossible de charger les clients.'))
+      .catch(() => setErreurChargement('Impossible de charger les clients.'))
       .finally(() => setLoading(false))
   }
 
@@ -77,6 +79,7 @@ export default function ClientsList() {
       )}
 
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <DataTable
         title="Liste des Clients"

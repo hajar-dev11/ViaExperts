@@ -24,6 +24,17 @@ export async function resetCabinetSignature() {
   return apiFetch('/api/v1/settings/cabinet/signature', { method: 'DELETE' })
 }
 
+/**
+ * Identité d'IMPRESSION (logo, cachet, pied de page) de l'émetteur : `via_experts` (centre de domiciliation) ou `bureau`.
+ * Accessible à tout utilisateur autorisé à imprimer, sans droit Paramètres — contrairement à getCabinetSettings /
+ * getDomiciliationSettings, qui renvoient toute la configuration et restent réservées à Paramètres.
+ */
+export async function getIdentiteImpression(emetteur) {
+  return apiFetch(`/api/v1/impression/identite/${emetteur === 'via_experts' ? 'via_experts' : 'bureau'}`)
+}
+
+export const getIdentiteDomiciliation = () => getIdentiteImpression('via_experts')
+
 export async function getDomiciliationSettings() {
   return apiFetch('/api/v1/settings/domiciliation')
 }

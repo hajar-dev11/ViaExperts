@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\MotDePasseFort;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class UpdateUserRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'telephone' => ['nullable', 'string', 'max:30'],
             'email' => ['sometimes', 'required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($id)],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', new MotDePasseFort],
             'fonction' => ['nullable', 'in:Assistant,Comptable,Autre'],
         ];
     }

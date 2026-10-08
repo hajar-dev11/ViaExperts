@@ -43,13 +43,15 @@ function VueMouvement({
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
 
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     charger(appliques)
       .then(setData)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter ce mouvement."
         : 'Impossible de charger les mouvements.'))
       .finally(() => setLoading(false))
@@ -101,6 +103,7 @@ function VueMouvement({
       </div>
 
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <div className="rounded-xl bg-white shadow-card mb-4 overflow-hidden">
         <div className="px-5 py-4 border-b border-line">

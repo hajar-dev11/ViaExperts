@@ -18,7 +18,7 @@ import { SkeletonText } from '../components/ui/Skeleton.jsx'
 import { getEntreprise, archiveEntreprise, corbeilleEntreprise, restoreEntreprise } from '../api/entreprises.js'
 import { listClients } from '../api/clients.js'
 import { listDomiciliations, chargerSignatureDomiciliation } from '../modules/domiciliation/index.js'
-import { getDomiciliationSettings } from '../api/settings.js'
+import { getIdentiteDomiciliation } from '../api/settings.js'
 import { formatDate, formatDateHeure } from '../utils/format.js'
 
 /**
@@ -79,7 +79,7 @@ export default function EntrepriseDetails() {
 
   // Cachet utilisé à l'impression de la facture de domiciliation.
   useEffect(() => {
-    chargerSignatureDomiciliation(getDomiciliationSettings).then(setSignaturePath)
+    chargerSignatureDomiciliation(getIdentiteDomiciliation).then(setSignaturePath)
   }, [])
 
   // --- Personnes rattachées --------------------------------------------------

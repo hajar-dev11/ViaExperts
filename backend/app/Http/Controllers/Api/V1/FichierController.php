@@ -9,15 +9,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Bibliothèque de fichiers globale (page « Fichiers » + widget de la Topbar).
- * Ouvert à tout utilisateur connecté, comme le reste des outils de la Topbar
- * (Notes, Calculatrice…) : pas de permission dédiée, juste `auth:sanctum`.
+ * Fichiers (page « Fichiers » + widget de la Topbar).
+ * Ouvert à tout utilisateur connecté, comme le reste des outils de la Topbar (Notes, Calculatrice…) : pas de permission
+ * dédiée, juste `auth:sanctum`. Chacun ne voit et ne supprime que SES fichiers ; l'administrateur garde l'accès à tous.
  */
 class FichierController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Fichier::with('auteur')->latest('id')->get()->map(fn ($f) => $this->format($f));
+        $user = $request->user();
+
+        return Fichier::with('auteur')
+            ->when(! $user->is_admin, fn ($q) => $q->where('created_by', $user->id))
+            ->latest('id')->get()->map(fn ($f) => $this->format($f));
     }
 
     /** Accepte un ou plusieurs fichiers en une seule requête (`fichiers[]`). */
@@ -45,6 +49,9 @@ class FichierController extends Controller
 
     public function destroy(Request $request, Fichier $fichier)
     {
+        $user = $request->user();
+        abort_unless($user->is_admin || (int) $fichier->created_by === (int) $user->id, 403, "Ce fichier appartient à un autre utilisateur.");
+
         Storage::disk('public')->delete($fichier->chemin);
         $fichier->delete();
 

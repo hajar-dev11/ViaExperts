@@ -66,6 +66,7 @@ export default function DomiciliationCentres() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -79,9 +80,10 @@ export default function DomiciliationCentres() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listCentres({ page, perPage, search, status })
       .then((res) => { setRows(res.data || []); setMeta(res) })
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les centres de domiciliation."
         : 'Impossible de charger les centres de domiciliation.'))
       .finally(() => setLoading(false))
@@ -132,6 +134,7 @@ export default function DomiciliationCentres() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
       {status !== 'actif' && (
         <div className="mb-3 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm text-ink-700">

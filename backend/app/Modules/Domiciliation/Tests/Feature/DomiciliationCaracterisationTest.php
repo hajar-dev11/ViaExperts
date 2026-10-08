@@ -300,7 +300,12 @@ class DomiciliationCaracterisationTest extends TestCase
         $admin = $this->admin();
         $entreprise = $this->entreprise();
         $a = $this->creerDomiciliation($admin, ['entreprise_id' => $entreprise->party_id]);
-        $b = $this->creerDomiciliation($admin, ['entreprise_id' => $entreprise->party_id]);
+        // Deux périodes de la même entreprise : leurs dates ne doivent pas se chevaucher (règle des périodes actives).
+        $b = $this->creerDomiciliation($admin, [
+            'entreprise_id' => $entreprise->party_id,
+            'date_depart' => now()->addMonths(7)->toDateString(),
+            'date_fin' => now()->addMonths(13)->toDateString(),
+        ]);
         $this->creerDomiciliation($admin); // autre entreprise
         $this->actingAs($admin)->postJson("/api/v1/domiciliations/{$b->id}/archive")->assertOk();
 

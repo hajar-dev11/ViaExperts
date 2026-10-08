@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
+use App\Support\SessionsUtilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -21,6 +22,11 @@ class ProfileController extends Controller
         }
 
         $user->update($attributes);
+
+        // Nouveau mot de passe : les autres sessions de ce compte sont déconnectées, celle-ci reste ouverte.
+        if (! empty($data['password'])) {
+            SessionsUtilisateur::apresChangementDeMotDePasse($user, $request);
+        }
 
         return response()->json(['user' => $user->fresh()]);
     }

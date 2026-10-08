@@ -47,14 +47,16 @@ export default function DomiciliationCalendar() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   // Toutes les catégories sont cochées au départ, comme la maquette.
   const [actives, setActives] = useState(() => new Set(CATEGORIES.map((c) => c.cle)))
 
   const load = useCallback(() => {
     setLoading(true)
+    setErreurChargement('')
     listDomiciliations({ status: 'actif' })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les domiciliations."
         : 'Impossible de charger les domiciliations.'))
       .finally(() => setLoading(false))
@@ -122,6 +124,7 @@ export default function DomiciliationCalendar() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,18rem)_1fr]">
         {/* ---- Colonne gauche : mini-calendrier + filtres ----------------- */}

@@ -42,16 +42,48 @@ describe('Bandeaux de succès / d\'erreur des pages', () => {
   }
   parcourir('pages'); parcourir('modules'); parcourir('components')
 
-  it('tout bandeau « {message && <Alert tone="danger|success"> » est à fermeture automatique, sauf exceptions documentées', () => {
+  it('tout bandeau « {message && <Alert tone="danger|success"> » est à fermeture automatique (action) ou permanent avec « Réessayer » (chargement)', () => {
     // Exception : l'erreur pilote le texte « Chargement… » du document (la vider relancerait un faux chargement).
     const exceptions = new Set(['modules/domiciliation/documents/DocumentDomiciliationEditable.jsx'])
-    const sansFermeture = []
+    const sansRegle = []
     for (const rel of pages) {
       if (exceptions.has(rel)) continue
       for (const m of lire(rel).matchAll(/\{(\w+) && <Alert tone="(?:danger|success)"[^\n]*/g)) {
-        if (!m[0].includes('onAutoClose')) sansFermeture.push(`${rel} : ${m[0].slice(0, 70)}`)
+        if (!m[0].includes('onAutoClose') && !m[0].includes('onRetry')) sansRegle.push(`${rel} : ${m[0].slice(0, 70)}`)
       }
     }
-    expect(sansFermeture).toEqual([])
+    expect(sansRegle).toEqual([])
+  })
+
+  it('une erreur CRITIQUE de chargement ne se ferme jamais toute seule : bandeau « Réessayer », sans onAutoClose ni onClose', () => {
+    const faux = []
+    let total = 0
+    for (const rel of pages) {
+      for (const m of lire(rel).matchAll(/\{(erreur(?:Chargement|Contacts|Conversation)\w*) && <Alert[^\n]*/g)) {
+        total++
+        if (!m[0].includes('onRetry=') || m[0].includes('onAutoClose') || m[0].includes('onClose')) faux.push(`${rel} : ${m[0].slice(0, 90)}`)
+      }
+    }
+    expect(faux).toEqual([])
+    expect(total).toBeGreaterThanOrEqual(30)
+  })
+
+  it('plus aucun message de chargement dans l\'état des erreurs d\'ACTION (qui, lui, se ferme seul)', () => {
+    // Exceptions : écrans qui REMPLACENT la page par l'erreur quand rien n'est chargé (déjà permanents), et les paramètres
+    // de Bureau / Centre (`{error ? <Alert> : (formulaire)}`, déjà permanents tant que le formulaire n'est pas chargé).
+    const exceptions = [
+      /pages\/ClientDetails\.jsx$/, /pages\/EntrepriseDetails\.jsx$/, /domiciliation\/pages\/DomiciliationDetails\.jsx$/,
+      /domiciliation\/pages\/CentreDomiciliationDetails\.jsx$/, /domiciliation\/documents\/DocumentDomiciliationEditable\.jsx$/,
+    ]
+    const motif = /\bset(?:Error|Erreur|GlobalError)\((?:(?!\bset[A-Z]\w*\()[\s\S]){0,260}?(?:Impossible de charger|introuvable\.)[^'"`]*/g
+    const restants = []
+    for (const rel of pages) {
+      if (exceptions.some((re) => re.test(rel))) continue
+      for (const m of lire(rel).matchAll(motif)) {
+        if (/paramètres du (bureau|centre)/.test(m[0])) continue
+        restants.push(`${rel} : ${m[0].replace(/\s+/g, ' ').slice(0, 100)}`)
+      }
+    }
+    expect(restants).toEqual([])
   })
 })

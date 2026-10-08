@@ -61,6 +61,35 @@ class SeedersSecurityTest extends TestCase
         $this->assertSame(1, User::count());
     }
 
+    public function test_apres_la_creation_du_premier_admin_les_variables_bootstrap_peuvent_etre_retirees(): void
+    {
+        $this->configurer('premier-admin@exemple.test', 'test-'.bin2hex(random_bytes(8)));
+        $this->seed(DatabaseSeeder::class);
+        $hash = User::where('email', 'premier-admin@exemple.test')->firstOrFail()->password;
+
+        // Procédure de production : BOOTSTRAP_ADMIN_* retirés du .env, puis le seeder peut être rejoué sans effet néfaste.
+        $this->configurer(null, null);
+        $this->seed(DatabaseSeeder::class);
+
+        $admin = User::where('email', 'premier-admin@exemple.test')->firstOrFail();
+        $this->assertSame(1, User::count());
+        $this->assertTrue($admin->is_admin);
+        $this->assertSame($hash, $admin->password, 'le mot de passe n\'est jamais réécrit');
+    }
+
+    public function test_le_seeder_principal_ne_cree_aucune_donnee_de_demonstration_meme_en_production(): void
+    {
+        $this->app['env'] = 'production';
+        $this->configurer('premier-admin@exemple.test', 'test-'.bin2hex(random_bytes(8)));
+
+        // Commande réelle de la procédure de production (--force : en production Laravel demande sinon une confirmation).
+        $this->artisan('db:seed', ['--force' => true])->assertSuccessful();
+
+        $this->assertSame(1, User::count(), 'seul l\'administrateur initial existe');
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('clients')->count());
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('entreprises')->count());
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('documents_commerciaux')->count());
+    }
     public function test_mot_de_passe_trop_court_ou_email_invalide_est_refuse(): void
     {
         $this->configurer('premier-admin@exemple.test', 'court');

@@ -53,6 +53,7 @@ export default function ServicesList() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
   const [confirm, setConfirm] = useState(null)
 
@@ -65,9 +66,10 @@ export default function ServicesList() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listServices(status)
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les services."
         : 'Impossible de charger les services.'))
       .finally(() => setLoading(false))
@@ -125,6 +127,7 @@ export default function ServicesList() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
       <DataTable

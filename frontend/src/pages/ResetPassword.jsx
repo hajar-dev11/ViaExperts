@@ -6,6 +6,7 @@ import Alert from '../components/ui/Alert.jsx'
 import Button from '../components/ui/Button.jsx'
 import { resetPassword } from '../api/auth.js'
 import { ApiError } from '../api/http.js'
+import { AIDE_MOT_DE_PASSE, erreurMotDePasse } from '../shared/constants/motDePasse.js'
 
 /** Réinitialisation — token + email lus depuis l'URL envoyée par email. */
 export default function ResetPassword() {
@@ -44,8 +45,9 @@ export default function ResetPassword() {
 
   const submit = async (e) => {
     e.preventDefault()
-    if (password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.')
+    const erreurPolitique = erreurMotDePasse(password)
+    if (erreurPolitique) {
+      setError(erreurPolitique)
       return
     }
     if (password !== confirmation) {
@@ -78,6 +80,7 @@ export default function ResetPassword() {
 
         <h1 className="mt-8 text-[26px] text-ink-900">Nouveau mot de passe</h1>
         <p className="mt-1.5 text-sm text-ink-600">Choisissez un nouveau mot de passe pour {email}.</p>
+        <p className="mt-1 text-xs text-ink-600">{AIDE_MOT_DE_PASSE}</p>
 
         {done ? (
           <Alert tone="success" className="mt-8">

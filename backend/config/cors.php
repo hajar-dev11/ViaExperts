@@ -23,7 +23,7 @@ return [
     // instances Vite tournent en parallèle sur cette machine : ils ne doivent
     // jamais rester autorisés une fois déployé (APP_ENV autre que "local").
     'allowed_origins' => array_values(array_filter(array_merge(
-        [env('FRONTEND_URL', 'http://localhost:5173')],
+        [rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/')],
         env('APP_ENV', 'production') === 'local' ? ['http://localhost:5180', 'http://localhost:5174'] : []
     ))),
 

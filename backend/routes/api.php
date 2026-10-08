@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\DeclarationTvaController;
 use App\Http\Controllers\Api\V1\DomiciliationSettingController;
 use App\Http\Controllers\Api\V1\EntrepriseController;
 use App\Http\Controllers\Api\V1\FichierController;
+use App\Http\Controllers\Api\V1\IdentiteImpressionController;
 use App\Http\Controllers\Api\V1\MailController;
 use App\Http\Controllers\Api\V1\MailStatusController;
 use App\Http\Controllers\Api\V1\MouvementController;
@@ -39,7 +40,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
-        Route::put('/profile', [ProfileController::class, 'update']);
+        Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:10,1');
         Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
         Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto']);
 
@@ -265,6 +266,10 @@ Route::prefix('v1')->group(function () {
 
         // Octets du logo / de la signature des réglages, lisibles par le frontend (CORS) pour le PDF des documents.
         Route::get('/settings/fichier', [SettingFichierController::class, 'show']);
+
+        // Identité d'impression (logo, cachet, pied de page) : uniquement ce qui figure sur un document imprimé, pour tout
+        // utilisateur autorisé à imprimer — sans donner accès à la configuration de Paramètres.
+        Route::get('/impression/identite/{emetteur}', [IdentiteImpressionController::class, 'show'])->middleware('impression');
 
         Route::get('/service-statuses', [ServiceStatusController::class, 'index'])->middleware('permission:parametre,ajouter_services_status');
         Route::post('/service-statuses', [ServiceStatusController::class, 'store'])->middleware('permission:parametre,ajouter_services_status');

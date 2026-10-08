@@ -45,17 +45,19 @@ export default function DomiciliationStatuts() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
   const [renouvellementFor, setRenouvellementFor] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     // Un seul appel : le statut d'affichage est calculé côté serveur et renvoyé
     // pour chaque ligne, on répartit ensuite dans les tableaux.
     listDomiciliations({ status: 'actif' })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les domiciliations."
         : 'Impossible de charger les domiciliations.'))
       .finally(() => setLoading(false))
@@ -104,6 +106,7 @@ export default function DomiciliationStatuts() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3" onClose={() => setSuccess('')}>{success}</Alert>}
 
       {renouvellementFor && (

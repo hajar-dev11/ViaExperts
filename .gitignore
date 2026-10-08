@@ -27,3 +27,6 @@ backups/
 # Journaux et caches locaux
 *.log
 .phpunit.result.cache
+
+# Composer portable : outil de développement, jamais versionné (se télécharge sur getcomposer.org)
+composer.phar

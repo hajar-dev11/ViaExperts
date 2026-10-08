@@ -59,6 +59,7 @@ export default function Mails() {
   const [statuts, setStatuts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -85,9 +86,10 @@ export default function Mails() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     Promise.all([listMails(status), listActivite(15)])
       .then(([list, feed]) => { setRows(list); setActivite(feed) })
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les mails."
         : 'Impossible de charger les mails.'))
       .finally(() => setLoading(false))
@@ -211,6 +213,7 @@ export default function Mails() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

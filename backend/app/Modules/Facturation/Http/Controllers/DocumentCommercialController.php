@@ -2,6 +2,7 @@
 
 namespace App\Modules\Facturation\Http\Controllers;
 
+use App\Contracts\Paiements\PaiementsDeFacture;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
 use App\Http\Controllers\Controller;
 use App\Modules\Facturation\Http\Requests\StoreDocumentCommercialRequest;
@@ -9,9 +10,11 @@ use App\Modules\Facturation\Http\Requests\UpdateDocumentCommercialRequest;
 use App\Modules\Facturation\Http\Resources\DocumentCommercialResource;
 use App\Modules\Facturation\Models\DocumentCommercial;
 use App\Modules\Facturation\Services\NumerotationDocuments;
+use App\Support\VerrouPaiements;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class DocumentCommercialController extends Controller
 {
@@ -20,6 +23,7 @@ class DocumentCommercialController extends Controller
     public function __construct(
         private NumerotationDocuments $numerotation,
         private AssureServicesEnCours $servicesEnCours,
+        private PaiementsDeFacture $paiements,
     ) {
     }
 
@@ -121,8 +125,27 @@ class DocumentCommercialController extends Controller
         $lignes = $data['lignes'] ?? null;
         unset($data['lignes']);
 
-        try {
-            DB::transaction(function () use ($document, $data, $lignes, $request) {
+        // Une FACTURE dont on touche aux lignes, au montant payé ou au client est modifiée sous le MÊME verrou que les
+        // paiements : un paiement et une modification simultanés ne se croisent pas, et « total payé ≤ TTC » est évalué sur
+        // l'état réel de cet instant.
+        $controlerPaiements = $type === 'facture'
+            && ($lignes !== null || array_key_exists('prix_paye', $data) || array_key_exists('party_id', $data));
+
+        $modifier = function () use ($document, $data, $lignes, $request, $controlerPaiements) {
+            DB::transaction(function () use ($document, $data, $lignes, $request, $controlerPaiements) {
+                // Sous le verrou : état réel de la facture (un paiement a pu être enregistré pendant l'attente).
+                if ($controlerPaiements) {
+                    $document->refresh();
+                }
+
+                if ($controlerPaiements && array_key_exists('party_id', $data)
+                    && (int) $data['party_id'] !== (int) $document->party_id
+                    && $this->paiements->nombreActifs($document->id) > 0) {
+                    throw ValidationException::withMessages(['party_id' => [
+                        'Cette facture a déjà des paiements enregistrés : son client ne peut plus être modifié.',
+                    ]]);
+                }
+
                 $document->update($data);
 
                 // Les lignes sont remplacées intégralement quand elles sont fournies.
@@ -136,15 +159,43 @@ class DocumentCommercialController extends Controller
                 $document->load('lignes');
                 $document->recalculerTotaux();
 
+                // Ce qui est payé (paiements actifs + montant saisi à la main) ne peut pas dépasser le NOUVEAU TTC :
+                // la transaction est annulée, la facture reste inchangée.
+                if ($controlerPaiements) {
+                    $this->refuserSiTotalPayeDepasseTtc($document);
+                }
+
                 // Un service ajouté lors d'une modification apparaît lui aussi dans « Services en cours ».
                 $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
             });
+        };
+
+        try {
+            $controlerPaiements ? VerrouPaiements::executer($modifier) : $modifier();
         } catch (QueryException $erreur) {
             $this->numerotation->convertirCollision($erreur);
             throw $erreur;
         }
 
         return new DocumentCommercialResource($document->fresh(self::RELATIONS));
+    }
+
+    /**
+     * Refuse (HTTP 422, champ `prix_paye`) une facture dont le total payé dépasserait le TTC après modification.
+     * Total payé = le plus grand du montant stocké (paiements + part saisie à la main) et de la somme des paiements actifs.
+     */
+    private function refuserSiTotalPayeDepasseTtc(DocumentCommercial $document): void
+    {
+        $ttc = round((float) $document->total_ttc, 2);
+        $paye = max(round((float) $document->prix_paye, 2), $this->paiements->totalActifs($document->id));
+
+        if ($paye > $ttc + 0.005) {
+            throw ValidationException::withMessages(['prix_paye' => [sprintf(
+                'Le total payé (%s Dh) dépasserait le total TTC de la facture (%s Dh). La facture n\'a pas été modifiée.',
+                number_format($paye, 2, ',', ' '),
+                number_format($ttc, 2, ',', ' ')
+            )]]);
+        }
     }
 
     public function archive(Request $request, string $type, DocumentCommercial $document)

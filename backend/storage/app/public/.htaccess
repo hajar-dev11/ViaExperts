@@ -31,4 +31,6 @@ Options -Indexes
 
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
+    # Si une adresse de fichier fuite, elle ne doit pas etre referencee par les moteurs de recherche.
+    Header set X-Robots-Tag "noindex, nofollow, noarchive"
 </IfModule>

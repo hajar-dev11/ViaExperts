@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\RacineController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -7,12 +8,9 @@ use Illuminate\Support\Facades\Route;
 | Web Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
+| Cet hôte ne sert que l'API (routes/api.php) : la seule route web est la racine, qui renvoie un statut minimal
+| sans information technique (voir RacineController). Pas de closure : `route:cache` doit pouvoir fonctionner.
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', RacineController::class);

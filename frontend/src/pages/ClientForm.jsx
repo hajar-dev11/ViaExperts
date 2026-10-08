@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { UserRound, Flag, CalendarDays, IdCard, Mail, Phone, MapPin, Users } from 'lucide-react'
 import { Field, Input, Select, FormCard } from '../components/Field.jsx'
@@ -26,14 +26,19 @@ export default function ClientForm() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [globalError, setGlobalError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!id) return
     getClient(id)
-      .then((c) => setForm({ ...emptyClient, ...c }))
-      .catch(() => setGlobalError('Impossible de charger ce client.'))
+      .then((c) => { setErreurChargement(''); setForm({ ...emptyClient, ...c }) })
+      .catch(() => setErreurChargement('Impossible de charger ce client.'))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    charger()
+  }, [charger])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
@@ -78,6 +83,7 @@ export default function ClientForm() {
   return (
     <form onSubmit={submit}>
       {globalError && <Alert tone="danger" onAutoClose={() => setGlobalError('')} className="mb-4">{globalError}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-4" onRetry={() => { setErreurChargement(''); setLoading(true); charger() }}>{erreurChargement}</Alert>}
 
       <FormCard
         title={titre}

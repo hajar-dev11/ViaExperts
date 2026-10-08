@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\SessionsUtilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -62,6 +63,8 @@ class AuthController extends Controller
         RateLimiter::clear($cleCompte);
 
         $request->session()->regenerate();
+        // Empreinte du mot de passe dès la connexion : une session volée avant toute autre requête est elle aussi invalidée.
+        SessionsUtilisateur::memoriserEmpreinte($request, Auth::user());
 
         return response()->json(['user' => Auth::user(), 'permissions' => $this->permissionsPayload(Auth::user())]);
     }

@@ -48,6 +48,24 @@ class User extends Authenticatable
         'is_admin' => 'boolean',
     ];
 
+    /** Modules dont au moins une permission autorise à produire un document imprimable (PDF). */
+    public const MODULES_IMPRESSION = ['facturation', 'paiements', 'domiciliation', 'mouvement'];
+
+    /**
+     * Peut imprimer : administrateur, ou titulaire d'au moins une permission des modules d'impression.
+     * Ne donne AUCUN accès aux réglages : voir IdentiteImpressionController.
+     */
+    public function peutImprimer(): bool
+    {
+        if ($this->is_admin) {
+            return true;
+        }
+
+        return $this->userPermissions()
+            ->whereHas('permission', fn ($q) => $q->whereIn('module', self::MODULES_IMPRESSION))
+            ->exists();
+    }
+
     public function userPermissions()
     {
         return $this->hasMany(UserPermission::class);

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Save, Trash2, ChevronDown, PenLine, Gavel, Link2, ScanLine, Briefcase, IdCard,
@@ -89,6 +89,7 @@ export default function EntrepriseForm() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [globalError, setGlobalError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   // --- Section « Ajouter Domiciliation » (création d'entreprise uniquement) ---
@@ -121,10 +122,11 @@ export default function EntrepriseForm() {
 
   }, [])
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!id) return
     getEntreprise(id)
       .then((e) => {
+        setErreurChargement('')
         setForm({ ...emptyForm, ...e, observation: e.observation ?? '' })
         if (e.secteurs && e.secteurs.length > 0) {
           setSecteurs(e.secteurs.map((s) => (
@@ -139,9 +141,13 @@ export default function EntrepriseForm() {
           })))
         }
       })
-      .catch(() => setGlobalError('Impossible de charger cette entreprise.'))
+      .catch(() => setErreurChargement('Impossible de charger cette entreprise.'))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    charger()
+  }, [charger])
 
   const addSecteur = () => setSecteurs((s) => [...s, { secteur: '', secteurAutre: '', activite: '' }])
   const removeSecteur = (i) => setSecteurs((s) => s.filter((_, idx) => idx !== i))
@@ -249,6 +255,7 @@ export default function EntrepriseForm() {
     <div>
       <form onSubmit={submit}>
         {globalError && <Alert tone="danger" onAutoClose={() => setGlobalError('')} className="mb-4">{globalError}</Alert>}
+        {erreurChargement && <Alert tone="danger" className="mb-4" onRetry={() => { setErreurChargement(''); setLoading(true); charger() }}>{erreurChargement}</Alert>}
         <FormCard title={id ? 'Modifier Entreprise' : 'Ajouter Entreprise'}>
           {/* Libellé à GAUCHE du champ, deux paires par ligne : c'est la
               disposition exacte de « Ajouter Entreprise » dans la référence. */}

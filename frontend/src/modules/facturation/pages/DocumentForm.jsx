@@ -75,6 +75,7 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
   const [services, setServices] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [saving, setSaving] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -102,10 +103,11 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
     if (!isEdit) chargerResponsable(emetteur)
   }, [emetteur, isEdit, chargerResponsable])
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!isEdit) return
     getDocument(type, id)
       .then((d) => {
+        setErreurChargement('')
         setEmetteur(d.emetteur)
         setForm({
           party_id: d.partyId ?? '',
@@ -128,8 +130,12 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
           tva_pourcent: l.tvaPourcent,
         })))
       })
-      .catch(() => setError('Document introuvable.'))
+      .catch(() => setErreurChargement('Document introuvable.'))
   }, [id, isEdit, type])
+
+  useEffect(() => {
+    charger()
+  }, [charger])
 
   // Un service « Via Experts » ne se propose que sous l'émetteur Via Experts,
   // un service rattaché à un maître (Bureau de Comptabilité) que sous l'autre
@@ -229,6 +235,7 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={() => { setErreurChargement(''); charger() }}>{erreurChargement}</Alert>}
 
       <form onSubmit={submit}>
         {/* Un seul cadre, pleine largeur — titre, tous les champs et les

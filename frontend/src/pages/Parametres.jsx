@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { UserRound, Save, LifeBuoy, Mail as MailIcon, Stamp, Briefcase, Building2, MapPinned, ShieldCheck, Pencil, X, ShieldAlert, Trash2, Image as ImageIcon } from 'lucide-react'
 import { Field, Input, Select, Textarea, Checkbox, FormCard } from '../components/Field.jsx'
@@ -34,6 +34,7 @@ import {
 import { DomiciliationCentres } from '../modules/domiciliation/index.js'
 import { serviceStatusApi, cachetStatusApi, mailStatusApi } from '../api/statuses.js'
 import { ApiError, API_URL } from '../api/http.js'
+import { AIDE_MOT_DE_PASSE, LONGUEUR_MINIMALE_MOT_DE_PASSE } from '../shared/constants/motDePasse.js'
 
 const TABS = [
   { key: 'compte', label: 'Paramètre Compte', icon: UserRound },
@@ -67,6 +68,9 @@ function AccountTab() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
+  // Changer l'adresse email (identifiant de connexion) exige le mot de passe actuel.
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState('')
+  const emailModifie = !!user && profileForm.email.trim().toLowerCase() !== (user.email ?? '').toLowerCase()
 
   const [passwordForm, setPasswordForm] = useState({ current_password: '', password: '', password_confirmation: '' })
   const [passwordErrors, setPasswordErrors] = useState({})
@@ -85,7 +89,13 @@ function AccountTab() {
     setProfileErrors({})
     setProfileSuccess('')
     try {
-      await updateProfile({ name: profileForm.name, email: profileForm.email, telephone: profileForm.telephone || null })
+      await updateProfile({
+        name: profileForm.name,
+        email: profileForm.email,
+        telephone: profileForm.telephone || null,
+        ...(emailModifie ? { current_password: profileCurrentPassword } : {}),
+      })
+      setProfileCurrentPassword('')
       setProfileSuccess('Profil mis à jour avec succès.')
     } catch (err) {
       if (err instanceof ApiError && err.errors) setProfileErrors(err.errors)
@@ -216,6 +226,19 @@ function AccountTab() {
             <Input type="email" required value={profileForm.email} onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))} placeholder="email@exemple.com" />
             {profileErrors.email && <span className="mt-1 block text-xs text-danger-600">{profileErrors.email[0]}</span>}
           </Field>
+          {emailModifie && (
+            <Field label="Mot de passe actuel" required>
+              <Input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={profileCurrentPassword}
+                onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                placeholder="Requis pour changer l'adresse email"
+              />
+              {profileErrors.current_password && <span className="mt-1 block text-xs text-danger-600">{profileErrors.current_password[0]}</span>}
+            </Field>
+          )}
           <Field label="Téléphone">
             <Input value={profileForm.telephone} onChange={(e) => setProfileForm((f) => ({ ...f, telephone: e.target.value }))} placeholder="+212 6 00 00 00 00" />
           </Field>
@@ -241,11 +264,13 @@ function AccountTab() {
             <Input
               type="password"
               required
-              minLength={8}
+              minLength={LONGUEUR_MINIMALE_MOT_DE_PASSE}
+              autoComplete="new-password"
               value={passwordForm.password}
               onChange={(e) => setPasswordForm((f) => ({ ...f, password: e.target.value }))}
               placeholder="••••••••"
             />
+            <span className="mt-1 block text-xs text-ink-600">{AIDE_MOT_DE_PASSE}</span>
             {passwordErrors.password && <span className="mt-1 block text-xs text-danger-600">{passwordErrors.password[0]}</span>}
           </Field>
           <Field label="Confirmer le mot de passe" required>
@@ -539,6 +564,8 @@ function AssistanceTab() {
   const [permCatalog, setPermCatalog] = useState([])
   const [loadingList, setLoadingList] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
+  const [erreurChargementPermissions, setErreurChargementPermissions] = useState('')
   const [success, setSuccess] = useState('')
 
   const [editingUser, setEditingUser] = useState(null)
@@ -551,20 +578,25 @@ function AssistanceTab() {
   const loadUsers = () => {
     setLoadingList(true)
     setError('')
+    setErreurChargement('')
     listUsers()
       .then(setUsers)
-      .catch(() => setError('Impossible de charger la liste des utilisateurs.'))
+      .catch(() => setErreurChargement('Impossible de charger la liste des utilisateurs.'))
       .finally(() => setLoadingList(false))
   }
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!isAdmin) return
     loadUsers()
     listPermissions()
       .then(setPermCatalog)
-      .catch(() => setError('Impossible de charger le catalogue des permissions.'))
+      .catch(() => setErreurChargement('Impossible de charger le catalogue des permissions.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin])
+
+  useEffect(() => {
+    charger()
+  }, [charger])
 
   if (!isAdmin) {
     return <RestrictedCard />
@@ -581,6 +613,17 @@ function AssistanceTab() {
     setCheckedPermissions(new Set())
     setSuccess('')
     setError('')
+    setErreurChargementPermissions('')
+  }
+
+  const chargerPermissionsUtilisateur = (u) => {
+    setErreurChargementPermissions('')
+    setCheckedPermissions(new Set())
+    setLoadingPermissions(true)
+    getUserPermissions(u.id)
+      .then((rows) => setCheckedPermissions(new Set(rows.map((r) => r.permissionId))))
+      .catch(() => setErreurChargementPermissions("Impossible de charger les permissions de cet utilisateur."))
+      .finally(() => setLoadingPermissions(false))
   }
 
   const openEdit = (u) => {
@@ -589,12 +632,7 @@ function AssistanceTab() {
     setFormErrors({})
     setSuccess('')
     setError('')
-    setCheckedPermissions(new Set())
-    setLoadingPermissions(true)
-    getUserPermissions(u.id)
-      .then((rows) => setCheckedPermissions(new Set(rows.map((r) => r.permissionId))))
-      .catch(() => setError("Impossible de charger les permissions de cet utilisateur."))
-      .finally(() => setLoadingPermissions(false))
+    chargerPermissionsUtilisateur(u)
   }
 
   const togglePermission = (id) => {
@@ -653,6 +691,10 @@ function AssistanceTab() {
       </div>
 
       {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" onRetry={charger}>{erreurChargement}</Alert>}
+      {erreurChargementPermissions && editingUser && (
+        <Alert tone="danger" onRetry={() => chargerPermissionsUtilisateur(editingUser)}>{erreurChargementPermissions}</Alert>
+      )}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
       <FormCard
@@ -695,10 +737,13 @@ function AssistanceTab() {
               <Input
                 type="password"
                 required={!editingUser}
+                minLength={LONGUEUR_MINIMALE_MOT_DE_PASSE}
+                autoComplete="new-password"
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                 placeholder="•••••••••"
               />
+              <span className="mt-1 block text-xs text-ink-600">{AIDE_MOT_DE_PASSE}</span>
               {formErrors.password && <span className="mt-1 block text-xs text-danger-600">{formErrors.password[0]}</span>}
             </Field>
             <Field label="Fonction">
@@ -1267,6 +1312,7 @@ function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
 
   const [editing, setEditing] = useState(null)
@@ -1278,9 +1324,10 @@ function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
   const load = () => {
     if (!canAccess) return
     setLoading(true)
+    setErreurChargement('')
     api.list({ page, perPage, search })
       .then((data) => { setRows(data.data); setMeta(data) })
-      .catch(() => setError('Impossible de charger les statuts.'))
+      .catch(() => setErreurChargement('Impossible de charger les statuts.'))
       .finally(() => setLoading(false))
   }
 
@@ -1352,6 +1399,7 @@ function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
         </div>
       )}
       {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
       <div className="grid lg:grid-cols-[360px_1fr] gap-4 items-start">

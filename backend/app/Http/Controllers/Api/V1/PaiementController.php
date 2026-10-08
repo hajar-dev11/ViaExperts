@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Modules\Facturation\Contracts\FactureExiste;
 use App\Modules\Facturation\Contracts\FactureReference;
+use App\Modules\Facturation\Contracts\InformationsFacture;
 use App\Modules\Facturation\Contracts\MontantFacture;
 use App\Modules\Facturation\Contracts\FacturesDisponibles;
 use App\Contracts\ServicesEnCours\AssureServicesEnCours;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PaiementResource;
 use App\Models\Paiement;
 use App\Rules\FichierAutorise;
+use App\Support\VerrouPaiements;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,13 +23,47 @@ class PaiementController extends Controller
 {
     private const RELATIONS = ['lignes.service', 'client', 'entreprise'];
 
+    /** Types de documents qui peuvent recevoir un paiement : seules les factures se règlent. */
+    private const TYPES_PAYABLES = ['facture'];
+
     public function __construct(
         private FacturesDisponibles $factures,
         private AssureServicesEnCours $servicesEnCours,
         private FactureExiste $factureExiste,
         private MontantFacture $montantFacture,
         private FactureReference $factureReference,
+        private InformationsFacture $informationsFacture,
     ) {
+    }
+
+    /**
+     * Le document rattaché doit être une FACTURE du MÊME client que le paiement (HTTP 422, champ `document_id`).
+     * À appeler SOUS le verrou, avant toute écriture : le client d'une facture peut être modifié pendant ce temps.
+     * L'existence du document est validée avant (règle `document_id`) ; sans document, rien à vérifier.
+     */
+    private function verifierRattachement(?int $documentId, int $partyId): void
+    {
+        if (! $documentId) {
+            return;
+        }
+
+        $document = $this->informationsFacture->typeEtTiers($documentId);
+
+        if ($document === null) {
+            return; // inexistant : déjà refusé par la validation du champ
+        }
+
+        if (! in_array($document['type'], self::TYPES_PAYABLES, true)) {
+            throw ValidationException::withMessages(['document_id' => [
+                'Ce document ne peut pas recevoir de paiement : seules les factures peuvent être réglées.',
+            ]]);
+        }
+
+        if ($document['party_id'] !== $partyId) {
+            throw ValidationException::withMessages(['document_id' => [
+                'Cette facture appartient à un autre client : le paiement doit être rattaché à une facture du même client.',
+            ]]);
+        }
     }
 
     /** Montant au format français pour les messages d'erreur : « 7 200,00 Dh ». */
@@ -100,18 +136,10 @@ class PaiementController extends Controller
      */
     private function enExclusionMutuelle(Closure $operation): mixed
     {
-        $verrou = 'via_experts.paiements.creation';
-
-        if ((int) (DB::selectOne('SELECT GET_LOCK(?, 20) AS ok', [$verrou])->ok ?? 0) !== 1) {
-            abort(503, 'Le serveur est occupé, veuillez réessayer dans un instant.');
-        }
-
-        try {
-            return $operation();
-        } finally {
-            DB::select('SELECT RELEASE_LOCK(?)', [$verrou]);
-        }
+        // Le même verrou protège la modification d'une facture (module Facturation).
+        return VerrouPaiements::executer($operation);
     }
+
     private function regles(bool $partiel = false): array
     {
         $r = $partiel ? 'sometimes' : 'required';
@@ -244,6 +272,9 @@ class PaiementController extends Controller
         }
 
         $paiement = $this->enExclusionMutuelle(fn () => DB::transaction(function () use ($request, $data, $lignes) {
+            // Facture du bon client, de type payable : refusé AVANT toute écriture.
+            $this->verifierRattachement($data['document_id'] ?? null, (int) $data['party_id']);
+
             // Surpaiement refusé AVANT toute écriture (sous le verrou : le reste à payer est celui de cet instant).
             $this->refuserSurpaiement((float) ($data['prix_paye'] ?? 0), $this->totalDesLignes($lignes), $data['document_id'] ?? null, null);
 
@@ -287,6 +318,14 @@ class PaiementController extends Controller
         $ancienDocument = $paiement->document_id;
 
         $this->enExclusionMutuelle(fn () => DB::transaction(function () use ($request, $paiement, $data, $lignes, $ancienDocument) {
+            // Le rattachement (facture + client) est revérifié dès que l'un des deux CHANGE (un paiement ancien dont le
+            // rattachement ne bouge pas reste modifiable : on ne bloque pas la correction d'une simple observation).
+            $documentApres = array_key_exists('document_id', $data) ? ($data['document_id'] ?: null) : $paiement->document_id;
+            $tiersApres = (int) ($data['party_id'] ?? $paiement->party_id);
+            if ((int) $documentApres !== (int) $paiement->document_id || $tiersApres !== (int) $paiement->party_id) {
+                $this->verifierRattachement($documentApres, $tiersApres);
+            }
+
             $this->verifierModification($paiement, $data, $lignes);
 
             // Parts saisies à la main (ancienne et nouvelle facture), lues AVANT toute écriture.

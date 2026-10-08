@@ -40,13 +40,13 @@ export const documentsDisponibles = (d) => DOCUMENTS_DOMICILIATION.filter((doc) 
 /**
  * Récupère le cachet configuré dans Paramètre > Centre Domiciliation.
  *
- * ⚠️ `GET /settings/domiciliation` est réservé à l'administrateur. Pour un
- * utilisateur non-admin l'appel répond 403 : on renvoie alors `null` et les
+ * Passer `getIdentiteDomiciliation` (route d'impression, accessible à tout utilisateur autorisé à imprimer) et non
+ * la lecture des réglages complets, réservée à Paramètres. Si l'appel échoue (403, réseau), on renvoie `null` et les
  * documents retombent sur la mention « Signature », sans casser l'impression.
  */
-export async function chargerSignatureDomiciliation(getDomiciliationSettings) {
+export async function chargerSignatureDomiciliation(chargerIdentiteDomiciliation) {
   try {
-    const settings = await getDomiciliationSettings()
+    const settings = await chargerIdentiteDomiciliation()
     return settings?.signature_path ?? null
   } catch {
     return null

@@ -33,6 +33,7 @@ import Archive, { Corbeille } from './pages/Archive.jsx'
 import Parametres from './pages/Parametres.jsx'
 import Fichiers from './pages/Fichiers.jsx'
 import Notes from './pages/Notes.jsx'
+import NotFound from './pages/NotFound.jsx'
 import { FilesProvider } from './context/FilesContext.jsx'
 import { NotesProvider } from './context/NotesContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -134,6 +135,9 @@ export default function App() {
           <Route path="/notes" element={<Notes />} />
           <Route path="/parametres" element={<Parametres />} />
           <Route path="/parametres/:section" element={<Parametres />} />
+
+          {/* URL inconnue : page 404 dans le Layout (menu visible). Toujours en DERNIER ; hors connexion, RequireAuth renvoie vers /login. */}
+          <Route path="*" element={<NotFound />} />
         </Route>
         </Route>
       </Routes>

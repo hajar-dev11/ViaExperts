@@ -57,6 +57,8 @@ export default function Chat() {
   const [loadingThread, setLoadingThread] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [erreurContacts, setErreurContacts] = useState('')
+  const [erreurConversation, setErreurConversation] = useState('')
   const [forbidden, setForbidden] = useState(false)
   const [emojiOuvert, setEmojiOuvert] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -68,12 +70,13 @@ export default function Chat() {
   const loadContacts = useCallback(() => {
     listContacts()
       .then((rows) => {
+        setErreurContacts('')
         setContacts(rows)
         setActive((cur) => cur ?? rows[0] ?? null)
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 403) setForbidden(true)
-        else setError('Impossible de charger les contacts.')
+        else setErreurContacts('Impossible de charger les contacts.')
       })
       .finally(() => setLoadingContacts(false))
   }, [])
@@ -84,8 +87,8 @@ export default function Chat() {
     if (!userId) return
     setLoadingThread(true)
     listMessages(userId)
-      .then(setMessages)
-      .catch(() => setError('Impossible de charger la conversation.'))
+      .then((m) => { setErreurConversation(''); setMessages(m) })
+      .catch(() => setErreurConversation('Impossible de charger la conversation.'))
       .finally(() => setLoadingThread(false))
   }, [])
 
@@ -179,6 +182,8 @@ export default function Chat() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurContacts && <Alert tone="danger" className="mb-3" onRetry={() => { setErreurContacts(''); loadContacts() }}>{erreurContacts}</Alert>}
+      {erreurConversation && <Alert tone="danger" className="mb-3" onRetry={() => { setErreurConversation(''); loadThread(active?.id) }}>{erreurConversation}</Alert>}
 
       <div className="rounded-xl bg-white shadow-card overflow-hidden grid grid-cols-1 md:grid-cols-[280px_1fr] h-[600px]">
         <div className="border-r border-line flex flex-col min-h-0">

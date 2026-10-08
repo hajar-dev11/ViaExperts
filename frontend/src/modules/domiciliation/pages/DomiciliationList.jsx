@@ -66,6 +66,7 @@ export default function DomiciliationList() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
 
   const [observationFor, setObservationFor] = useState(null)
   const [observationText, setObservationText] = useState('')
@@ -89,9 +90,10 @@ export default function DomiciliationList() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listDomiciliations({ status })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les domiciliations."
         : 'Impossible de charger les domiciliations.'))
       .finally(() => setLoading(false))
@@ -137,6 +139,7 @@ export default function DomiciliationList() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {status !== 'actif' && (
         <Alert tone="neutral" className="mb-3">
           Vous consultez <span className="font-semibold text-ink-900">{status === 'archive' ? 'les domiciliations archivées' : 'la corbeille'}</span>.

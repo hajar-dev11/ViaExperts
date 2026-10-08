@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\MotDePasseFort;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUserRequest extends FormRequest
@@ -17,7 +18,7 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'telephone' => ['nullable', 'string', 'max:30'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', new MotDePasseFort],
             'fonction' => ['nullable', 'in:Assistant,Comptable,Autre'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['integer', 'exists:permissions,id'],

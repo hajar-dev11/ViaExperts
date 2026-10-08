@@ -70,6 +70,7 @@ export default function EntreprisesList() {
   const [entreprises, setEntreprises] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   // Fenêtres « Ajouter Observation » / « Ajouter Documents » et confirmation
   // de suppression.
   const [observationPour, setObservationPour] = useState(null)
@@ -88,9 +89,10 @@ export default function EntreprisesList() {
   const load = () => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listEntreprises(status)
       .then(setEntreprises)
-      .catch(() => setError('Impossible de charger les entreprises.'))
+      .catch(() => setErreurChargement('Impossible de charger les entreprises.'))
       .finally(() => setLoading(false))
   }
 
@@ -163,6 +165,7 @@ export default function EntreprisesList() {
       )}
 
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <DataTable
         title="Liste des Entreprises"

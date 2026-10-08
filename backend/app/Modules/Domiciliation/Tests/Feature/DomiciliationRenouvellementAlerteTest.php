@@ -92,7 +92,7 @@ class DomiciliationRenouvellementAlerteTest extends TestCase
         $this->assertSame('expire', $this->statut($admin, $ancienne->id));
 
         $nouvelle = $this->renouveler($admin, $ancienne, [
-            'date_depart' => now()->subMonths(2)->toDateString(), 'date_fin' => now()->addMonths(10)->toDateString(),
+            'date_depart' => now()->subMonths(2)->addDay()->toDateString(), 'date_fin' => now()->addMonths(10)->toDateString(),
         ]);
 
         $statuts = $this->statuts($admin);

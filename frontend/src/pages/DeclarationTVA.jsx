@@ -114,6 +114,7 @@ function Formulaire({ type, titre, listTo, avecExportsComplets }) {
   const [entreprises, setEntreprises] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [saving, setSaving] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -122,10 +123,11 @@ function Formulaire({ type, titre, listTo, avecExportsComplets }) {
     listEntreprises('actif').then(setEntreprises).catch(() => setEntreprises([]))
   }, [])
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     if (!isEdit) return
     getDeclaration(type, id)
       .then((d) => {
+        setErreurChargement('')
         setForm({
           entreprise_id: d.entrepriseId ?? '',
           client_if: d.clientIf ?? '',
@@ -143,8 +145,10 @@ function Formulaire({ type, titre, listTo, avecExportsComplets }) {
           date_paie: l.datePaie ?? '', date_fac: l.dateFac ?? '',
         })))
       })
-      .catch(() => setError('Déclaration introuvable.'))
+      .catch(() => setErreurChargement('Déclaration introuvable.'))
   }, [id, isEdit, type])
+
+  useEffect(() => { charger() }, [charger])
 
   const totaux = useMemo(() => ({
     ht: lignes.reduce((a, l) => a + n(l.ht), 0),
@@ -249,6 +253,7 @@ function Formulaire({ type, titre, listTo, avecExportsComplets }) {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={() => { setErreurChargement(''); charger() }}>{erreurChargement}</Alert>}
 
       {/* Un seul cadre, pleine largeur — titre, champs, lignes, totaux et
           boutons Sauvegarder dans le même bloc blanc. */}
@@ -426,14 +431,16 @@ function Liste({ type, titre, editBase, addTo, addLabel, avecExportsComplets }) 
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [confirm, setConfirm] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listDeclarations(type, { status, situation })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter cette liste."
         : 'Impossible de charger la liste.'))
       .finally(() => setLoading(false))
@@ -467,6 +474,7 @@ function Liste({ type, titre, editBase, addTo, addLabel, avecExportsComplets }) 
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <DataTable
         title={titre}

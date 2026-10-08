@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserPermission;
+use App\Support\SessionsUtilisateur;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -64,6 +65,11 @@ class UserController extends Controller
         }
 
         $user->update($attributes);
+
+        // Mot de passe modifié par l'administrateur : les sessions ouvertes de ce compte (volées ou non) sont fermées.
+        if (! empty($data['password'])) {
+            SessionsUtilisateur::apresChangementDeMotDePasse($user, $request);
+        }
 
         return new UserResource($user->load('userPermissions'));
     }

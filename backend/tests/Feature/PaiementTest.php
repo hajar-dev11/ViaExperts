@@ -468,7 +468,7 @@ class PaiementTest extends TestCase
         return $this->actingAs($admin)->postJson('/api/v1/paiements', $this->payload($party, ['document_id' => $documentId] + $override));
     }
 
-    public function test_document_id_existant_est_accepte_quel_que_soit_son_type_et_son_statut(): void
+    public function test_document_id_est_accepte_pour_une_facture_du_client_quel_que_soit_son_statut_mais_pas_pour_un_autre_type(): void
     {
         $admin = $this->admin();
         $party = $this->party();
@@ -480,8 +480,9 @@ class PaiementTest extends TestCase
         DocumentCommercial::whereKey($devisId)->update(['status' => 'archive']);
 
         $this->creerPaiementAvecDocument($admin, $party, $facture->id)->assertStatus(201)->assertJsonPath('data.documentId', $facture->id);
-        // Le devis ne vaut que 10 Dh TTC : le montant payé ne peut pas dépasser ce reste à payer.
-        $this->creerPaiementAvecDocument($admin, $party, $devisId, ['prix_paye' => 10])->assertStatus(201)->assertJsonPath('data.documentId', $devisId);
+        // Seule une facture se règle : un devis (même existant) est refusé, sans rien écrire.
+        $this->creerPaiementAvecDocument($admin, $party, $devisId, ['prix_paye' => 10])
+            ->assertStatus(422)->assertJsonValidationErrors(['document_id']);
         $this->creerPaiementAvecDocument($admin, $party, null)->assertStatus(201)->assertJsonPath('data.documentId', null);
         // L'identifiant peut arriver sous forme de chaîne numérique (formulaire multipart).
         $this->creerPaiementAvecDocument($admin, $party, (string) $facture->id)->assertStatus(201);

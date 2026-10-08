@@ -41,6 +41,7 @@ export default function PaiementGestion() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [focusedId, setFocusedId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [confirm, setConfirm] = useState(null)
@@ -64,9 +65,10 @@ export default function PaiementGestion() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listGestion({ status })
       .then(setRows)
-      .catch((err) => setError(err instanceof ApiError && err.status === 403
+      .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission d'accéder à la gestion des paiements."
         : 'Impossible de charger la gestion des paiements.'))
       .finally(() => setLoading(false))
@@ -342,6 +344,7 @@ export default function PaiementGestion() {
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
 
       <DataTable
         title={focusedId != null ? 'List Des Paiements' : 'Gestion des Paiements'}

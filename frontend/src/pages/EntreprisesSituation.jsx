@@ -37,15 +37,17 @@ function PanneauSituation({ titre, situation, actionLabel, retirer, messageConfi
   const [entreprises, setEntreprises] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [erreurChargement, setErreurChargement] = useState('')
   const [success, setSuccess] = useState('')
   const [cible, setCible] = useState(null)
 
   const load = () => {
     setLoading(true)
     setError('')
+    setErreurChargement('')
     listEntreprises('actif')
       .then((rows) => setEntreprises(rows.filter((r) => r.situation === situation)))
-      .catch(() => setError('Impossible de charger les entreprises.'))
+      .catch(() => setErreurChargement('Impossible de charger les entreprises.'))
       .finally(() => setLoading(false))
   }
 
@@ -68,6 +70,7 @@ function PanneauSituation({ titre, situation, actionLabel, retirer, messageConfi
   return (
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3" onClose={() => setSuccess('')}>{success}</Alert>}
 
       <DataTable
