@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Party;
+use App\Models\Permission;
 use App\Models\Service;
 use App\Models\ServiceEnCours;
 use App\Models\ServiceStatus;
 use App\Models\User;
+use App\Models\UserPermission;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -48,14 +51,19 @@ class ServiceEnCoursTest extends TestCase
         ]);
     }
 
-    private function payload(array $override = []): array
+    /**
+     * Prépare un service en cours directement en base : la création manuelle par l'API n'existe plus (un service naît
+     * d'une action métier : facture, devis, bon de livraison, facture d'avoir, paiement).
+     */
+    private function creerService(array $override = []): ServiceEnCours
     {
-        return array_merge([
+        return ServiceEnCours::create(array_merge([
             'service_id' => $this->service()->id,
             'client_id' => $this->client()->party_id,
             'service_status_id' => $this->statut()->id,
             'date_depart' => '2026-09-17 10:30:00',
-        ], $override);
+            'derniere_operation' => '2026-09-17 10:30:00',
+        ], $override));
     }
 
     public function test_guest_is_rejected(): void
@@ -70,64 +78,85 @@ class ServiceEnCoursTest extends TestCase
         $this->actingAs($staff)->getJson('/api/v1/services-en-cours')->assertStatus(403);
     }
 
-    public function test_admin_can_create_and_status_comes_from_service_statuses(): void
+    public function test_la_creation_manuelle_d_un_service_en_cours_n_existe_plus(): void
     {
-        $payload = $this->payload();
+        $payload = [
+            'service_id' => $this->service()->id,
+            'client_id' => $this->client()->party_id,
+            'date_depart' => '2026-09-17 10:30:00',
+        ];
 
-        $this->actingAs($this->admin())
-            ->postJson('/api/v1/services-en-cours', $payload)
-            ->assertStatus(201)
-            ->assertJsonPath('data.status', 'actif')
-            ->assertJsonPath('data.statut.couleurFond', '#DCFCE7')
-            ->assertJsonPath('data.service', 'SERVICE TEST')
-            ->assertJsonPath('data.client', 'CLIENT TEST');
+        // La route POST /services-en-cours a été supprimée : 405 (la liste GET existe toujours), même pour un administrateur.
+        $this->actingAs($this->admin())->postJson('/api/v1/services-en-cours', $payload)->assertStatus(405);
+        $this->assertDatabaseCount('service_en_cours', 0);
 
-        $this->assertDatabaseCount('service_en_cours', 1);
+        // La liste, elle, fonctionne toujours.
+        $this->actingAs($this->admin())->getJson('/api/v1/services-en-cours')->assertOk()->assertJsonCount(0, 'data');
     }
 
-    public function test_status_defaults_to_en_attente_when_omitted(): void
+    public function test_la_permission_ajouter_n_existe_plus_dans_le_catalogue(): void
     {
-        $enAttente = ServiceStatus::create([
-            'nom' => 'En Attente',
-            'couleur_texte' => '#1616a2',
-            'couleur_fond' => '#E0E7FF',
-        ]);
+        $this->seed(PermissionSeeder::class);
 
-        $payload = $this->payload();
-        unset($payload['service_status_id']);
-
-        $this->actingAs($this->admin())
-            ->postJson('/api/v1/services-en-cours', $payload)
-            ->assertStatus(201)
-            ->assertJsonPath('data.statut.id', $enAttente->id)
-            ->assertJsonPath('data.statut.nom', 'En Attente');
+        $this->assertDatabaseMissing('permissions', ['module' => 'services_en_cours', 'action' => 'ajouter']);
+        foreach (['list', 'modifier', 'archive', 'corbeille', 'supprimer'] as $action) {
+            $this->assertDatabaseHas('permissions', ['module' => 'services_en_cours', 'action' => $action]);
+        }
     }
 
-    public function test_explicit_status_is_not_overridden_by_the_default(): void
+    public function test_la_migration_retire_la_permission_ajouter_et_ses_octrois_sans_toucher_aux_autres(): void
     {
-        $this->statut(); // « En Attente {uniqid} » existe, mais ce n'est pas celui-ci qu'on envoie.
-        $choisi = $this->statut();
+        $ajouter = Permission::create(['module' => 'services_en_cours', 'action' => 'ajouter']);
+        $liste = Permission::create(['module' => 'services_en_cours', 'action' => 'list']);
+        $autreModule = Permission::create(['module' => 'services', 'action' => 'ajouter']);
+        $staff = User::factory()->create(['is_admin' => false]);
+        foreach ([$ajouter, $liste, $autreModule] as $permission) {
+            UserPermission::create(['user_id' => $staff->id, 'permission_id' => $permission->id, 'granted_at' => now()]);
+        }
 
-        $payload = $this->payload(['service_status_id' => $choisi->id]);
+        (require database_path('migrations/2026_10_08_130000_remove_services_en_cours_ajouter_permission.php'))->up();
 
-        $this->actingAs($this->admin())
-            ->postJson('/api/v1/services-en-cours', $payload)
-            ->assertStatus(201)
-            ->assertJsonPath('data.statut.id', $choisi->id);
+        $this->assertDatabaseMissing('permissions', ['id' => $ajouter->id]);
+        $this->assertDatabaseMissing('user_permissions', ['user_id' => $staff->id, 'permission_id' => $ajouter->id]);
+        // Les autres permissions (même module, ou même action d'un autre module) et leurs octrois sont conservés.
+        $this->assertDatabaseHas('permissions', ['id' => $liste->id]);
+        $this->assertDatabaseHas('permissions', ['id' => $autreModule->id]);
+        $this->assertDatabaseHas('user_permissions', ['user_id' => $staff->id, 'permission_id' => $liste->id]);
+        $this->assertDatabaseHas('user_permissions', ['user_id' => $staff->id, 'permission_id' => $autreModule->id]);
     }
 
-    public function test_required_fields_are_validated(): void
+    public function test_un_service_cree_automatiquement_recoit_le_statut_en_attente(): void
     {
-        $this->actingAs($this->admin())
-            ->postJson('/api/v1/services-en-cours', [])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['service_id', 'client_id', 'date_depart']);
+        $enAttente = ServiceStatus::create(['nom' => 'En Attente', 'couleur_texte' => '#1616a2', 'couleur_fond' => '#E0E7FF']);
+        $this->statut(); // un autre statut existe : seul « En Attente » doit être choisi par défaut
+        $client = $this->client();
+        $service = $this->service();
+        $admin = $this->admin();
+
+        ServiceEnCours::assurerServicesPourTiers($client->party_id, [$service->id], $admin->id);
+
+        $row = ServiceEnCours::firstOrFail();
+        $this->assertSame($enAttente->id, $row->service_status_id);
+        $this->actingAs($admin)->getJson('/api/v1/services-en-cours')
+            ->assertOk()
+            ->assertJsonPath('data.0.statut.nom', 'En Attente')
+            ->assertJsonPath('data.0.status', 'actif');
     }
 
+    public function test_la_modification_d_un_service_existant_reste_possible(): void
+    {
+        $row = $this->creerService();
+        $nouveau = $this->statut();
+
+        $this->actingAs($this->admin())
+            ->putJson("/api/v1/services-en-cours/{$row->id}", ['service_status_id' => $nouveau->id, 'date_depart' => '2026-10-01 09:00:00'])
+            ->assertOk()
+            ->assertJsonPath('data.statut.id', $nouveau->id);
+    }
     public function test_operation_updates_status_and_last_operation(): void
     {
         $admin = $this->admin();
-        $id = $this->actingAs($admin)->postJson('/api/v1/services-en-cours', $this->payload())->json('data.id');
+        $id = $this->creerService()->id;
 
         $nouveau = $this->statut();
 
@@ -150,7 +179,7 @@ class ServiceEnCoursTest extends TestCase
         Storage::fake('public');
 
         $admin = $this->admin();
-        $id = $this->actingAs($admin)->postJson('/api/v1/services-en-cours', $this->payload())->json('data.id');
+        $id = $this->creerService()->id;
 
         $this->actingAs($admin)
             ->postJson("/api/v1/services-en-cours/{$id}/operations", [
@@ -166,7 +195,7 @@ class ServiceEnCoursTest extends TestCase
     public function test_archive_corbeille_restore_and_delete_cycle(): void
     {
         $admin = $this->admin();
-        $id = $this->actingAs($admin)->postJson('/api/v1/services-en-cours', $this->payload())->json('data.id');
+        $id = $this->creerService()->id;
 
         $this->actingAs($admin)->postJson("/api/v1/services-en-cours/{$id}/archive")
             ->assertJsonPath('data.status', 'archive');
@@ -188,7 +217,7 @@ class ServiceEnCoursTest extends TestCase
     public function test_activite_feed_returns_latest_operations(): void
     {
         $admin = $this->admin();
-        $id = $this->actingAs($admin)->postJson('/api/v1/services-en-cours', $this->payload())->json('data.id');
+        $id = $this->creerService()->id;
 
         $this->actingAs($admin)->postJson("/api/v1/services-en-cours/{$id}/operations", ['commentaire' => 'Première étape']);
         $this->actingAs($admin)->postJson("/api/v1/services-en-cours/{$id}/operations", ['commentaire' => 'Seconde étape']);

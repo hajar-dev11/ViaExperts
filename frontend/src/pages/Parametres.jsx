@@ -368,7 +368,6 @@ const PERMISSION_GROUPS = [
     module: 'services_en_cours',
     label: 'Accès Au Services En Cours',
     actions: {
-      ajouter: 'Ajouter',
       modifier: 'Modifier',
       archive: 'Archive',
       corbeille: 'Corbeille',

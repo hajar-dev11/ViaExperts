@@ -50,29 +50,6 @@ class ServiceEnCoursController extends Controller
             ]);
     }
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'service_id' => ['required', 'integer', 'exists:services,id'],
-            'client_id' => ['required', 'integer', 'exists:clients,party_id'],
-            'service_status_id' => ['nullable', 'integer', 'exists:service_statuses,id'],
-            'date_depart' => ['required', 'date'],
-        ]);
-
-        $data['derniere_operation'] = $data['date_depart'];
-        $data['created_by'] = $request->user()->id;
-        // Statut « business » par défaut : un service tout juste ajouté n'a pas
-        // encore été pris en main, il doit se voir attribuer « En Attente »
-        // plutôt que rester sans statut (affiché « — »).
-        if (empty($data['service_status_id'])) {
-            $data['service_status_id'] = ServiceEnCours::statutParDefautId();
-        }
-
-        $row = ServiceEnCours::create($data);
-        $row->refresh();
-
-        return new ServiceEnCoursResource($row->load(self::RELATIONS));
-    }
 
     public function show(ServiceEnCours $serviceEnCour)
     {

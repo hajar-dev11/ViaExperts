@@ -47,7 +47,7 @@ class PermissionSeeder extends Seeder
         ],
 
         'services_en_cours' => [
-            'ajouter', 'modifier', 'archive', 'corbeille', 'supprimer', 'list',
+            'modifier', 'archive', 'corbeille', 'supprimer', 'list',
         ],
 
         'facturation' => [

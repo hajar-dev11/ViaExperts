@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Eye, Download, Archive, Trash2, RotateCcw, ArrowLeft, Pencil, Plus } from 'lucide-react'
+import { Eye, Download, Archive, Trash2, RotateCcw, ArrowLeft, Pencil } from 'lucide-react'
 import DataTable from '../components/DataTable.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -16,7 +16,7 @@ import { listServices } from '../api/services.js'
 import { serviceStatusApi } from '../api/statuses.js'
 import ServiceEnCoursRowActions, { BadgeStatutService, ModalChangerStatut } from '../components/ServiceEnCoursActions.jsx'
 import {
-  listServicesEnCours, listActivite, getServiceEnCours, createServiceEnCours, updateServiceEnCours,
+  listServicesEnCours, listActivite, getServiceEnCours, updateServiceEnCours,
   corbeilleServiceEnCours, restoreServiceEnCours, deleteServiceEnCoursForever,
 } from '../api/servicesEnCours.js'
 
@@ -81,21 +81,6 @@ export default function ServicesEnCours() {
     }
   }
 
-  // Le statut « business » par défaut d'un service tout juste ajouté : « En
-  // Attente » si ce statut existe dans le catalogue (Paramètres → Services),
-  // sinon le backend tranchera lui-même (même règle des deux côtés).
-  const statutParDefautId = () => statuts.find((s) => s.nom === 'En Attente')?.id ?? ''
-
-  const openCreate = () => {
-    setEditing(null)
-    setForm({
-      ...emptyForm,
-      service_status_id: statutParDefautId(),
-      // Date de départ pré-remplie à maintenant — le champ reste modifiable.
-      date_depart: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
-    })
-    setFormErrors({}); setFormOpen(true)
-  }
 
   const openEdit = (r) => {
     setEditing(r)
@@ -118,13 +103,10 @@ export default function ServicesEnCours() {
         service_status_id: form.service_status_id ? Number(form.service_status_id) : null,
         date_depart: form.date_depart.replace('T', ' '),
       }
-      if (editing) {
-        await updateServiceEnCours(editing.id, payload)
-        setSuccess('Service en cours modifié.')
-      } else {
-        await createServiceEnCours(payload)
-        setSuccess('Service en cours ajouté.')
-      }
+      // Plus de création manuelle : un service en cours naît d'une action métier (facture, devis, bon de livraison,
+      // facture d'avoir, paiement). Ce formulaire ne sert qu'à modifier un service existant.
+      await updateServiceEnCours(editing.id, payload)
+      setSuccess('Service en cours modifié.')
       setFormOpen(false); setEditing(null); setForm(emptyForm)
       load()
     } catch (err) {
@@ -191,7 +173,7 @@ export default function ServicesEnCours() {
       <Modal
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditing(null) }}
-        title={editing ? 'Modifier le service en cours' : 'Ajouter un service en cours'}
+        title="Modifier le service en cours"
         footer={(
           <>
             <Button variant="secondary" onClick={() => { setFormOpen(false); setEditing(null) }}>Annuler</Button>
@@ -245,11 +227,7 @@ export default function ServicesEnCours() {
             )}
             actions={(
               <>
-                {status === 'actif' && (
-                  <Button variant="success" icon={<Plus size={16} />} onClick={openCreate}>
-                    Ajouter un Service en Cours
-                  </Button>
-                )}
+
                 <IconButton
                   variant="warning"
                   title={status === 'archive' ? 'Revenir aux services en cours' : 'Voir les archives'}

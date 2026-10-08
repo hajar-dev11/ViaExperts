@@ -1993,19 +1993,6 @@
     },
     {
         "methodes": [
-            "POST"
-        ],
-        "uri": "api/v1/services-en-cours",
-        "nom": null,
-        "middleware": [
-            "api",
-            "auth:sanctum",
-            "permission:services_en_cours,ajouter"
-        ],
-        "action": "ServiceEnCoursController@store"
-    },
-    {
-        "methodes": [
             "GET"
         ],
         "uri": "api/v1/services-en-cours/{serviceEnCour}",

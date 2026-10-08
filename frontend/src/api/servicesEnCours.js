@@ -15,9 +15,6 @@ export async function listActivite(limit = 15) {
   return apiFetch(`/api/v1/services-en-cours/activite?limit=${limit}`)
 }
 
-export async function createServiceEnCours(payload) {
-  return unwrap(await apiFetch('/api/v1/services-en-cours', { method: 'POST', body: payload }))
-}
 
 export async function updateServiceEnCours(id, payload) {
   return unwrap(await apiFetch(`/api/v1/services-en-cours/${id}`, { method: 'PUT', body: payload }))

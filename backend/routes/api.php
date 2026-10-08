@@ -209,7 +209,6 @@ Route::prefix('v1')->group(function () {
         // Services en cours — permissions `services_en_cours` du catalogue existant
         Route::get('/services-en-cours', [ServiceEnCoursController::class, 'index'])->middleware('permission:services_en_cours,list');
         Route::get('/services-en-cours/activite', [ServiceEnCoursController::class, 'activite'])->middleware('permission:services_en_cours,list');
-        Route::post('/services-en-cours', [ServiceEnCoursController::class, 'store'])->middleware('permission:services_en_cours,ajouter');
         Route::get('/services-en-cours/{serviceEnCour}', [ServiceEnCoursController::class, 'show'])->middleware('permission:services_en_cours,list');
         Route::put('/services-en-cours/{serviceEnCour}', [ServiceEnCoursController::class, 'update'])->middleware('permission:services_en_cours,modifier');
         Route::post('/services-en-cours/{serviceEnCour}/operations', [ServiceEnCoursController::class, 'storeOperation'])->middleware('permission:services_en_cours,modifier');
