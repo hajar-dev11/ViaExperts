@@ -137,7 +137,8 @@ describe('reçus de paiement', () => {
 // ---- Documents de domiciliation ------------------------------------------------------------------------------
 
 describe('attestation de domiciliation', () => {
-  const valeurs = attestationParDefaut(DOMICILIATION, { entreprise: ENTREPRISE })
+  // La civilité vient de la fiche client (CLIENT.genre = « Mr ») : les instantanés restent identiques à ceux d'avant.
+  const valeurs = attestationParDefaut(DOMICILIATION, { entreprise: ENTREPRISE, client: CLIENT })
 
   it('valeurs par défaut (date du jour)', () => expect(valeurs).toMatchSnapshot())
   it('aperçu avec cachet', () => expect(construireHtmlAttestation(valeurs, IDENTITE, { signature: IDENTITE.signature })).toMatchSnapshot())
@@ -150,7 +151,7 @@ describe('attestation de domiciliation', () => {
 })
 
 describe('contrat de domiciliation', () => {
-  const valeurs = contratParDefaut(DOMICILIATION, { entreprise: ENTREPRISE })
+  const valeurs = contratParDefaut(DOMICILIATION, { entreprise: ENTREPRISE, client: CLIENT })
 
   it('valeurs par défaut (date du jour)', () => expect(valeurs).toMatchSnapshot())
   it('aperçu avec cachet', () => expect(construireHtmlContrat(valeurs, IDENTITE, { signature: IDENTITE.signature })).toMatchSnapshot())

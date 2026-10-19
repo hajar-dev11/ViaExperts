@@ -1,4 +1,5 @@
 import { apiFetch, apiUpload, ensureCsrfCookie } from './http.js'
+import { preparerImage } from '../utils/images.js'
 
 export async function login(email, password, remember = false) {
   await ensureCsrfCookie()
@@ -34,7 +35,8 @@ export async function updateProfile(payload) {
 }
 
 export async function uploadProfilePhoto(file) {
-  const data = await apiUpload('/api/v1/profile/photo', file)
+  // Une photo de téléphone dépasse la taille acceptée par le serveur : elle est réduite dans le navigateur avant l'envoi.
+  const data = await apiUpload('/api/v1/profile/photo', await preparerImage(file))
   return data.user
 }
 

@@ -12,6 +12,7 @@ import { listClients, corbeilleClient, restoreClient, deleteClientForever } from
 import { listEntreprises, corbeilleEntreprise, restoreEntreprise, deleteEntrepriseForever } from '../api/entreprises.js'
 import {
   listDomiciliations, corbeilleDomiciliation, restoreDomiciliation, deleteDomiciliationForever,
+  listAllCentres, corbeilleCentre, restoreCentre, deleteCentre,
 } from '../modules/domiciliation/index.js'
 import { listServices, corbeilleService, restoreService, deleteServiceForever } from '../api/services.js'
 import {
@@ -90,6 +91,22 @@ const CATEGORIES = {
       { key: 'dateDepart', header: 'Date Départ' },
       { key: 'dateFin', header: 'Date Fin' },
       { key: 'createdBy', header: 'Action de', value: (r) => r.createdBy || '—' },
+    ],
+  },
+  centres: {
+    label: 'Centres de Domiciliation',
+    list: (status) => listAllCentres(status),
+    corbeille: corbeilleCentre,
+    restore: restoreCentre,
+    destroy: deleteCentre,
+    rowLabel: (r) => r.nom,
+    to: (r) => `/domiciliation/centres/${r.id}`,
+    columns: [
+      { key: 'nom', header: 'Nom', render: (r) => <Link to={`/domiciliation/centres/${r.id}`} className="font-semibold text-brand-700 hover:underline">{r.nom}</Link> },
+      { key: 'ville', header: 'Ville' },
+      { key: 'ice', header: 'ICE' },
+      { key: 'if', header: 'IF' },
+      { key: 'numero_archive', header: 'N° Archive', render: (r) => r.numero_archive || '—' },
     ],
   },
   services: {

@@ -29,19 +29,10 @@ class ServiceEnCoursResource extends JsonResource
             'derniereOperation' => optional($this->derniere_operation)->toDateTimeString(),
             'status' => $this->status,
 
-            'operations' => $this->whenLoaded('operations', fn () => $this->operations->map(fn ($o) => [
-                'id' => $o->id,
-                'commentaire' => $o->commentaire,
-                'statut' => $o->statut ? [
-                    'nom' => $o->statut->nom,
-                    'couleurTexte' => $o->statut->couleur_texte,
-                    'couleurFond' => $o->statut->couleur_fond,
-                ] : null,
-                'par' => $o->auteur->name ?? null,
-                'fichierNom' => $o->fichier_nom,
-                'fichierChemin' => $o->fichier_chemin,
-                'createdAt' => optional($o->created_at)->toDateTimeString(),
-            ])),
+            // Fil complet du service, le plus récent d'abord (voir ServiceEnCoursOperationResource).
+            'operations' => $this->whenLoaded('operations', fn () => $this->operations
+                ->map(fn ($o) => (new ServiceEnCoursOperationResource($o))->resolve($request))
+                ->values()),
         ];
     }
 }

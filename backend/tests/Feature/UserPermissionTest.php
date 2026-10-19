@@ -164,6 +164,69 @@ class UserPermissionTest extends TestCase
         ])->assertStatus(201); // a bien la permission 'create'
     }
 
+    // Fonction : saisie libre (plus de liste fermée), limitée à la taille de la colonne.
+    public function test_fonction_est_une_saisie_libre(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->postJson('/api/v1/users', [
+            'name' => 'Fonction Libre', 'email' => 'libre@viaexperts.ma', 'password' => 'Mot-de-passe-123',
+            'fonction' => 'Responsable administrative',
+        ])->assertStatus(201)->assertJsonPath('data.fonction', 'Responsable administrative');
+
+        $this->assertDatabaseHas('users', ['email' => 'libre@viaexperts.ma', 'fonction' => 'Responsable administrative']);
+
+        $this->actingAs($admin)->postJson('/api/v1/users', [
+            'name' => 'Trop Long', 'email' => 'long@viaexperts.ma', 'password' => 'Mot-de-passe-123',
+            'fonction' => str_repeat('x', 31),
+        ])->assertStatus(422)->assertJsonValidationErrors('fonction');
+    }
+
+    // Suppression d'une assistance : ses accès partent avec elle, rien de ce qui appartient aux autres n'est touché.
+    public function test_supprimer_une_assistance_retire_ses_acces_sans_toucher_aux_autres(): void
+    {
+        $admin = $this->admin();
+        $cible = $this->staff();
+        $autre = $this->staff();
+        $p1 = Permission::where('module', 'clients')->where('action', 'list')->first();
+        $p2 = Permission::where('module', 'entreprises')->where('action', 'list')->first();
+
+        $cible->userPermissions()->create(['permission_id' => $p1->id, 'granted_by' => $admin->id, 'granted_at' => now()]);
+        $cible->userPermissions()->create(['permission_id' => $p2->id, 'granted_by' => $admin->id, 'granted_at' => now()]);
+        // L'autre compte a la MÊME permission (partagée) ; c'est la cible qui la lui a « accordée » (cas limite : granted_by).
+        $autre->userPermissions()->create(['permission_id' => $p1->id, 'granted_by' => $cible->id, 'granted_at' => now()]);
+        $cible->createToken('test');
+        $autre->createToken('test');
+
+        $this->actingAs($admin)->deleteJson("/api/v1/users/{$cible->id}")->assertStatus(200);
+
+        $this->assertDatabaseMissing('users', ['id' => $cible->id]);
+        $this->assertDatabaseMissing('user_permissions', ['user_id' => $cible->id]);
+        $this->assertDatabaseMissing('personal_access_tokens', ['tokenable_id' => $cible->id]);
+
+        // L'autre compte garde son compte, sa permission (même identifiant de permission) et son jeton.
+        $this->assertDatabaseHas('users', ['id' => $autre->id]);
+        $this->assertDatabaseHas('user_permissions', ['user_id' => $autre->id, 'permission_id' => $p1->id, 'granted_by' => null]);
+        $this->assertDatabaseHas('personal_access_tokens', ['tokenable_id' => $autre->id]);
+        // Les permissions du catalogue ne sont jamais supprimées.
+        $this->assertDatabaseHas('permissions', ['id' => $p1->id]);
+        $this->assertDatabaseHas('permissions', ['id' => $p2->id]);
+        $this->assertTrue($autre->fresh()->hasPermission('clients', 'list'));
+    }
+
+    public function test_suppression_refusee_pour_soi_meme_le_dernier_admin_et_un_non_admin(): void
+    {
+        $admin = $this->admin();
+        $staff = $this->staff();
+        $autre = $this->staff();
+
+        $this->actingAs($admin)->deleteJson("/api/v1/users/{$admin->id}")->assertStatus(422);
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+
+        $this->actingAs($staff)->deleteJson("/api/v1/users/{$autre->id}")->assertStatus(403);
+        $this->assertDatabaseHas('users', ['id' => $autre->id]);
+    }
+
     // Sécurité additionnelle : invité refusé partout.
     public function test_guest_is_rejected(): void
     {

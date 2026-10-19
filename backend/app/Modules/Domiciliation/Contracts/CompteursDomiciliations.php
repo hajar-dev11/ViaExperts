@@ -14,4 +14,10 @@ interface CompteursDomiciliations
      * Les lignes supprimées en douceur (`deleted_at` renseigné) ne sont jamais comptées ; un statut inconnu donne 0.
      */
     public function compterParStatut(string $statut): int;
+
+    /**
+     * Nombre de centres de domiciliation pour un statut donné (`actif`, `archive` ou `corbeille`), mêmes règles que
+     * {@see compterParStatut} : une seule requête, lignes supprimées en douceur ignorées, statut inconnu = 0.
+     */
+    public function compterCentresParStatut(string $statut): int;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Archive, Trash2, Eye, ListTree, Calendar, ArrowLeft, Printer, Paperclip, Pencil } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Archive, Trash2, Eye, Calendar, ArrowLeft, Printer, WalletCards } from 'lucide-react'
+import { IconeActions } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -11,12 +12,17 @@ import Button, { IconButton } from '../components/ui/Button.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import { Field, Input, Select } from '../components/Field.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
-import { ApiError, API_URL } from '../api/http.js'
+import AjouterPaiementModal from '../components/AjouterPaiementModal.jsx'
+import ChoixFormatRecu from '../components/ChoixFormatRecu.jsx'
+import { CelluleFichierPaiement, useObservationPaiement } from '../components/CellulesPaiement.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import { ApiError } from '../api/http.js'
 import { EMETTEURS } from '../shared/constants/documents.js'
+import { correspondAuResponsable, listerResponsables } from '../shared/utils/responsables.js'
 import { formatDate } from '../utils/format.js'
-import { imprimerPaiement } from './PaiementList.jsx'
+import { imprimerRecuPaiementPdf } from '../modules/paiements/index.js'
 import {
-  listGestion, getPaiement, archivePaiement, corbeillePaiement, restorePaiement, deletePaiementForever,
+  listGestion, getHistorique, archivePaiement, corbeillePaiement, restorePaiement, deletePaiementForever,
   updateDateCredit,
 } from '../api/paiements.js'
 
@@ -33,7 +39,6 @@ const matchStatut = (r, statut) => {
 }
 
 export default function PaiementGestion() {
-  const navigate = useNavigate()
   const toast = useToast()
   const [status, setStatus] = useState('actif')
   const [regle, setRegle] = useState('')
@@ -42,24 +47,40 @@ export default function PaiementGestion() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [erreurChargement, setErreurChargement] = useState('')
+  const { hasPermission } = useAuth()
+  const peutAjouterPaiement = hasPermission('paiements', 'ajouter_paiement')
   const [focusedId, setFocusedId] = useState(null)
-  const [detail, setDetail] = useState(null)
+  // Historique du service affiché (œil) : TOUS ses paiements, une ligne chacun ; null tant qu'il se charge.
+  const [historique, setHistorique] = useState(null)
+  // Ligne dont on ajoute un paiement complémentaire (formulaire « Ajouter Un Paiement »).
+  const [ajoutPour, setAjoutPour] = useState(null)
+  // Paiement dont l'utilisateur choisit le format de reçu (A5 / A4) avant impression.
+  const [choixRecu, setChoixRecu] = useState(null)
+  const observation = useObservationPaiement()
   const [confirm, setConfirm] = useState(null)
   const [dateEdit, setDateEdit] = useState(null)
   const [dateValue, setDateValue] = useState('')
   const [savingDate, setSavingDate] = useState(false)
 
-  /** Charge la fiche complète (Référence, Méthode, Observation, Fichier…) du
-      paiement affiché — la vue « Gestion » n'a que sa ligne de service. */
+  /** Charge l'historique complet du service (Référence, Méthode, Observation, Fichier…) : un paiement par ligne — la vue
+      « Gestion » n'a qu'une ligne par service, avec les montants cumulés. */
   const afficher = (paiementId) => {
     setFocusedId(paiementId)
-    setDetail(null)
-    getPaiement(paiementId).then(setDetail).catch(() => {})
+    setHistorique(null)
+    getHistorique(paiementId).then(setHistorique).catch(() => setHistorique([]))
   }
 
   const fermerDetail = () => {
     setFocusedId(null)
-    setDetail(null)
+    setHistorique(null)
+  }
+
+  // `window.open` (dans `imprimerRecuPaiementPdf`) est appelé de façon synchrone depuis ce clic de choix : le navigateur autorise
+  // l'onglet du PDF. Le reçu est celui du paiement choisi, jamais celui des autres lignes de l'historique.
+  const imprimerRecu = (format) => {
+    const paiement = choixRecu
+    setChoixRecu(null)
+    imprimerRecuPaiementPdf(paiement, format).catch(() => setError("L'impression du reçu a échoué."))
   }
 
   const load = useCallback(() => {
@@ -76,9 +97,13 @@ export default function PaiementGestion() {
 
   useEffect(load, [load])
 
+  const responsables = useMemo(() => listerResponsables(rows, EMETTEURS), [rows])
+  // Le serveur signale ligne par ligne si les paiements complémentaires sont possibles (migration appliquée).
+  const migrationAbsente = rows.length > 0 && rows.every((r) => r.complementsPossibles === false)
+
   const visibles = useMemo(() => {
     let list = rows
-    if (responsable) list = list.filter((r) => r.responsable === responsable)
+    if (responsable) list = list.filter((r) => correspondAuResponsable(r, responsable))
     list = list.filter((r) => matchStatut(r, regle))
     if (focusedId != null) list = list.filter((r) => r.paiementId === focusedId)
     return list
@@ -149,7 +174,14 @@ export default function PaiementGestion() {
     { key: 'dateCredit', header: 'Date Crédit', render: (r) => r.dateCredit || <span className="text-ink-600">—</span> },
   ]
 
-  const rowClassName = (r) => (Number(r.prixRestant) > 0 ? 'bg-warning-200' : 'bg-success-200')
+  // ROUGE : échéance dépassée (Date Crédit passée) avec un reste à payer — `enRetard` vient du serveur, jamais pour un dossier soldé.
+  // VERT SEULEMENT quand le montant dû est entièrement réglé : `regle` vient du serveur et tient compte de TOUS les paiements du
+  // service. ORANGE sinon (reste à payer, échéance non dépassée). Dans l'historique, chaque ligne porte son reste cumulé (la
+  // dernière est verte si le service est soldé).
+  const rowClassName = (r) => {
+    if (r.enRetard) return 'bg-danger-200'
+    return (r.regle ?? Number(r.prixRestant) <= 0.004) ? 'bg-success-100' : 'bg-warning-100'
+  }
 
   const exportColumns = columns.map((c) => ({
     header: c.header,
@@ -184,31 +216,17 @@ export default function PaiementGestion() {
       render: (r) => <span className="font-semibold text-ink-900">{dh(r.prixRestant)}</span>,
     },
     { key: 'modePaiement', header: 'Paiements Method', render: (r) => r.modePaiement || <span className="text-ink-600">—</span> },
-    { key: 'observation', header: 'Observation', clamp: 1, render: (r) => r.observation || <span className="text-ink-600">—</span> },
-    {
-      key: 'fichier',
-      header: 'Fichier',
-      render: (r) => (r.pieceJointeChemin ? (
-        <a
-          href={`${API_URL}/storage/${r.pieceJointeChemin}`}
-          target="_blank"
-          rel="noreferrer"
-          title={r.pieceJointeNom || 'Télécharger'}
-          className="inline-flex items-center gap-1.5 text-brand-600 hover:underline"
-        >
-          <Paperclip size={14} />
-        </a>
-      ) : <span className="text-ink-600">—</span>),
-    },
+    { key: 'observation', header: 'Observation', clamp: 1, render: observation.cellule },
+    { key: 'fichier', header: 'Fichier', render: (r) => <CelluleFichierPaiement paiement={r} /> },
     { key: 'dateOperation', header: 'Date Opération', render: (r) => formatDate(r.dateOperation) },
   ]
 
   const detailRowActions = (r) => (
     <div className="flex justify-end gap-1.5">
-      <RowBtn title="Imprimer" onClick={() => imprimerPaiement(r)}><Printer size={14} /></RowBtn>
+      <RowBtn title="Imprimer le reçu de ce paiement" onClick={() => setChoixRecu(r)}><Printer size={14} /></RowBtn>
       <ActionMenu
         label="Actions"
-        icon={<ListTree size={16} />}
+        icon={<IconeActions />}
         items={[
           {
             label: 'Archiver',
@@ -242,11 +260,14 @@ export default function PaiementGestion() {
   const menuItems = (r) => {
     if (status === 'actif') {
       return [
-        {
-          label: 'Modifier',
-          icon: <Pencil size={15} />,
-          onClick: () => navigate(`/paiement/${r.paiementId}/modifier`),
+        // Reste à payer > 0 : encaisser un paiement complémentaire pour ce service, sans le recréer.
+        peutAjouterPaiement && r.complementsPossibles !== false && Number(r.prixRestant) > 0.004 && {
+          label: 'Ajouter un paiement',
+          icon: <WalletCards size={15} />,
+          tone: 'success',
+          onClick: () => setAjoutPour(r),
         },
+        // Pas d'action « Modifier » : un paiement enregistré ne se modifie pas (on ajoute un paiement complémentaire).
         {
           label: 'Modifier la date de crédit',
           icon: <Calendar size={15} />,
@@ -345,9 +366,16 @@ export default function PaiementGestion() {
     <div>
       {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3">{error}</Alert>}
       {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
+      {peutAjouterPaiement && migrationAbsente && (
+        <Alert tone="warning" className="mb-3">
+          L'action « Ajouter un paiement » est masquée : la base de données n'a pas encore reçu la mise à jour des paiements
+          complémentaires (migration <code>2026_10_15_100000_add_paiement_origine_to_paiements_table</code>). Le reste du module fonctionne normalement.
+        </Alert>
+      )}
 
       <DataTable
         title={focusedId != null ? 'List Des Paiements' : 'Gestion des Paiements'}
+        filterCentre
         filter={(
           <>
             {status !== 'actif' && (
@@ -360,13 +388,13 @@ export default function PaiementGestion() {
                 Tous les paiements
               </Button>
             )}
-            <div className="w-full sm:w-56">
+            <div className="w-full sm:flex-1">
               <Select value={responsable} onChange={(e) => setResponsable(e.target.value)}>
                 <option value="">Tous les responsables</option>
-                {EMETTEURS.map((e) => <option key={e.value} value={e.label}>{e.label}</option>)}
+                {responsables.map((r) => <option key={r.cle} value={r.cle}>{r.libelle}</option>)}
               </Select>
             </div>
-            <div className="w-full sm:w-48">
+            <div className="w-full sm:w-44">
               <Select value={regle} onChange={(e) => setRegle(e.target.value)}>
                 <option value="">Toutes</option>
                 <option value="payee">Payée</option>
@@ -407,8 +435,8 @@ export default function PaiementGestion() {
           </>
         )}
         columns={focusedId != null ? columnsDetail : columns}
-        rows={focusedId != null ? (detail ? [detail] : []) : visibles}
-        loading={focusedId != null ? !detail : loading}
+        rows={focusedId != null ? (historique ?? []) : visibles}
+        loading={focusedId != null ? historique === null : loading}
         emptyText={status === 'actif' ? 'Aucun paiement' : status === 'archive' ? 'Aucun paiement archivé' : 'Corbeille vide'}
         actionsHeader="ACTION"
         rowClassName={rowClassName}
@@ -418,9 +446,30 @@ export default function PaiementGestion() {
           : (r) => (
             <div className="flex justify-end gap-1.5">
               <RowBtn title="Afficher" onClick={() => afficher(r.paiementId)}><Eye size={14} /></RowBtn>
-              <ActionMenu label="Actions" icon={<ListTree size={16} />} items={menuItems(r)} />
+              <ActionMenu label="Actions" icon={<IconeActions />} items={menuItems(r)} />
             </div>
           )}
+      />
+
+      {ajoutPour && (
+        <AjouterPaiementModal
+          ligne={ajoutPour}
+          onClose={() => setAjoutPour(null)}
+          onAjoute={() => {
+            setAjoutPour(null)
+            toast.success('Paiement ajouté.')
+            load()
+          }}
+        />
+      )}
+
+      {observation.modale}
+
+      <ChoixFormatRecu
+        open={!!choixRecu}
+        reference={choixRecu?.reference}
+        onChoisir={imprimerRecu}
+        onClose={() => setChoixRecu(null)}
       />
 
       <Modal

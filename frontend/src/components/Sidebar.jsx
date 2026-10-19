@@ -75,7 +75,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-ink-950 transition-[transform,width] duration-200 lg:static lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${collapsed ? 'w-[264px] lg:w-[84px]' : 'w-[264px]'}`}
+        } ${collapsed ? 'w-[260px] lg:w-[84px]' : 'w-[260px]'}`}
       >
         {/* En-tête : logo + bouton de repli (le cercle de la capture) */}
         <div
@@ -110,7 +110,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-3 pt-2 pb-6">
+        <nav className="flex-1 space-y-1.5 overflow-x-hidden overflow-y-auto px-3 pt-2 pb-6">
           {nav.filter(visible).map((item) => {
             const Icon = item.icon
 
@@ -126,7 +126,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
                     onClick={() => (collapsed ? setCollapsed(false) : toggle(item.label))}
                     title={collapsed ? item.label : undefined}
                     aria-expanded={open}
-                    className={`flex w-full items-center gap-3 rounded-lg px-4 py-2.5 transition-colors focus-ring ${
+                    className={`flex w-full items-center gap-3 rounded-lg px-4 py-2 transition-colors focus-ring ${
                       collapsed ? 'lg:justify-center lg:px-0' : ''
                     } ${
                       active
@@ -151,7 +151,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
                   </button>
 
                   {open && (
-                    <div className={`mt-1 space-y-1 ${collapsed ? 'lg:hidden' : ''}`}>
+                    <div className={`mt-1.5 space-y-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
                       {item.children.filter(visible).map((c) => (
                         <NavLink
                           key={c.to}
@@ -159,7 +159,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
                           end={c.to === item.base}
                           onClick={onClose}
                           className={({ isActive }) =>
-                            `flex items-center gap-3 rounded-lg py-2.5 pr-4 pl-5 text-[15px] transition-colors focus-ring ${
+                            `flex items-center gap-3 rounded-lg py-2 pr-4 pl-5 text-[15px] transition-colors focus-ring ${
                               isActive ? ACTIVE_PILL : 'text-white/85 hover:bg-white/10'
                             }`
                           }
@@ -183,7 +183,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
                 onClick={onClose}
                 title={collapsed ? item.label : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-4 py-2.5 text-[15px] transition-colors focus-ring ${
+                  `flex items-center gap-3 rounded-lg px-4 py-2 text-[15px] transition-colors focus-ring ${
                     collapsed ? 'lg:justify-center lg:px-0' : ''
                   } ${isActive ? ACTIVE_PILL : 'text-white/90 hover:bg-white/10'}`
                 }

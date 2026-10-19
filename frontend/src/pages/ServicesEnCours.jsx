@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Eye, Download, Archive, Trash2, RotateCcw, ArrowLeft, Pencil } from 'lucide-react'
+import { Eye, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
+import { IconeModifier } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -10,17 +11,22 @@ import { IconButton } from '../components/ui/Button.jsx'
 import Modal from '../components/ui/Modal.jsx'
 import Button from '../components/ui/Button.jsx'
 import { Field, Input, Select } from '../components/Field.jsx'
-import { API_URL, ApiError } from '../api/http.js'
+import SelectRecherche from '../components/SelectRecherche.jsx'
+import { optionsClients } from '../utils/rechercheOptions.js'
+import { ApiError } from '../api/http.js'
 import { listClients } from '../api/clients.js'
 import { listServices } from '../api/services.js'
-import { serviceStatusApi } from '../api/statuses.js'
-import ServiceEnCoursRowActions, { BadgeStatutService, ModalChangerStatut } from '../components/ServiceEnCoursActions.jsx'
+import FilActivite from '../components/ui/FilActivite.jsx'
+import ServiceEnCoursRowActions, { ItemActiviteService, StatutServiceBadge } from '../components/ServiceEnCoursActions.jsx'
 import {
-  listServicesEnCours, listActivite, getServiceEnCours, updateServiceEnCours,
+  listServicesEnCours, listActivite, listStatutsService, getServiceEnCours, updateServiceEnCours,
   corbeilleServiceEnCours, restoreServiceEnCours, deleteServiceEnCoursForever,
 } from '../api/servicesEnCours.js'
 
 const emptyForm = { service_id: '', client_id: '', service_status_id: '', date_depart: '' }
+
+/** Comparaison de noms de statut sans casse, accent ni espace superflu (comme la base côté serveur). */
+const normaliser = (nom) => String(nom ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase()
 
 export default function ServicesEnCours() {
   const location = useLocation()
@@ -30,6 +36,7 @@ export default function ServicesEnCours() {
   const [services, setServices] = useState([])
   const [clients, setClients] = useState([])
   const [statuts, setStatuts] = useState([])
+  const [statutsCharges, setStatutsCharges] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [erreurChargement, setErreurChargement] = useState('')
@@ -41,14 +48,10 @@ export default function ServicesEnCours() {
   const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
 
-  const [selectedService, setSelectedService] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
   const [serviceActivite, setServiceActivite] = useState([])
   const [serviceActiviteLoading, setServiceActiviteLoading] = useState(false)
   const [confirm, setConfirm] = useState(null)
-  // Changement de statut — même composant partagé que la page Accueil
-  // (ServiceEnCoursActions.jsx) : une seule logique, un seul endpoint
-  // (`addOperation`), donc les deux pages restent forcément synchronisées.
-  const [statutPour, setStatutPour] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -67,7 +70,8 @@ export default function ServicesEnCours() {
   useEffect(() => {
     listServices('actif').then(setServices).catch(() => setServices([]))
     listClients('actif').then(setClients).catch(() => setClients([]))
-    serviceStatusApi.list({ page: 1, perPage: 100 }).then((r) => setStatuts(r.data || [])).catch(() => setStatuts([]))
+    // Statuts réels de Paramètres → Services, servis avec le droit de lecture de cette page (pas celui de Paramètres).
+    listStatutsService().then((r) => setStatuts(Array.isArray(r) ? r : [])).catch(() => setStatuts([])).finally(() => setStatutsCharges(true))
   }, [])
 
   const run = async (fn, message) => {
@@ -117,30 +121,35 @@ export default function ServicesEnCours() {
     }
   }
 
-  // L'œil affiche le fil d'opérations du service directement dans le panneau
-  // « Activité Services » (à droite), au lieu d'un popup — on y remplace
-  // temporairement le flux global par celui du service sélectionné.
-  const showServiceActivite = async (r) => {
-    setSelectedService(r)
+  // Panneau « Activité Services » (à droite) : par défaut le fil d'opérations de la PREMIÈRE ligne du tableau (ligne surlignée) ;
+  // le clic sur une ligne ou son œil affiche celui du service choisi, sans popup. Le fil global ne sert que si le tableau est vide.
+  const showServiceActivite = (r) => setSelectedId(r.id)
+  const selectedService = rows.find((r) => r.id === selectedId) ?? rows[0] ?? null
+  const selectedServiceId = selectedService?.id ?? null
+
+  // Les opérations sont lues au détail du service ; rechargées quand la liste l'est (statut modifié, etc.).
+  useEffect(() => {
+    if (selectedServiceId === null) { setServiceActivite([]); return undefined }
+    let annule = false
     setServiceActiviteLoading(true)
-    try {
-      const full = await getServiceEnCours(r.id)
-      setServiceActivite(full?.operations ?? [])
-    } catch {
-      setServiceActivite([])
-    } finally {
-      setServiceActiviteLoading(false)
-    }
-  }
-  const closeServiceActivite = () => { setSelectedService(null); setServiceActivite([]) }
+    getServiceEnCours(selectedServiceId)
+      .then((full) => { if (!annule) setServiceActivite(full?.operations ?? []) })
+      .catch(() => { if (!annule) setServiceActivite([]) })
+      .finally(() => { if (!annule) setServiceActiviteLoading(false) })
+    return () => { annule = true }
+  }, [selectedServiceId, rows])
 
   const columns = [
     {
       key: 'statut',
       header: 'Status',
       value: (r) => r.statut?.nom,
-      // Badge cliquable → « Changer le Statut du Service », identique à l'Accueil.
-      render: (r) => <BadgeStatutService statut={r.statut} onClick={() => setStatutPour(r)} />,
+      // Statut cliquable → liste des statuts réels ; même composant que l'Accueil (une seule logique, un seul endpoint).
+      render: (r) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <StatutServiceBadge row={r} statuts={statuts} onChanged={load} />
+        </span>
+      ),
     },
     { key: 'service', header: 'Services', clamp: 2 },
     { key: 'client', header: 'Client', clamp: 2, render: (r) => <Link to={`/clients/${r.clientId}`} className="font-semibold text-brand-700 hover:underline">{r.client}</Link> },
@@ -150,8 +159,6 @@ export default function ServicesEnCours() {
 
   const err = (k) => formErrors[k] && <span className="mt-1 block text-xs text-danger-600">{formErrors[k][0]}</span>
 
-  // Panneau « Activité Services » : flux global par défaut, ou fil d'un seul
-  // service quand l'œil d'une ligne a été cliqué (voir showServiceActivite).
   const activiteFeed = selectedService ? serviceActivite : activite
 
   return (
@@ -160,15 +167,14 @@ export default function ServicesEnCours() {
       {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')} className="mb-3">{success}</Alert>}
 
-      {/* Ouverte par un clic sur le badge de statut d'une ligne — même modale
-          que sur l'Accueil (ServiceEnCoursActions.jsx). */}
-      <ModalChangerStatut
-        open={!!statutPour}
-        row={statutPour}
-        statuts={statuts}
-        onClose={() => setStatutPour(null)}
-        onSaved={load}
-      />
+      {/* Le statut « En Attente » est celui des nouveaux services : s'il manque, ils naissent sans statut — on le dit. */}
+      {statutsCharges && (!statuts.some((s) => normaliser(s.nom) === 'en attente') || rows.some((r) => !r.statut)) && (
+        <Alert tone="warning" className="mb-3">
+          {!statuts.some((s) => normaliser(s.nom) === 'en attente')
+            ? 'Le statut « En Attente » n\'existe pas dans Paramètres → Services : les nouveaux services sont créés sans statut. Créez-le (nom exact « En Attente »).'
+            : 'Certains services n\'ont pas de statut : choisissez-en un en cliquant sur « Sans statut ».'}
+        </Alert>
+      )}
 
       <Modal
         open={formOpen}
@@ -191,10 +197,14 @@ export default function ServicesEnCours() {
               {err('service_id')}
             </Field>
             <Field label="Client" required>
-              <Select required value={form.client_id} onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}>
-                <option value="">Sélectionnez un client</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </Select>
+              <SelectRecherche
+                required
+                options={optionsClients(clients)}
+                value={form.client_id}
+                onChange={(valeur) => setForm((f) => ({ ...f, client_id: valeur }))}
+                placeholder="Sélectionnez un client"
+                error={!!formErrors?.client_id}
+              />
               {err('client_id')}
             </Field>
             <Field label="Statut">
@@ -257,7 +267,7 @@ export default function ServicesEnCours() {
                 <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                   {status === 'actif' && (
                     <>
-                      <RowBtn title="Modifier" onClick={() => openEdit(r)}><Pencil size={14} /></RowBtn>
+                      <RowBtn title="Modifier" onClick={() => openEdit(r)}><IconeModifier /></RowBtn>
                       {/* Œil + Archiver/Corbeille : même composant partagé que
                           l'Accueil (ServiceEnCoursActions.jsx), pas de logique dupliquée. */}
                       <ServiceEnCoursRowActions row={r} onChanged={load} onAfficher={showServiceActivite} />
@@ -294,39 +304,19 @@ export default function ServicesEnCours() {
         <div className="rounded-xl bg-white shadow-card overflow-hidden h-fit">
           <div className="px-5 py-4 border-b border-line flex items-center justify-between gap-2">
             <h2 className="font-bold text-ink-900 truncate">
-              {selectedService ? `Activité — ${selectedService.service || 'Service'}` : 'Activité Services'}
+              {selectedService ? `Activité Services — ${selectedService.service || 'Service'}` : 'Activité Services'}
             </h2>
-            {selectedService && (
-              <RowBtn title="Revenir à l'activité globale" onClick={closeServiceActivite}>
-                <ArrowLeft size={14} />
-              </RowBtn>
-            )}
           </div>
           {serviceActiviteLoading ? (
             <EmptyState title="Chargement…" />
           ) : activiteFeed.length === 0 ? (
             <EmptyState title={selectedService ? 'Aucune opération enregistrée' : 'Aucune activité récente'} />
           ) : (
-            <div className="p-5 space-y-4">
+            <FilActivite className="p-5 space-y-4">
               {activiteFeed.map((a, i) => (
-                <div key={a.id} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <span className="h-2.5 w-2.5 rounded-full bg-brand-500 mt-1" />
-                    {i < activiteFeed.length - 1 && <span className="flex-1 w-px bg-line mt-1" />}
-                  </div>
-                  <div className="pb-2 min-w-0">
-                    <BadgeStatutService statut={a.statut} />
-                    <div className="text-xs text-ink-600 mt-1">Par <span className="font-semibold text-ink-800">Via Experts</span></div>
-                    <div className="text-[11px] text-ink-600">{a.createdAt}</div>
-                    {a.fichierChemin && (
-                      <a href={`${API_URL}/storage/${a.fichierChemin}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[11px] text-brand-600 hover:underline">
-                        <Download size={11} /> {a.fichierNom}
-                      </a>
-                    )}
-                  </div>
-                </div>
+                <ItemActiviteService key={a.id} a={a} dernier={i === activiteFeed.length - 1} />
               ))}
-            </div>
+            </FilActivite>
           )}
         </div>
       </div>

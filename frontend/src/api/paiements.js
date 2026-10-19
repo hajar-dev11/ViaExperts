@@ -1,4 +1,4 @@
-import { apiFetch, apiUpload } from './http.js'
+import { apiFetch, apiUpload, API_URL } from './http.js'
 
 const unwrap = (res) => res?.data ?? res
 
@@ -19,6 +19,16 @@ export async function listGestion({ status = 'actif', regle = '' } = {}) {
 
 export async function getPaiement(id) {
   return unwrap(await apiFetch(`/api/v1/paiements/${id}`))
+}
+
+// Historique complet d'un service : tous les paiements du dossier (paiement d'origine + compléments), du plus ancien au plus récent.
+export async function getHistorique(id) {
+  return unwrap(await apiFetch(`/api/v1/paiements/${id}/historique`))
+}
+
+// Pièce jointe d'UN paiement, servie par l'API (accès contrôlé, jamais un lien public) : lien de téléchargement.
+export function urlFichierPaiement(id) {
+  return `${API_URL}/api/v1/paiements/${id}/fichier`
 }
 
 export async function listFacturesDisponibles() {
@@ -47,6 +57,11 @@ function toFormData(payload) {
 
 export async function createPaiement(payload) {
   return unwrap(await apiUpload('/api/v1/paiements', toFormData(payload)))
+}
+
+// Paiement complémentaire d'un service déjà payé en partie : seul le NOUVEAU montant est envoyé, jamais le déjà payé.
+export async function ajouterComplement(id, payload) {
+  return unwrap(await apiUpload(`/api/v1/paiements/${id}/complements`, toFormData(payload)))
 }
 
 export async function updatePaiement(id, payload) {

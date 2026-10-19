@@ -9,6 +9,7 @@ import { montantEnLettres } from '../../../utils/montantEnLettres.js'
 import { dh, formatDateFr } from '../../../utils/print/commun.js'
 import { chargerIdentite, chargerIdentitePdf } from '../../../utils/print/identite.js'
 import { ouvrirPdfApresClic } from '../../../utils/print/ouvrirPdf.js'
+import { motifRecu } from './motifRecu.js'
 
 /** Construit le HTML imprimable du reçu (pur, sans effet de bord) — sert à `imprimerRecuPaiement` et à la prévisualisation. */
 export function construireHtmlRecuPaiement(p, identite) {
@@ -40,7 +41,7 @@ export function construireHtmlRecuPaiement(p, identite) {
       </div>
       <table class="recu-bas">
         <tr><th>Somme en toutes lettres :</th><td>${escapeHtml(montantEnLettres(p.total))}</td></tr>
-        <tr><th>Motif de l'opération :</th><td>${escapeHtml((p.observation || '').toUpperCase())}</td></tr>
+        <tr><th>Motif de l'opération :</th><td>${escapeHtml(motifRecu(p).toUpperCase())}</td></tr>
       </table>
       <div class="recu-signatures">
         <span>Signature</span>
@@ -182,7 +183,7 @@ export function construireHtmlRecuPdf(p, identite, formatRecu = 'a4') {
       <div class="recu-bas">
         <table>
           <tr><th>Somme en toutes lettres :</th><td>${escapeHtml(montantEnLettres(p.total))}</td></tr>
-          <tr><th>Motif de l'opération :</th><td>${escapeHtml((p.observation || '').toUpperCase())}</td></tr>
+          <tr><th>Motif de l'opération :</th><td>${escapeHtml(motifRecu(p).toUpperCase())}</td></tr>
         </table>
         <div class="recu-sigs"><span>Signature</span><span>Signature du Client</span>${p.signature && identite.signature ? `<div class="recu-cachet"><img src="${identite.signature}" alt="Signature" /></div>` : ''}</div>
       </div>

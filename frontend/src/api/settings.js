@@ -1,4 +1,8 @@
 import { apiFetch, apiUpload } from './http.js'
+import { preparerImage } from '../utils/images.js'
+
+// Logos et signatures : l'image est réduite dans le navigateur si elle dépasse la taille visée (voir utils/images.js).
+const envoyerImage = async (chemin, fichier) => apiUpload(chemin, await preparerImage(fichier))
 
 export async function getCabinetSettings() {
   return apiFetch('/api/v1/settings/cabinet')
@@ -9,7 +13,7 @@ export async function updateCabinetSettings(payload) {
 }
 
 export async function uploadCabinetLogo(file) {
-  return apiUpload('/api/v1/settings/cabinet/logo', file)
+  return envoyerImage('/api/v1/settings/cabinet/logo', file)
 }
 
 export async function resetCabinetLogo() {
@@ -17,7 +21,7 @@ export async function resetCabinetLogo() {
 }
 
 export async function uploadCabinetSignature(file) {
-  return apiUpload('/api/v1/settings/cabinet/signature', file)
+  return envoyerImage('/api/v1/settings/cabinet/signature', file)
 }
 
 export async function resetCabinetSignature() {
@@ -44,7 +48,7 @@ export async function updateDomiciliationSettings(payload) {
 }
 
 export async function uploadDomiciliationLogo(file) {
-  return apiUpload('/api/v1/settings/domiciliation/logo', file)
+  return envoyerImage('/api/v1/settings/domiciliation/logo', file)
 }
 
 export async function resetDomiciliationLogo() {
@@ -52,7 +56,7 @@ export async function resetDomiciliationLogo() {
 }
 
 export async function uploadDomiciliationSignature(file) {
-  return apiUpload('/api/v1/settings/domiciliation/signature', file)
+  return envoyerImage('/api/v1/settings/domiciliation/signature', file)
 }
 
 export async function resetDomiciliationSignature() {

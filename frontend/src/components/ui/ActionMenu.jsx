@@ -98,7 +98,7 @@ export default function ActionMenu({
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`grid h-8 w-8 place-items-center rounded-lg text-ink-600 transition-colors hover:bg-surface hover:text-brand-600 focus-ring ${
+        className={`grid h-8 w-8 place-items-center rounded-lg text-ink-800 transition-colors hover:bg-surface hover:text-brand-600 focus-ring [&>svg]:h-[18px] [&>svg]:w-[18px] ${
           open ? 'bg-surface text-brand-600' : ''
         } ${triggerClassName}`}
       >
@@ -115,7 +115,7 @@ export default function ActionMenu({
             className="ve-fade-in fixed z-[70] overflow-hidden rounded-lg bg-white py-1 shadow-menu"
           >
             {visible.map((item, i) => {
-              const cls = `flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors ${
+              const cls = `flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[15px] transition-colors ${
                 TONES[item.tone] ?? TONES.default
               } ${item.disabled ? 'pointer-events-none opacity-50' : ''}`
               const content = (

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Eye, ListTree, Download, Plus, Archive, Trash2, RotateCcw, ArrowLeft, Pencil } from 'lucide-react'
+import { Eye, ListTree, Download, Plus, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import FilActivite from '../components/ui/FilActivite.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
@@ -10,7 +12,8 @@ import ActionMenu from '../components/ui/ActionMenu.jsx'
 import Alert from '../components/ui/Alert.jsx'
 import Modal from '../components/ui/Modal.jsx'
 import Button, { IconButton } from '../components/ui/Button.jsx'
-import { Field, Input, Select, Textarea } from '../components/Field.jsx'
+import { Field, Input, Textarea } from '../components/Field.jsx'
+import SelectRecherche from '../components/SelectRecherche.jsx'
 import { API_URL, ApiError } from '../api/http.js'
 import { maintenantLocal } from '../shared/utils/date.js'
 import { listClients } from '../api/clients.js'
@@ -71,7 +74,7 @@ export default function Cachets() {
 
   // Œil d'une ligne : remplace temporairement le fil global du panneau
   // « Cashet Activité » par celui du seul cachet sélectionné.
-  const [selected, setSelected] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
 
   // Clic sur la ligne : petit formulaire « Changer le Statut », repris tel
   // quel de la capture de référence (grandes cartes colorées par statut).
@@ -208,8 +211,10 @@ export default function Cachets() {
     ...clients.map((c) => ({ id: c.id, label: c.nom, groupe: 'Clients' })),
   ]
 
-  // Panneau « Cashet Activité » : fil global par défaut, ou fil du seul
-  // cachet sélectionné (œil) — déjà chargé avec chaque ligne (`r.operations`).
+  // Panneau « Cashet Activité » : par défaut l'activité de la PREMIÈRE ligne du tableau (ligne surlignée) ; l'œil ou le clic sur
+  // une autre ligne affiche la sienne. Les opérations sont déjà chargées avec chaque ligne (`r.operations`). Le fil global ne
+  // sert que si le tableau est vide.
+  const selected = rows.find((r) => r.id === selectedId) ?? rows[0] ?? null
   const activiteFeed = selected ? (selected.operations ?? []) : activite
 
   return (
@@ -261,16 +266,17 @@ export default function Cachets() {
             loading={loading}
             emptyText={status === 'actif' ? 'Aucun cachet' : status === 'archive' ? 'Aucun cachet archivé' : 'Corbeille vide'}
             actionsHeader="ACTIONS"
-            onRowClick={(r) => ouvrirStatus(r)}
+            onRowClick={(r) => { setSelectedId(r.id); ouvrirStatus(r) }}
+            rowClassName={(r) => (selected?.id === r.id ? 'bg-success-100' : '')}
             rowActions={(r) => (
                 <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <RowBtn title="Afficher" onClick={() => setSelected(r)}><Eye size={14} /></RowBtn>
+                  <RowBtn title="Afficher" onClick={() => setSelectedId(r.id)}><Eye size={14} /></RowBtn>
                   <ActionMenu
                     label="Actions"
-                    icon={<ListTree size={16} />}
+                    icon={<IconeActions />}
                     items={
                       status === 'actif' ? [
-                        { label: 'Modifier', icon: <Pencil size={15} />, onClick: () => ouvrirModifier(r) },
+                        { label: 'Modifier', icon: <IconeModifier size={15} />, onClick: () => ouvrirModifier(r) },
                         {
                           label: 'Archiver',
                           icon: <Archive size={15} />,
@@ -328,18 +334,13 @@ export default function Cachets() {
         <div className="rounded-xl bg-white shadow-card overflow-hidden h-fit">
           <div className="px-5 py-4 border-b border-line flex items-center justify-between gap-2">
             <h2 className="font-bold text-ink-900 truncate">
-              {selected ? `Activité — ${selected.client}` : 'Cashet Activité'}
+              {selected ? `Cashet Activité — ${selected.client}` : 'Cashet Activité'}
             </h2>
-            {selected && (
-              <RowBtn title="Revenir à l'activité globale" onClick={() => setSelected(null)}>
-                <ArrowLeft size={14} />
-              </RowBtn>
-            )}
           </div>
           {activiteFeed.length === 0 ? (
             <EmptyState title={selected ? 'Aucune opération enregistrée' : 'Aucune activité récente'} />
           ) : (
-            <div className="p-5 space-y-4">
+            <FilActivite className="p-5 space-y-4">
               {activiteFeed.map((a, i) => (
                 <div key={a.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
@@ -349,16 +350,16 @@ export default function Cachets() {
                   <div className="pb-2 min-w-0">
                     <StatutBadge statut={a.statut} />
                     <div className="text-xs text-ink-600 mt-1">Par <span className="font-semibold text-ink-800">{a.par ?? '—'}</span></div>
-                    <div className="text-[11px] text-ink-600">{a.createdAt}</div>
+                    <div className="text-xs text-ink-600">{a.createdAt}</div>
                     {a.fichierChemin && (
-                      <a href={`${API_URL}/storage/${a.fichierChemin}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[11px] text-brand-600 hover:underline break-all">
-                        <Download size={11} /> {a.fichierNom}
+                      <a href={`${API_URL}/storage/${a.fichierChemin}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline break-all">
+                        <Download size={13} /> {a.fichierNom}
                       </a>
                     )}
                   </div>
                 </div>
               ))}
-            </div>
+            </FilActivite>
           )}
         </div>
       </div>
@@ -390,10 +391,14 @@ export default function Cachets() {
       >
         <form id="form-cachet" onSubmit={submit} className="space-y-4">
           <Field label="Entreprises" required>
-            <Select required value={form.party_id} onChange={(e) => setForm((f) => ({ ...f, party_id: e.target.value }))}>
-              <option value="">Sélectionnez une Entreprise</option>
-              {tiers.map((t) => <option key={`${t.groupe}-${t.id}`} value={t.id}>{t.label} — {t.groupe}</option>)}
-            </Select>
+            <SelectRecherche
+              required
+              options={tiers.map((t) => ({ cle: `${t.groupe}-${t.id}`, value: t.id, label: t.label, groupe: t.groupe }))}
+              value={form.party_id}
+              onChange={(valeur) => setForm((f) => ({ ...f, party_id: valeur }))}
+              placeholder="Sélectionnez une Entreprise"
+              error={!!formErrors.party_id}
+            />
             {err('party_id')}
           </Field>
           <Field label="Lignes">

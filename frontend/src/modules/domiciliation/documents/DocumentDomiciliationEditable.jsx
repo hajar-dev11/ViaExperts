@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, FileText, Pencil, RotateCcw, X } from 'lucide-react'
+import { ArrowLeft, Check, FileText, RotateCcw, X } from 'lucide-react'
+import { IconeModifier } from '../../../components/ui/icons.jsx'
 import Button from '../../../components/ui/Button.jsx'
 import Alert from '../../../components/ui/Alert.jsx'
 import Card, { CardHeader } from '../../../components/ui/Card.jsx'
@@ -163,6 +164,9 @@ export default function DocumentDomiciliationEditable({ config }) {
 
   const pret = Boolean(apercu)
   const modifiee = contenu !== null
+  // Contrat / attestation : civilité vide (fiche client introuvable ou genre inconnu). L'avertissement disparaît dès que
+  // le texte a été modifié (la civilité a pu y être saisie à la main).
+  const civiliteManquante = Boolean(valeurs) && 'civilite' in valeurs && !valeurs.civilite && !modifiee
 
   return (
     <div className="space-y-4">
@@ -186,13 +190,20 @@ export default function DocumentDomiciliationEditable({ config }) {
             </>
           ) : (
             <>
-              <Button variant="secondary" icon={<Pencil size={16} />} onClick={ouvrirEdition} disabled={!pret}>Modifier</Button>
+              <Button variant="secondary" icon={<IconeModifier size={16} />} onClick={ouvrirEdition} disabled={!pret}>Modifier</Button>
               <Button variant="primary" icon={<FileText size={16} />} onClick={generer} disabled={!pret}>Générer le PDF</Button>
             </>
           )}
         />
         <div className="px-6 pb-6">
           {erreur && <Alert tone="danger" className="mb-4">{erreur}</Alert>}
+          {civiliteManquante && (
+            <Alert tone="warning" className="mb-4">
+              La civilité (Mr / Mme) du représentant n'est pas connue : elle n'a pas pu être lue sur la fiche du client
+              (genre non renseigné, ou aucun client rattaché). Elle n'est jamais devinée d'après le prénom : cliquez sur
+              « Modifier » pour la saisir avant de générer le PDF, ou renseignez le genre sur la fiche du client.
+            </Alert>
+          )}
           {signatureManquante && (
             <Alert tone="warning" className="mb-4">
               « Signature » est cochée sur cette domiciliation, mais aucune signature/cachet n'est configurée dans

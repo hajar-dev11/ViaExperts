@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Plus, Printer, ListTree, Archive, Trash2, RotateCcw, Pencil, Wallet, ArrowLeft } from 'lucide-react'
+import { Plus, Printer, Archive, Trash2, RotateCcw, ArrowLeft, Wallet } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../../../components/ui/icons.jsx'
 import DataTable from '../../../components/DataTable.jsx'
 import ExportMenu from '../../../components/ExportMenu.jsx'
 import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
@@ -59,16 +60,22 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
   // Filtre « Tous les Responsables » de la capture de référence : une seule entrée par responsable, sans tenir compte
   // de la casse (« Via Experts » / « via Experts »). Les données des documents ne sont pas modifiées.
   const responsables = useMemo(() => listerResponsables(rows, EMETTEURS), [rows])
-  const visibles = useMemo(
-    () => (responsable ? rows.filter((r) => r.responsable && cleResponsable(r.responsable) === responsable) : rows),
-    [rows, responsable],
-  )
+  // Action « Paiement » : la liste ne montre plus QUE la facture choisie (les autres sont seulement masquées, rien n'est supprimé ni
+  // modifié) ; « Retour à la liste complète » les réaffiche toutes. On reste dans cette page.
+  const [factureChoisie, setFactureChoisie] = useState(null)
+  const choisirStatut = (suivant) => { setFactureChoisie(null); setStatus(suivant) }
+
+  const visibles = useMemo(() => {
+    const filtrees = responsable ? rows.filter((r) => r.responsable && cleResponsable(r.responsable) === responsable) : rows
+    return factureChoisie === null ? filtrees : filtrees.filter((r) => r.id === factureChoisie)
+  }, [rows, responsable, factureChoisie])
 
   const run = async (fn, message) => {
     setError(''); setSuccess('')
     try {
       await fn()
       setSuccess(message)
+      setFactureChoisie(null) // la facture archivée / supprimée / restaurée quitte cette vue : retour à la liste complète
       load()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "L'action n'a pas pu être effectuée.")
@@ -77,7 +84,7 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
 
   const columns = [
     { key: 'responsable', header: 'Responsable' },
-    { key: 'numero', header: 'Numéro', render: (r) => <span className="font-mono text-xs font-semibold text-ink-900">{r.numero}</span> },
+    { key: 'numero', header: 'Numéro', render: (r) => <span className="tabular text-[13px] font-semibold text-ink-900">{r.numero}</span> },
     {
       key: 'tiers',
       header: 'Client / Entreprise',
@@ -120,14 +127,20 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
 
       <DataTable
         title={title}
+        filterCentre
         filter={(
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center justify-center gap-2">
             {status !== 'actif' && (
-              <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => setStatus('actif')}>
+              <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => choisirStatut('actif')}>
                 Retour à la liste
               </Button>
             )}
-            <div className="w-full sm:w-56">
+            {factureChoisie !== null && (
+              <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => setFactureChoisie(null)}>
+                Retour à la liste complète
+              </Button>
+            )}
+            <div className="w-full sm:flex-1">
               <Select value={responsable} onChange={(e) => setResponsable(e.target.value)}>
                 <option value="">Tous les Responsables</option>
                 {responsables.map((r) => <option key={r.cle} value={r.cle}>{r.libelle}</option>)}
@@ -150,7 +163,7 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
               variant="warning"
               title={status === 'archive' ? 'Revenir à la liste' : 'Voir les archives'}
               aria-pressed={status === 'archive'}
-              onClick={() => setStatus((v) => (v === 'archive' ? 'actif' : 'archive'))}
+              onClick={() => choisirStatut(status === 'archive' ? 'actif' : 'archive')}
             >
               <Archive size={18} />
             </IconButton>
@@ -158,7 +171,7 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
               variant="dark"
               title={status === 'corbeille' ? 'Revenir à la liste' : 'Voir la corbeille'}
               aria-pressed={status === 'corbeille'}
-              onClick={() => setStatus((v) => (v === 'corbeille' ? 'actif' : 'corbeille'))}
+              onClick={() => choisirStatut(status === 'corbeille' ? 'actif' : 'corbeille')}
             >
               <Trash2 size={18} />
             </IconButton>
@@ -169,25 +182,18 @@ export default function DocumentList({ title, addTo, addLabel, type, editBase })
         loading={loading}
         emptyText={status === 'actif' ? 'Aucun document' : status === 'archive' ? 'Aucun document archivé' : 'Corbeille vide'}
         actionsHeader="ACTION"
-        rowClassName={(r) => (Number(r.prixRestant) > 0 ? 'bg-warning-200' : 'bg-success-200')}
-        striped={false}
         rowActions={(r) => (
           <div className="flex justify-end gap-1.5">
             <RowBtn title="Imprimer" onClick={() => imprimerDocument(type, r).catch(() => setError("L'impression a échoué."))}><Printer size={14} /></RowBtn>
             <ActionMenu
               label="Actions"
-              icon={<ListTree size={15} />}
+              icon={<IconeActions />}
               items={
                 status === 'actif'
                   ? [
-                      // « Paiements » n'a de sens que pour une Facture — Devis, Bon de
-                      // Livraison et Facture d'Avoir n'ont pas de règlement à rattacher.
-                      ...(type === 'facture' ? [{
-                        label: 'Paiements',
-                        icon: <Wallet size={15} />,
-                        onClick: () => navigate('/paiement', { state: { documentId: r.id } }),
-                      }] : []),
-                      { label: 'Modifier', icon: <Pencil size={15} />, onClick: () => navigate(`${editBase}/${r.id}/modifier`) },
+                      // « Paiement » n'a de sens que pour une Facture : la liste se limite à cette facture (voir `factureChoisie`).
+                      type === 'facture' && { label: 'Paiement', icon: <Wallet size={15} />, onClick: () => setFactureChoisie(r.id) },
+                      { label: 'Modifier', icon: <IconeModifier size={15} />, onClick: () => navigate(`${editBase}/${r.id}/modifier`) },
                       {
                         label: 'Archiver',
                         icon: <Archive size={15} />,

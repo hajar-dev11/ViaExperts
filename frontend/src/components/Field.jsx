@@ -19,24 +19,24 @@ export function Field({ label, required, children, className = '', error, hint, 
   return (
     <label className={`block ${className}`} htmlFor={htmlFor}>
       {label && (
-        <span className="mb-1.5 block text-sm font-medium text-ink-800">
+        <span className="mb-1.5 block text-[15px] font-medium text-ink-800">
           {label} {required && <span className="text-danger-500">*</span>}
         </span>
       )}
       {children}
       {error && (
-        <span className="mt-1.5 flex items-start gap-1 text-xs text-danger-600">
+        <span className="mt-1.5 flex items-start gap-1 text-[13px] text-danger-600">
           <AlertCircle size={13} className="mt-px shrink-0" />
           <span>{error}</span>
         </span>
       )}
-      {!error && hint && <span className="mt-1.5 block text-xs text-ink-600">{hint}</span>}
+      {!error && hint && <span className="mt-1.5 block text-[13px] text-ink-600">{hint}</span>}
     </label>
   )
 }
 
 const BASE =
-  'w-full rounded-lg border bg-white px-3.5 text-sm text-ink-900 transition-colors placeholder:text-ink-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:text-ink-600'
+  'w-full rounded-lg border bg-white px-3.5 text-[15px] text-ink-900 transition-colors placeholder:text-ink-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:text-ink-600'
 
 const OK = 'border-line hover:border-brand-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20'
 const KO = 'border-danger-500 focus:border-danger-500 focus:ring-2 focus:ring-danger-500/20'
@@ -70,12 +70,18 @@ export function Input({ error, icon, className = '', ...props }) {
   return icon ? <WithIcon icon={icon}>{input}</WithIcon> : input
 }
 
+// Liste déroulante : même gabarit que les champs, teintée du bleu de la marque (voir .ve-select dans index.css).
+// Pas de `bg-white` ici : il entrerait en conflit avec le fond bleuté.
+const BASE_SELECT =
+  'w-full rounded-lg border px-3.5 text-[15px] text-ink-900 transition-colors focus:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:text-ink-600'
+export const CLASSE_SELECT_BLEU = `ve-select ${BASE_SELECT} cursor-pointer border-brand-300 bg-brand-50/60 hover:border-brand-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20`
+
 export function Select({ error, icon, children, className = '', ...props }) {
   const select = (
     <select
       {...props}
       aria-invalid={error ? true : undefined}
-      className={control(error, `h-11 cursor-pointer ${icon ? 'pl-[3.25rem]' : ''} ${className}`)}
+      className={`${error ? `ve-select ${BASE_SELECT} cursor-pointer bg-white ${KO}` : CLASSE_SELECT_BLEU} h-11 ${icon ? 'pl-[3.25rem]' : ''} ${className}`}
     >
       {children}
     </select>
@@ -102,14 +108,14 @@ export function FileInput({ className = '', ...props }) {
     <input
       type="file"
       {...props}
-      className={`block w-full cursor-pointer rounded-lg border border-line bg-white text-sm text-ink-800 file:mr-4 file:cursor-pointer file:border-0 file:bg-brand-100 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-brand-600 focus-ring ${className}`}
+      className={`block w-full cursor-pointer rounded-lg border border-line bg-white text-[15px] text-ink-800 file:mr-4 file:cursor-pointer file:border-0 file:bg-brand-100 file:px-4 file:py-2.5 file:text-[15px] file:font-medium file:text-brand-600 focus-ring ${className}`}
     />
   )
 }
 
 export function Checkbox({ label, className = '', ...props }) {
   return (
-    <label className={`flex cursor-pointer items-center gap-2 text-sm text-ink-800 ${className}`}>
+    <label className={`flex cursor-pointer items-center gap-2 text-[15px] text-ink-800 ${className}`}>
       <input
         type="checkbox"
         {...props}
@@ -122,7 +128,7 @@ export function Checkbox({ label, className = '', ...props }) {
 
 export function Radio({ label, className = '', ...props }) {
   return (
-    <label className={`flex cursor-pointer items-center gap-2 text-sm text-ink-800 ${className}`}>
+    <label className={`flex cursor-pointer items-center gap-2 text-[15px] text-ink-800 ${className}`}>
       <input
         type="radio"
         {...props}
@@ -140,7 +146,7 @@ export function Radio({ label, className = '', ...props }) {
 export function Switch({ label, checked, onChange, disabled, className = '', ...props }) {
   return (
     <label
-      className={`inline-flex items-center gap-2.5 text-sm text-ink-800 ${
+      className={`inline-flex items-center gap-2.5 text-[15px] text-ink-800 ${
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
       } ${className}`}
     >
@@ -170,7 +176,7 @@ export function Switch({ label, checked, onChange, disabled, className = '', ...
 export function RadioCard({ label, hint, className = '', ...props }) {
   return (
     <label
-      className={`flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-white px-4 py-3.5 text-sm transition-colors hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 ${className}`}
+      className={`flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-white px-4 py-3.5 text-[15px] transition-colors hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 ${className}`}
     >
       <input type="radio" {...props} className="h-4 w-4 border-line text-brand-500 focus:ring-brand-500/40" />
       <span className="min-w-0 flex-1 font-medium text-ink-900">{label}</span>
@@ -182,7 +188,7 @@ export function RadioCard({ label, hint, className = '', ...props }) {
 export function CheckboxCard({ label, className = '', ...props }) {
   return (
     <label
-      className={`flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-white px-4 py-3.5 text-sm transition-colors hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 ${className}`}
+      className={`flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-white px-4 py-3.5 text-[15px] transition-colors hover:border-brand-300 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 ${className}`}
     >
       <input
         type="checkbox"
@@ -207,7 +213,7 @@ export function CheckboxCard({ label, className = '', ...props }) {
 export function FieldRow({ label, required, htmlFor, children, action, error, hint, className = '' }) {
   return (
     <div className={`grid grid-cols-1 items-start gap-x-4 gap-y-1.5 sm:grid-cols-[minmax(0,10rem)_1fr] ${className}`}>
-      <label htmlFor={htmlFor} className="text-sm leading-snug text-ink-800 sm:pt-3">
+      <label htmlFor={htmlFor} className="text-[15px] leading-snug text-ink-800 sm:pt-3">
         {label} {required && <span className="text-danger-500">*</span>}
       </label>
       <div className="min-w-0">
@@ -216,12 +222,12 @@ export function FieldRow({ label, required, htmlFor, children, action, error, hi
           {action}
         </div>
         {error && (
-          <span className="mt-1.5 flex items-start gap-1 text-xs text-danger-600">
+          <span className="mt-1.5 flex items-start gap-1 text-[13px] text-danger-600">
             <AlertCircle size={13} className="mt-px shrink-0" />
             <span>{error}</span>
           </span>
         )}
-        {!error && hint && <span className="mt-1.5 block text-xs text-ink-600">{hint}</span>}
+        {!error && hint && <span className="mt-1.5 block text-[13px] text-ink-600">{hint}</span>}
       </div>
     </div>
   )
@@ -247,7 +253,7 @@ export function SectionDivider({ children, className = '' }) {
   return (
     <div className={`flex items-center gap-4 ${className}`}>
       <span className="h-px flex-1 bg-info-200" />
-      <span className="text-sm font-medium text-ink-800">{children}</span>
+      <span className="text-[15px] font-medium text-ink-800">{children}</span>
       <span className="h-px flex-1 bg-info-200" />
     </div>
   )

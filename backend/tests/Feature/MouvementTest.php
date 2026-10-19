@@ -109,6 +109,52 @@ class MouvementTest extends TestCase
             ->assertJsonPath('totaux.montantTotal', '1000.00');
     }
 
+    public function test_period_starts_on_1_january_2022_and_ends_today(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+
+        $this->creerPaiement($admin, $party, '2022-01-01 08:00:00', 100, 100);
+        $this->creerPaiement($admin, $party, '2022-06-15 08:00:00', 200, 200);
+
+        // Borne basse : le 1er janvier 2022 est inclus, et la période par défaut du frontend (2022-01-01 → aujourd'hui) les retrouve.
+        $this->actingAs($admin)->getJson('/api/v1/mouvements/recu?date_debut=2022-01-01&date_fin='.now()->toDateString())
+            ->assertOk()
+            ->assertJsonCount(2, 'lignes');
+        $this->actingAs($admin)->getJson('/api/v1/mouvements/recu?date_debut=2022-01-01&date_fin=2022-01-01')
+            ->assertOk()
+            ->assertJsonCount(1, 'lignes');
+
+        // Hors période : avant 2022, après aujourd'hui, ou début > fin → refusé (pour les deux vues).
+        foreach (['recu', 'facture'] as $vue) {
+            $this->actingAs($admin)->getJson("/api/v1/mouvements/{$vue}?date_debut=2021-12-31")->assertStatus(422)->assertJsonValidationErrors('date_debut');
+            $this->actingAs($admin)->getJson("/api/v1/mouvements/{$vue}?date_fin=".now()->addDay()->toDateString())->assertStatus(422)->assertJsonValidationErrors('date_fin');
+            $this->actingAs($admin)->getJson("/api/v1/mouvements/{$vue}?date_debut=2023-05-01&date_fin=2023-04-01")->assertStatus(422)->assertJsonValidationErrors('date_fin');
+            $this->actingAs($admin)->getJson("/api/v1/mouvements/{$vue}?annee=2021")->assertStatus(422)->assertJsonValidationErrors('annee');
+            $this->actingAs($admin)->getJson("/api/v1/mouvements/{$vue}?trimestre=5")->assertStatus(422)->assertJsonValidationErrors('trimestre');
+        }
+    }
+
+    public function test_future_years_open_automatically_with_the_clock(): void
+    {
+        $admin = $this->admin();
+        $party = $this->party();
+
+        // Dans quelques années, rien à modifier : la borne haute suit l'horloge et l'année apparaît dans les années disponibles.
+        $this->travelTo(now()->setDate(2031, 3, 20)->setTime(10, 0));
+        $this->creerPaiement($admin, $party, '2031-02-10 10:00:00', 50, 100);
+        $this->creerFacture($admin, $party, 'FAC-1/31', '2031-02-10 10:00:00');
+
+        $this->actingAs($admin)->getJson('/api/v1/mouvements/recu?date_debut=2022-01-01&date_fin=2031-03-20&annee=2031')
+            ->assertOk()
+            ->assertJsonCount(1, 'lignes')
+            ->assertJsonPath('annees.0', 2031);
+        $this->actingAs($admin)->getJson('/api/v1/mouvements/facture?date_debut=2022-01-01&date_fin=2031-03-20&annee=2031')
+            ->assertOk()
+            ->assertJsonCount(1, 'lignes')
+            ->assertJsonPath('annees.0', 2031);
+    }
+
     public function test_facture_aggregates_invoices(): void
     {
         $admin = $this->admin();

@@ -1,29 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
-  Save, Archive, Trash2, Building2, ListTree, Pencil,
+  Save, Archive, Trash2, Building2, Landmark,
   CalendarDays, Wallet, Coins, CreditCard, Stamp,
 } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../../../components/ui/icons.jsx'
 import DataTable from '../../../components/DataTable.jsx'
 import EmptyState from '../../../components/EmptyState.jsx'
 import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
 import Alert from '../../../components/ui/Alert.jsx'
 import ActionMenu from '../../../components/ui/ActionMenu.jsx'
 import Button from '../../../components/ui/Button.jsx'
-import { FieldRow, Field, Input, Select, Checkbox, CheckboxCard, FormCard, FormActions } from '../../../components/Field.jsx'
+import { Field, Input, Select, CheckboxCard, FormCard, FormActions } from '../../../components/Field.jsx'
+import ChampSignature from '../../../components/ChampSignature.jsx'
+import SelectRecherche from '../../../components/SelectRecherche.jsx'
+import { optionsEntreprises } from '../../../utils/rechercheOptions.js'
 import { MenuImprimer } from '../components/DomiciliationActions.jsx'
 import { listEntreprises } from '../../../api/entreprises.js'
 import { ApiError } from '../../../api/http.js'
 import { chargerSignatureDomiciliation } from '../documents/documentsDomiciliation.js'
 import { getIdentiteDomiciliation } from '../../../api/settings.js'
-import { calculerDateFin } from '../utils/domiciliation.js'
-import { aujourdhui } from '../../../shared/utils/date.js'
+import { calculerDateFin, calculerPrixTotal } from '../utils/domiciliation.js'
+import { PRIX_PAR_MOIS_DEFAUT, construirePayload, deriverEntreprise, formulaireVide, soumettreFormulaire, erreurDuree } from '../utils/formulaireDomiciliation.js'
+import { listCentres } from '../api/centres.js'
 import { formatDateHeure } from '../../../utils/format.js'
 import {
   listDomiciliations, createDomiciliation, updateDomiciliation,
   getDomiciliation, archiveDomiciliation, corbeilleDomiciliation,
 } from '../api/domiciliations.js'
-import { MODES_PAIEMENT } from '../../../shared/constants/documents.js'
+import ModePaiementChamp from '../../../components/ModePaiementChamp.jsx'
+import { arrondirPrix, prixArrondiEnTexte } from '../../../utils/arrondi.js'
+import { formaterMontant } from '../../../utils/montants.js'
 
 const DOCUMENTS_CASES = [
   { cle: 'doc_facture', titre: 'Ajouter Facture de domiciliation', label: 'Facture de domiciliation' },
@@ -32,28 +39,15 @@ const DOCUMENTS_CASES = [
   { cle: 'doc_procuration', titre: 'Ajouter Procuration', label: 'Procuration' },
 ]
 
-// `date_fin` par défaut calculée UNE FOIS, à partir des valeurs par défaut
-// elles-mêmes (départ = aujourd'hui, 12 mois payés) — ce n'est pas un effet
-// réactif : Prix par mois / Prix total, eux, ne bougent jamais tout seuls
-// (voir `setEtRecalculer` dans le composant).
-const dateDepartParDefaut = aujourdhui()
+// Formulaire vierge : `formulaireVide()` (utils/formulaireDomiciliation.js). `date_fin` par défaut calculée UNE FOIS, à partir
+// des valeurs par défaut elles-mêmes (départ = aujourd'hui, 12 mois payés) — ce n'est pas un effet réactif : Prix par mois /
+// Prix total, eux, ne bougent jamais tout seuls (voir `setEtRecalculer` dans le composant).
 
-const emptyForm = {
-  entreprise_id: '', centre_domiciliation_id: '',
-  ancienne_date_depart: '', ancienne_date_fin: '',
-  mois_payee: 12, mois_gratuits: 0,
-  date_depart: dateDepartParDefaut, date_fin: calculerDateFin(dateDepartParDefaut, 12),
-  mode_paiement: '', prix_par_mois: '104.17', prix_total: '0',
-  signature_sur_facture: true,
-  date_facture: aujourdhui(), date_paiement: aujourdhui(), date_legalisation: '',
-  doc_facture: false, doc_contrat: false, doc_attestation: false, doc_procuration: false,
-}
-
+// Modification : le total enregistré est considéré comme SAISI À LA MAIN (donc conservé, jamais recalculé tout seul) quand il diffère
+// du calcul prix par mois × mois payés ; _origine garde les montants enregistrés pour ne jamais réécrire un montant historique.
 const toForm = (d) => ({
   entreprise_id: d.entrepriseId ?? '',
   centre_domiciliation_id: d.centreId ?? '',
-  ancienne_date_depart: '',
-  ancienne_date_fin: '',
   mois_payee: d.moisPayee ?? 0,
   mois_gratuits: d.moisGratuits ?? 0,
   date_depart: d.dateDepart ?? '',
@@ -61,6 +55,8 @@ const toForm = (d) => ({
   mode_paiement: d.modePaiement ?? '',
   prix_par_mois: d.prixParMois ?? '',
   prix_total: d.prixTotal ?? '0',
+  prix_total_manuel: arrondirPrix(d.prixTotal) !== arrondirPrix(d.prixParMois) * (Number(d.moisPayee) || 0),
+  _origine: { prix_par_mois: d.prixParMois, prix_total: d.prixTotal },
   signature_sur_facture: !!d.signatureSurFacture,
   date_facture: d.dateFacture ?? '',
   date_paiement: d.datePaiement ?? '',
@@ -76,8 +72,11 @@ export default function DomiciliationForm() {
   const { id } = useParams()
   const isEdit = !!id
 
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(() => formulaireVide())
+  // Verrou d'envoi : lu et écrit de façon synchrone, contrairement à `saving` (état React, mis à jour au rendu suivant).
+  const verrouEnvoi = useRef(false)
   const [entreprises, setEntreprises] = useState([])
+  const [centres, setCentres] = useState([])
   const [rows, setRows] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
@@ -96,6 +95,7 @@ export default function DomiciliationForm() {
 
   useEffect(() => {
     listEntreprises('actif').then(setEntreprises).catch(() => setEntreprises([]))
+    listCentres({ page: 1, perPage: 100 }).then((res) => setCentres(res.data || [])).catch(() => setCentres([]))
     chargerSignatureDomiciliation(getIdentiteDomiciliation).then(setSignaturePath)
     loadRows()
   }, [loadRows])
@@ -109,24 +109,23 @@ export default function DomiciliationForm() {
     charger()
   }, [charger])
 
-  // Entreprise choisie : dernière domiciliation connue (Ancienne Date de
-  // départ/fin + Centre repris automatiquement), sinon le centre déjà associé
-  // à la fiche Entreprise. Aucun champ Centre n'est affiché à l'écran — comme
-  // la capture de référence — le centre est dérivé, jamais ressaisi.
-  useEffect(() => {
-    if (isEdit || !form.entreprise_id) return
-    const derniere = rows
-      .filter((r) => String(r.entrepriseId) === String(form.entreprise_id))
-      .sort((a, b) => String(b.dateDepart ?? '').localeCompare(String(a.dateDepart ?? '')))[0]
-    const entreprise = entreprises.find((e) => String(e.id) === String(form.entreprise_id))
+  // Entreprise choisie : centre de sa dernière domiciliation connue, sinon le centre déjà associé à la fiche Entreprise.
+  // Le champ Centre n'apparaît que lorsqu'aucun centre n'est connu : il est alors à choisir ici (l'entreprise n'est plus
+  // bloquée), et ce choix n'est jamais écrasé par un rechargement.
+  const connu = useMemo(
+    () => (isEdit ? null : deriverEntreprise(rows, entreprises, form.entreprise_id)),
+    [rows, entreprises, form.entreprise_id, isEdit],
+  )
 
-    setForm((f) => ({
-      ...f,
-      ancienne_date_depart: derniere?.dateDepart ?? '',
-      ancienne_date_fin: derniere?.dateFin ?? '',
-      centre_domiciliation_id: derniere?.centreId ?? entreprise?.centreDomiciliationId ?? '',
-    }))
-  }, [form.entreprise_id, rows, entreprises, isEdit])
+  // Centre retenu : celui choisi à la main, sinon celui déduit de l'entreprise (en modification : celui de la période).
+  const centreId = form.centre_domiciliation_id || connu?.centreId || ''
+  const choisirCentre = !isEdit && !!form.entreprise_id && !!connu && !connu.centreId
+
+  const choisirEntreprise = (e) => {
+    const valeur = e.target.value
+    // Une autre entreprise : le centre choisi pour la précédente ne lui est pas transposé.
+    setForm((f) => (isEdit ? { ...f, entreprise_id: valeur } : { ...f, entreprise_id: valeur, centre_domiciliation_id: '' }))
+  }
 
   // Durée du contrat = mois payés + mois gratuits. Elle pilote la date de fin
   // ET le prix total, exactement comme dans « Ajouter Entreprise ».
@@ -143,63 +142,65 @@ export default function DomiciliationForm() {
       const next = { ...f, [k]: valeur }
       const duree = (Number(next.mois_payee) || 0) + (Number(next.mois_gratuits) || 0)
       const fin = calculerDateFin(next.date_depart, duree)
-      const pm = parseFloat(next.prix_par_mois)
-      const total = Number.isNaN(pm) ? '0' : (pm * duree).toFixed(2)
-      return { ...next, date_fin: fin || next.date_fin, prix_total: total }
+      // Durée (payés + gratuits) pour la date de fin ; prix sur les seuls mois PAYÉS : les mois gratuits ne sont pas facturés.
+      // Un total saisi à la main n'est PAS écrasé par un changement d'un autre champ : il reste tel quel jusqu'à « Recalculer ».
+      const total = next.prix_total_manuel ? next.prix_total : (calculerPrixTotal(next.prix_par_mois, next.mois_payee) ?? '0')
+      // Durée nulle : en création la date de fin est vidée (jamais conservée d'une saisie précédente, elle ne
+      // correspondrait plus à la durée) ; en modification on garde celle de la période existante.
+      return { ...next, date_fin: fin || (isEdit ? next.date_fin : ''), prix_total: total }
     })
   }
 
-  const entrepriseChoisie = useMemo(
-    () => entreprises.find((e) => String(e.id) === String(form.entreprise_id)),
-    [entreprises, form.entreprise_id]
-  )
+  // Total HT saisi à la main : conservé (drapeau prix_total_manuel), arrondi à l'entier à la sortie du champ.
+  const saisirTotal = (e) => setForm((f) => ({ ...f, prix_total: e.target.value, prix_total_manuel: true }))
+  const arrondirTotal = () => setForm((f) => ({ ...f, prix_total: prixArrondiEnTexte(f.prix_total) }))
+  const recalculerTotal = () => setForm((f) => ({ ...f, prix_total: calculerPrixTotal(f.prix_par_mois, f.mois_payee) ?? '0', prix_total_manuel: false }))
 
   const submit = async (e) => {
     e.preventDefault()
+    // Une soumission déjà en cours (double clic, Entrée répétée) : on l'ignore, rien n'est envoyé une seconde fois.
+    if (verrouEnvoi.current) return
     setError(''); setSuccess('')
 
-    if (!form.centre_domiciliation_id) {
-      setError("Cette entreprise n'a pas de centre de domiciliation : renseignez-le d'abord sur sa fiche Entreprise.")
+    if (!centreId) {
+      setError('Sélectionnez le centre de domiciliation de cette entreprise.')
+      return
+    }
+    const erreurDureeSaisie = isEdit ? '' : erreurDuree(form.mois_payee, form.mois_gratuits, form.date_fin)
+    if (erreurDureeSaisie) {
+      setError(erreurDureeSaisie)
       return
     }
 
-    setSaving(true); setErrors({})
-    try {
-      const payload = {
-        entreprise_id: Number(form.entreprise_id),
-        centre_domiciliation_id: Number(form.centre_domiciliation_id),
-        mois_payee: Number(form.mois_payee) || 0,
-        mois_gratuits: Number(form.mois_gratuits) || 0,
-        date_depart: form.date_depart,
-        date_fin: form.date_fin || null,
-        mode_paiement: form.mode_paiement || null,
-        prix_par_mois: form.prix_par_mois === '' ? 0 : Number(form.prix_par_mois),
-        prix_total: form.prix_total === '' ? 0 : Number(form.prix_total),
-        signature_sur_facture: form.signature_sur_facture,
-        date_facture: form.date_facture || null,
-        date_paiement: form.date_paiement || null,
-        date_legalisation: form.date_legalisation || null,
-        doc_facture: form.doc_facture,
-        doc_contrat: form.doc_contrat,
-        doc_attestation: form.doc_attestation,
-        doc_procuration: form.doc_procuration,
-      }
+    const payload = construirePayload(form, centreId)
 
-      if (isEdit) {
-        await updateDomiciliation(id, payload)
-        setSuccess('Domiciliation modifiée avec succès.')
-      } else {
-        await createDomiciliation(payload)
-        setSuccess('Domiciliation enregistrée avec succès.')
-        setForm({ ...emptyForm, prix_par_mois: form.prix_par_mois })
-      }
+    setSaving(true); setErrors({})
+    const issue = await soumettreFormulaire({
+      verrou: verrouEnvoi,
+      formulaire: form,
+      creation: !isEdit,
+      envoyer: () => (isEdit ? updateDomiciliation(id, payload) : createDomiciliation(payload)),
+    })
+
+    if (issue.statut === 'ignoree') return
+
+    setSaving(false)
+    if (issue.statut === 'succes') {
+      // La confirmation n'apparaît qu'APRÈS la réponse positive du serveur. En création, le formulaire repart à neuf
+      // (champs, erreurs, entreprise et dates), comme au premier affichage.
+      setForm(issue.formulaire)
+      setErrors({}); setError('')
+      setSuccess(isEdit ? 'Domiciliation modifiée avec succès.' : 'Domiciliation enregistrée avec succès.')
       loadRows()
-    } catch (err) {
-      if (err instanceof ApiError && err.errors) setErrors(err.errors)
-      setError(err instanceof ApiError ? err.message : "L'enregistrement a échoué.")
-    } finally {
-      setSaving(false)
+      return
     }
+
+    // Échec : les données saisies sont conservées pour être corrigées. On recharge la liste : si la période existe déjà
+    // (nouvelle tentative après un premier envoi réussi), elle y apparaît.
+    const err = issue.erreur
+    if (err instanceof ApiError && err.errors) setErrors(err.errors)
+    setError(err instanceof ApiError ? err.message : "L'enregistrement a échoué.")
+    loadRows()
   }
 
   const run = async (fn, message) => {
@@ -239,89 +240,103 @@ export default function DomiciliationForm() {
             </FormActions>
           )}
         >
-          <FieldRow label="Entreprise" required htmlFor="d-entreprise" error={e1('entreprise_id')}>
-            <Select
-              id="d-entreprise"
-              icon={<Building2 size={17} />}
-              required
-              value={form.entreprise_id}
-              onChange={set('entreprise_id')}
-              error={e1('entreprise_id')}
-            >
-              <option value="">Sélectionnez une Entreprise</option>
-              {entreprises.map((e) => <option key={e.id} value={e.id}>{e.denomination}</option>)}
-            </Select>
-          </FieldRow>
+          {/* 1. Entreprise : tout en haut du formulaire, avant les autres champs, sur toute la largeur de la ligne. */}
+          <div>
+            <Field label="Entreprise" required htmlFor="d-entreprise" error={e1('entreprise_id')}>
+              <SelectRecherche
+                id="d-entreprise"
+                icon={<Building2 size={17} />}
+                required
+                options={optionsEntreprises(entreprises)}
+                value={form.entreprise_id}
+                onChange={(valeur) => choisirEntreprise({ target: { value: valeur } })}
+                placeholder="Sélectionnez une Entreprise"
+                error={!!e1('entreprise_id')}
+              />
+            </Field>
+          </div>
 
-          {entrepriseChoisie && !form.centre_domiciliation_id && (
-            <Alert tone="warning" className="mt-4">
-              Cette entreprise n'a pas encore de centre de domiciliation associé : renseignez-le sur sa fiche Entreprise avant d'enregistrer.
-            </Alert>
+          {/* Seulement quand ni l'entreprise ni ses périodes précédentes n'ont de centre : on le choisit ici, sans quitter la page. */}
+          {choisirCentre && (
+            <div className="mt-5">
+              <Field label="Centre de Domiciliation" required htmlFor="d-centre" error={e1('centre_domiciliation_id')}>
+                <Select
+                  id="d-centre"
+                  icon={<Landmark size={17} />}
+                  required
+                  value={form.centre_domiciliation_id}
+                  onChange={set('centre_domiciliation_id')}
+                  error={e1('centre_domiciliation_id')}
+                >
+                  <option value="">Sélectionnez un centre</option>
+                  {centres.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                </Select>
+              </Field>
+              {centres.length === 0 && (
+                <Alert tone="warning" className="mt-3">
+                  Aucun centre de domiciliation actif : créez-en un dans Paramètres avant d'enregistrer.
+                </Alert>
+              )}
+            </div>
           )}
 
-          <div className="mt-5 grid gap-x-10 gap-y-5 lg:grid-cols-2">
-            <Field label="Ancienne Date de depart">
-              <Input type="date" value={form.ancienne_date_depart} readOnly disabled />
-            </Field>
-            <Field label="Ancienne Date de fin">
-              <Input type="date" value={form.ancienne_date_fin} readOnly disabled />
-            </Field>
-
-            <Field label="Mois Payée" required error={e1('mois_payee')}>
-              <Input type="number" min="0" required value={form.mois_payee} onChange={setEtRecalculer('mois_payee')} error={e1('mois_payee')} />
-            </Field>
-            <Field label="Mois Gratuits">
-              <Input type="number" min="0" value={form.mois_gratuits} onChange={setEtRecalculer('mois_gratuits')} />
-            </Field>
-
-            <Field label="Date de depart" required error={e1('date_depart')}>
+          {/* 2. Période : « Date de départ » et « Date de fin », juste après l'entreprise (et le centre). */}
+          <div className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            <Field label="Date de départ" required error={e1('date_depart')}>
               <Input type="date" required value={form.date_depart} onChange={setEtRecalculer('date_depart')} error={e1('date_depart')} />
             </Field>
-            <Field label="Date de fin" hint={`Calculée : date de départ + ${dureeMois} mois (Payée + Gratuits).`}>
+            <Field label="Date de fin" hint={`Calculée : date de départ + ${dureeMois} mois (payés + gratuits).`}>
               <Input type="date" value={form.date_fin} readOnly disabled />
             </Field>
           </div>
 
-          <div className="mt-5 grid gap-x-10 gap-y-5 sm:grid-cols-3">
-            <Field label="Mode de Paiement">
-              <Select icon={<CreditCard size={17} />} value={form.mode_paiement} onChange={set('mode_paiement')}>
-                <option value="">Au choix du client</option>
-                {MODES_PAIEMENT.map((m) => <option key={m} value={m}>{m}</option>)}
-              </Select>
+          {/* 3. Durée du contrat. « Mois payés » démarre à 0. */}
+          <div className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
+            <Field label="Mois payés" required error={e1('mois_payee')}>
+              <Input type="number" min="0" required value={form.mois_payee} onChange={setEtRecalculer('mois_payee')} error={e1('mois_payee')} />
             </Field>
+            <Field label="Mois gratuits">
+              <Input type="number" min="0" value={form.mois_gratuits} onChange={setEtRecalculer('mois_gratuits')} />
+            </Field>
+          </div>
+
+          {/* 4. Règlement : mode, prix par mois et prix total (HT). */}
+          <div className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-3">
+            <ModePaiementChamp icon={<CreditCard size={17} />} value={form.mode_paiement} onChange={(v) => setForm((f) => ({ ...f, mode_paiement: v }))} />
             <Field
-              label="Prix Par Mois (Dh)"
+              label="Prix par mois (Dh HT)"
               required
               error={e1('prix_par_mois')}
-              hint="Valeur par défaut : 104,17 Dh (modifiable)."
+              hint={`Valeur par défaut : ${formaterMontant(PRIX_PAR_MOIS_DEFAUT)} Dh HT.`}
             >
               <Input icon={<Wallet size={17} />} type="number" step="0.01" min="0" required
                 value={form.prix_par_mois} onChange={setEtRecalculer('prix_par_mois')} error={e1('prix_par_mois')} />
             </Field>
-            <Field label="Prix Totale (Dh)" required hint="Prix par mois × (Payée + Gratuits).">
-              <Input icon={<Coins size={17} />} type="number" value={form.prix_total} readOnly disabled />
+            <Field
+              label="Prix total HT (Dh)"
+              required
+              error={e1('prix_total')}
+              hint={form.prix_total_manuel
+                ? <>Montant saisi à la main. <button type="button" onClick={recalculerTotal} className="font-semibold text-brand-600 hover:underline">Recalculer</button> (prix par mois × mois payés)</>
+                : 'Calculé : prix par mois × mois payés, arrondi à l\'entier (mois gratuits non facturés). Modifiable.'}
+            >
+              <Input icon={<Coins size={17} />} type="number" step="0.01" min="0" required
+                value={form.prix_total} onChange={saisirTotal} onBlur={arrondirTotal} error={e1('prix_total')} />
             </Field>
           </div>
 
-          <div className="mt-5 grid gap-x-10 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Signature">
-              <div className="flex h-11 items-center rounded-lg border border-line bg-white px-4">
-                <Checkbox
-                  label="Signature sur Facture"
-                  checked={form.signature_sur_facture}
-                  onChange={setCheck('signature_sur_facture')}
-                />
-              </div>
-            </Field>
+          {/* 5. Facturation : dates et signature (même présentation partout : ChampSignature). */}
+          <div className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Date Facture" required>
               <Input icon={<CalendarDays size={17} />} type="date" required value={form.date_facture} onChange={set('date_facture')} />
             </Field>
             <Field label="Date Paiement" required>
               <Input icon={<CalendarDays size={17} />} type="date" required value={form.date_paiement} onChange={set('date_paiement')} />
             </Field>
-            <Field label="Date Galisation" required>
+            <Field label="Date Légalisation" required>
               <Input icon={<CalendarDays size={17} />} type="date" required value={form.date_legalisation} onChange={set('date_legalisation')} />
             </Field>
+            <ChampSignature checked={form.signature_sur_facture} onChange={setCheck('signature_sur_facture')} />
           </div>
 
           <div className="my-6 border-t border-line" />
@@ -345,16 +360,20 @@ export default function DomiciliationForm() {
         </FormCard>
       </form>
 
+      {/* Bloc centré dans son cadre : titre centré, et message « aucune domiciliation » centré dans un cadre blanc. */}
       <div className="mt-8">
-        <h2 className="mb-3 text-xl text-ink-900">Domiciliations ajoutées</h2>
+        <h2 className="mb-3 text-center text-xl text-ink-900">Domiciliations ajoutées</h2>
         {rows.length === 0 ? (
-          <EmptyState title="Aucune domiciliation enregistrée" />
+          <div className="rounded-xl bg-white shadow-card">
+            <EmptyState title="Aucune domiciliation enregistrée" />
+          </div>
         ) : (
           <DataTable
             columns={[
               {
                 key: 'denomination',
                 header: 'Entreprise',
+                wrap: true,
                 render: (r) => (
                   <Link to={`/domiciliation/${r.id}`} className="font-semibold text-brand-700 hover:underline">
                     {r.denomination}
@@ -366,10 +385,11 @@ export default function DomiciliationForm() {
               { key: 'dateLegalisation', header: 'Date légalisation' },
               { key: 'dateDepart', header: 'Date départ' },
               { key: 'dateFin', header: 'Date fin' },
-              { key: 'prixTotal', header: 'Prix payé', numeric: true },
-              { key: 'createdAt', header: 'Date opération', render: (r) => formatDateHeure(r.createdAt) },
-              { key: 'createdBy', header: 'Action de', value: (r) => r.createdBy || '—' },
+              { key: 'prixTotal', header: 'Prix payé HT', numeric: true },
+              { key: 'createdAt', header: 'Date opération', wrap: true, render: (r) => formatDateHeure(r.createdAt) },
+              { key: 'createdBy', header: 'Action de', wrap: true, value: (r) => r.createdBy || '—' },
             ]}
+            compact
             rows={rows}
             actionsHeader="ACTION"
             rowActions={(r) => (
@@ -377,11 +397,11 @@ export default function DomiciliationForm() {
                 <MenuImprimer domiciliation={r} signaturePath={signaturePath} />
                 <ActionMenu
                   label="Actions"
-                  icon={<ListTree size={15} />}
+                  icon={<IconeActions />}
                   items={[
                     {
                       label: 'Modifier',
-                      icon: <Pencil size={15} />,
+                      icon: <IconeModifier size={15} />,
                       // Même formulaire que la création, en mode modification (données préremplies) ;
                       // remonter en haut de page pour que le formulaire soit visible.
                       onClick: () => {

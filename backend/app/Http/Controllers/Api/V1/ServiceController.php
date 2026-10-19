@@ -20,6 +20,8 @@ class ServiceController extends Controller
         $data = $this->validated($request);
         $data['created_by'] = $request->user()->id;
 
+        // Prix du service : HT, enregistré avec ses centimes (104,17 reste 104,17). Seuls les totaux sont arrondis.
+
         // `status` a une valeur par défaut posée par la base : refresh pour la renvoyer.
         return Service::create($data)->refresh();
     }
@@ -31,7 +33,11 @@ class ServiceController extends Controller
 
     public function update(Request $request, Service $service)
     {
-        $service->update($this->validated($request, true));
+        $data = $this->validated($request, true);
+
+        // Prix HT enregistré avec ses centimes (aucun arrondi : seuls les totaux sont arrondis).
+
+        $service->update($data);
 
         return $service->fresh();
     }

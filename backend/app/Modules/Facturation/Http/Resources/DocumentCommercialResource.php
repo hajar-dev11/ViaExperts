@@ -46,6 +46,10 @@ class DocumentCommercialResource extends JsonResource
                 'designation' => $l->designation,
                 'quantite' => $l->quantite,
                 'prixUnitaire' => $l->prix_unitaire,
+                // Remise en Dh (montant saisi, ou équivalent de l'ancien pourcentage pour une ligne historique) ; remisePourcent
+                // n'est conservé que pour les lignes enregistrées avant le passage à la remise en montant.
+                'remiseMontant' => number_format($l->remiseEnDh(), 2, '.', ''),
+                'remiseEnMontant' => $l->remise_montant !== null,
                 'remisePourcent' => $l->remise_pourcent,
                 'tvaPourcent' => $l->tva_pourcent,
                 'totalHt' => $l->total_ht,

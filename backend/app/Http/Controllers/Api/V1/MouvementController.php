@@ -21,6 +21,26 @@ class MouvementController extends Controller
      *
      * Filtres communs aux 2 captures : plage de dates, année et trimestre.
      */
+    /** Début de l'historique consultable ; la borne haute est la date du jour (fuseau de l'application), jamais figée. */
+    public const DATE_MIN = '2022-01-01';
+
+    /** Période consultable : du 1er janvier 2022 à aujourd'hui. Les années futures s'ouvrent d'elles-mêmes avec le temps. */
+    private function validerPeriode(Request $request): void
+    {
+        $request->validate([
+            'date_debut' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.self::DATE_MIN, 'before_or_equal:today'],
+            'date_fin' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_debut', 'before_or_equal:today'],
+            'annee' => ['nullable', 'integer', 'min:'.(int) substr(self::DATE_MIN, 0, 4), 'max:9999'],
+            'trimestre' => ['nullable', 'integer', 'between:1,4'],
+        ], [
+            'date_debut.after_or_equal' => 'La date de début ne peut pas être antérieure au 1er janvier 2022.',
+            'date_debut.before_or_equal' => "La date de début ne peut pas dépasser la date d'aujourd'hui.",
+            'date_fin.before_or_equal' => "La date de fin ne peut pas dépasser la date d'aujourd'hui.",
+            'date_fin.after_or_equal' => 'La date de début doit être antérieure ou égale à la date de fin.',
+            'annee.min' => "L'année ne peut pas être antérieure à 2022.",
+        ]);
+    }
+
     private function appliquerFiltres(Builder $query, Request $request, string $colonneDate): Builder
     {
         if ($debut = $request->query('date_debut')) {
@@ -47,6 +67,7 @@ class MouvementController extends Controller
     public function recu(Request $request)
     {
         abort_unless($request->user()->hasPermission('mouvement', 'mouvement_entres_recu'), 403);
+        $this->validerPeriode($request);
 
         $paiements = $this->appliquerFiltres(
             Paiement::with(['client', 'entreprise', 'lignes'])->status('actif'),
@@ -54,7 +75,11 @@ class MouvementController extends Controller
             'date_operation'
         )->orderByDesc('id')->get();
 
-        $total = $paiements->sum(fn ($p) => (float) $p->total);
+        // Un paiement complémentaire reprend le total de son paiement d'origine : le montant dû d'un service ne se compte qu'UNE
+        // fois, alors que chaque paiement compte dans le montant payé. Le reste de chaque ligne est celui APRÈS ce paiement.
+        Paiement::chargerRestes($paiements);
+        $presents = $paiements->pluck('id')->flip();
+        $total = $paiements->sum(fn ($p) => $p->estComplement() && $presents->has($p->paiement_origine_id) ? 0.0 : (float) $p->total);
         $paye = $paiements->sum(fn ($p) => (float) $p->prix_paye);
 
         return response()->json([
@@ -84,6 +109,7 @@ class MouvementController extends Controller
     public function facture(Request $request)
     {
         abort_unless($request->user()->hasPermission('mouvement', 'mouvement_entres_facture'), 403);
+        $this->validerPeriode($request);
 
         // Les factures viennent du contrat de Facturation (mêmes filtres de période) ; les totaux restent calculés ici.
         $factures = collect($this->factures->entrees(array_intersect_key($request->query(), array_flip(['date_debut', 'date_fin', 'annee', 'trimestre']))));

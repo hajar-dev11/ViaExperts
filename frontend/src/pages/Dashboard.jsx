@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, CalendarDays, Clock, Download, TrendingUp, PieChart as PieChartIcon, ArrowLeft } from 'lucide-react'
+import { ChevronDown, CalendarDays, TrendingUp, PieChart as PieChartIcon } from 'lucide-react'
 import ServiceEnCoursRowActions, {
-  BadgeStatutService, ModalChangerStatut,
+  ItemActiviteService, StatutServiceBadge,
 } from '../components/ServiceEnCoursActions.jsx'
-import { serviceStatusApi } from '../api/statuses.js'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import DataTable from '../components/DataTable.jsx'
+import FilActivite from '../components/ui/FilActivite.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import Popover from '../components/Popover.jsx'
-import { RowBtn } from '../components/ListToolbar.jsx'
-import { API_URL } from '../api/http.js'
-import { formatDateHeure, formatDate, formatHeure } from '../utils/format.js'
+import { formatDateHeure } from '../utils/format.js'
 import { listDomiciliations } from '../modules/domiciliation/index.js'
-import { listServicesEnCours, listActivite, getServiceEnCours } from '../api/servicesEnCours.js'
+import { listServicesEnCours, listActivite, listStatutsService, getServiceEnCours } from '../api/servicesEnCours.js'
+import { PERIODES, construireSeries } from '../utils/seriesDomiciliation.js'
+import { SERIES_DOMICILIATION, calculerSegments, decrireArc, polarToCartesian, valeursParSerie } from '../utils/donut.js'
+import LegendeRepartition from '../components/LegendeRepartition.jsx'
 
 /**
  * Accueil — reproduction de la page d'accueil du système de référence
@@ -36,94 +37,8 @@ import { listServicesEnCours, listActivite, getServiceEnCours } from '../api/ser
  * affichent un état vide.
  */
 
-const SERIES = [
-  { key: 'nouveau', label: 'Nouveau', color: '#28c76f' },
-  { key: 'renouveler', label: 'Renouveler', color: '#7367f0' },
-  { key: 'declary', label: 'Déclary', color: '#191919' },
-  { key: 'resilier', label: 'Résilier', color: '#00cfe8' },
-]
-
-const MOIS = ['Janv', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc']
-
-/**
- * Périodes d'analyse proposées par la flèche des deux cartes.
- * `pas` détermine le découpage de l'axe : un point par jour sur les courtes
- * périodes, un point par mois au-delà.
- */
-const PERIODES = [
-  { cle: '7j', label: '7 derniers jours', court: '7 Jours', pas: 'jour', n: 7 },
-  { cle: '15j', label: '15 derniers jours', court: '15 Jours', pas: 'jour', n: 15 },
-  { cle: '30j', label: '30 derniers jours', court: '30 Jours', pas: 'jour', n: 30 },
-  { cle: '3m', label: '3 derniers mois', court: '3 Mois', pas: 'mois', n: 3 },
-  { cle: '6m', label: '6 derniers mois', court: '6 Mois', pas: 'mois', n: 6 },
-  { cle: '12m', label: '12 derniers mois', court: '12 Mois', pas: 'mois', n: 12 },
-]
-
-/**
- * Construit les séries mensuelles à partir des domiciliations réelles.
- *
- * « Nouveau » et « Renouveler » se déduisent de l'historique : pour une même
- * entreprise, la domiciliation la plus ancienne est une mise en place, les
- * suivantes sont des renouvellements. Rien n'est inventé et aucune colonne
- * supplémentaire n'est nécessaire en base.
- */
-function construireSeries(domiciliations, periode) {
-  const aujourdhui = new Date()
-  const cases = []
-  const index = new Map()
-  const parJour = periode.pas === 'jour'
-
-  for (let i = periode.n - 1; i >= 0; i -= 1) {
-    let cle
-    let libelle
-    if (parJour) {
-      const d = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() - i)
-      cle = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      libelle = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-    } else {
-      const d = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - i, 1)
-      cle = `${d.getFullYear()}-${d.getMonth()}`
-      libelle = MOIS[d.getMonth()]
-    }
-    const point = { mois: libelle, nouveau: 0, renouveler: 0, declary: 0, resilier: 0 }
-    index.set(cle, point)
-    cases.push(point)
-  }
-
-  const compter = (valeur, champ) => {
-    if (!valeur) return
-    const d = new Date(valeur)
-    if (Number.isNaN(d.getTime())) return
-    const cle = parJour
-      ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      : `${d.getFullYear()}-${d.getMonth()}`
-    const point = index.get(cle)
-    if (point) point[champ] += 1
-  }
-
-  // Rang de chaque domiciliation dans l'historique de son entreprise.
-  const parEntreprise = new Map()
-  domiciliations.forEach((dom) => {
-    const cle = dom.entrepriseId ?? dom.denomination ?? dom.id
-    if (!parEntreprise.has(cle)) parEntreprise.set(cle, [])
-    parEntreprise.get(cle).push(dom)
-  })
-  const rangs = new Map()
-  parEntreprise.forEach((liste) => {
-    liste
-      .slice()
-      .sort((a, b) => String(a.dateDepart ?? '').localeCompare(String(b.dateDepart ?? '')))
-      .forEach((dom, i) => rangs.set(dom.id, i))
-  })
-
-  domiciliations.forEach((dom) => {
-    compter(dom.dateDepart, rangs.get(dom.id) > 0 ? 'renouveler' : 'nouveau')
-    compter(dom.dateDeclaration, 'declary')
-    compter(dom.dateResiliation, 'resilier')
-  })
-
-  return cases
-}
+// Les 4 actions (ordre et couleurs) sont définies une seule fois, dans utils/donut.js : la légende du donut les affiche toujours.
+const SERIES = SERIES_DOMICILIATION
 
 /**
  * En-tête des cartes graphiques : titre à gauche, icônes calendrier + chevron
@@ -271,33 +186,18 @@ function texteLisibleSur(hex) {
   return luminance > 0.6 ? '#191919' : '#ffffff'
 }
 
-function polarToCartesian(cx, cy, r, angleDeg) {
-  const rad = (angleDeg * Math.PI) / 180
-  return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)]
-}
-
-/** Secteur d'anneau plein (donut), de `startAngle` à `endAngle` (degrés, 0 = 3h, sens horaire). */
-function describeArc(cx, cy, rOuter, rInner, startAngle, endAngle) {
-  const large = (endAngle - startAngle) % 360 > 180 ? 1 : 0
-  const [x1, y1] = polarToCartesian(cx, cy, rOuter, startAngle)
-  const [x2, y2] = polarToCartesian(cx, cy, rOuter, endAngle)
-  const [x3, y3] = polarToCartesian(cx, cy, rInner, endAngle)
-  const [x4, y4] = polarToCartesian(cx, cy, rInner, startAngle)
-  return `M ${x1} ${y1} A ${rOuter} ${rOuter} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${rInner} ${rInner} 0 ${large} 0 ${x4} ${y4} Z`
-}
+// Tracé et angles du donut : voir utils/donut.js (une part de 100 % est tracée comme un anneau complet).
 
 export default function Dashboard() {
   const [domiciliations, setDomiciliations] = useState(null)
-  // Statuts de service (Paramètre > Services) et ligne dont on change le statut.
+  // Statuts de service (Paramètre > Services), proposés par le menu du statut d'une ligne.
   const [statuts, setStatuts] = useState([])
-  const [statutPour, setStatutPour] = useState(null)
   const [services, setServices] = useState([])
   const [activite, setActivite] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
-  // Œil d'une ligne « Services en cours » : remplace temporairement le fil
-  // global par celui du seul service sélectionné (même mécanisme que la page
+  // Ligne « Services en cours » choisie (clic ou œil) ; sans choix, la première ligne du tableau (même mécanisme que la page
   // Services En Cours).
-  const [selectedService, setSelectedService] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
   const [serviceActivite, setServiceActivite] = useState([])
   const [serviceActiviteLoading, setServiceActiviteLoading] = useState(false)
 
@@ -345,11 +245,10 @@ export default function Dashboard() {
 
     listActivite(6).then((r) => { if (!cancelled) setActivite(r) }).catch(() => {})
 
-    // Statuts pour « Changer le Statut du Service ». L'endpoint est réservé à
-    // l'administrateur : un non-admin obtient une liste vide et la fenêtre le
-    // signale, au lieu d'échouer.
-    serviceStatusApi.list({ page: 1, perPage: 100 })
-      .then((r) => { if (!cancelled) setStatuts(r.data || []) })
+    // Statuts réels de Paramètre > Services, servis avec le droit de lecture de « Services en cours » (et non celui de
+    // Paramètres) : un utilisateur habilité à changer un statut voit la liste.
+    listStatutsService()
+      .then((r) => { if (!cancelled) setStatuts(Array.isArray(r) ? r : []) })
       .catch(() => {})
 
     return () => { cancelled = true }
@@ -361,22 +260,23 @@ export default function Dashboard() {
     listActivite(6).then(setActivite).catch(() => {})
   }
 
-  // L'œil affiche le fil d'opérations du service directement dans le panneau
-  // « Activité Services », au lieu d'un popup — même comportement que la page
-  // Services En Cours.
-  const showServiceActivite = async (r) => {
-    setSelectedService(r)
+  // Panneau « Activité Services » : par défaut le fil d'opérations de la PREMIÈRE ligne du tableau (ligne surlignée) ; l'œil ou le
+  // clic sur une autre ligne affiche celui du service choisi, sans popup — même comportement que la page Services En Cours.
+  // Le fil global ne sert que si le tableau est vide.
+  const showServiceActivite = (r) => setSelectedId(r.id)
+  const selectedService = services.find((r) => r.id === selectedId) ?? services[0] ?? null
+  const selectedServiceId = selectedService?.id ?? null
+
+  useEffect(() => {
+    if (selectedServiceId === null) { setServiceActivite([]); return undefined }
+    let annule = false
     setServiceActiviteLoading(true)
-    try {
-      const full = await getServiceEnCours(r.id)
-      setServiceActivite(full?.operations ?? [])
-    } catch {
-      setServiceActivite([])
-    } finally {
-      setServiceActiviteLoading(false)
-    }
-  }
-  const closeServiceActivite = () => { setSelectedService(null); setServiceActivite([]) }
+    getServiceEnCours(selectedServiceId)
+      .then((full) => { if (!annule) setServiceActivite(full?.operations ?? []) })
+      .catch(() => { if (!annule) setServiceActivite([]) })
+      .finally(() => { if (!annule) setServiceActiviteLoading(false) })
+    return () => { annule = true }
+  }, [selectedServiceId, services])
 
   const trend = useMemo(
     () => (domiciliations ? construireSeries(domiciliations, periode) : []),
@@ -384,27 +284,17 @@ export default function Dashboard() {
   )
 
   // Le donut reprend les MÊMES séries, cumulées sur la période affichée.
-  const repartition = useMemo(
-    () => SERIES
-      .map((s) => ({ ...s, value: trend.reduce((acc, p) => acc + p[s.key], 0) }))
-      .filter((s) => s.value > 0),
-    [trend]
-  )
-
-  const totalRepartition = repartition.reduce((acc, s) => acc + s.value, 0)
-  const aucuneDonnee = domiciliations !== null && totalRepartition === 0
+  // `valeursPeriode` garde les 4 actions (valeur 0 comprise) pour la légende fixe ; `repartition` (ce que trace le donut) ne
+  // garde que celles > 0, comme avant.
+  const valeursPeriode = useMemo(() => valeursParSerie(SERIES, trend), [trend])
+  const repartition = useMemo(() => valeursPeriode.filter((s) => s.value > 0), [valeursPeriode])
 
   // Angle de chaque part (degrés, 0 = 3h, sens horaire) — part à part, dans
   // l'ordre de `repartition`, en partant de midi (-90°) comme la référence.
-  // Calcul purement fonctionnel (aucune variable réassignée pendant le rendu) :
-  // l'angle de départ d'une part est la somme cumulée des valeurs qui la
-  // précèdent dans `repartition`.
-  const segmentsAngles = useMemo(() => repartition.map((s, i) => {
-    const avant = repartition.slice(0, i).reduce((acc, x) => acc + x.value, 0)
-    const sweep = totalRepartition > 0 ? (s.value / totalRepartition) * 360 : 0
-    const startAngle = -90 + (totalRepartition > 0 ? (avant / totalRepartition) * 360 : 0)
-    return { ...s, startAngle, endAngle: startAngle + sweep, mid: startAngle + sweep / 2 }
-  }), [repartition, totalRepartition])
+  // Calcul dans utils/donut.js : valeurs invalides ignorées, jamais de division
+  // par zéro, une part unique (100 %) donne bien un anneau complet.
+  const { total: totalRepartition, segments: segmentsAngles } = useMemo(() => calculerSegments(repartition), [repartition])
+  const aucuneDonnee = domiciliations !== null && totalRepartition === 0
   // Ignore une sélection/survol devenu obsolète (période changée, part
   // retombée à 0). Le survol l'emporte sur la sélection tant qu'il dure.
   const partSelectionneeValide = partSelectionnee && repartition.some((s) => s.key === partSelectionnee.key)
@@ -415,8 +305,6 @@ export default function Dashboard() {
     : null
   const partAffichee = partSurvoleeValide ?? partSelectionneeValide
 
-  // Panneau « Activité Services » : flux global par défaut, ou fil d'un seul
-  // service quand l'œil d'une ligne a été cliqué (voir showServiceActivite).
   const activiteFeed = selectedService ? serviceActivite : activite
 
   // Colonnes exactement celles de la capture, y compris ACTIONS.
@@ -428,8 +316,12 @@ export default function Dashboard() {
       key: 'statut',
       header: 'Status',
       value: (r) => r.statut?.nom,
-      // Le badge est cliquable : il ouvre « Changer le Statut du Service ».
-      render: (r) => <BadgeStatutService statut={r.statut} onClick={() => setStatutPour(r)} />,
+      // Le statut est cliquable : liste des statuts réels, enregistrée par l'API (même composant que Services En Cours).
+      render: (r) => (
+        <span onClick={(e) => e.stopPropagation()}>
+          <StatutServiceBadge row={r} statuts={statuts} onChanged={rechargerServices} />
+        </span>
+      ),
     },
     { key: 'service', header: 'Services', wrap: true },
     {
@@ -446,15 +338,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Ouverte par un clic sur le badge de statut d'une ligne. */}
-      <ModalChangerStatut
-        open={!!statutPour}
-        row={statutPour}
-        statuts={statuts}
-        onClose={() => setStatutPour(null)}
-        onSaved={rechargerServices}
-      />
-
       {/* ---- Ligne 1 : les deux graphiques ---------------------------------- */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="overflow-hidden rounded-xl bg-white shadow-card xl:col-span-2">
@@ -524,8 +407,9 @@ export default function Dashboard() {
           />
 
           {ratioOuvert && (
-            repartition.length === 0 ? (
-              <div className="grid flex-1 place-items-center pb-6">
+            <>
+            {repartition.length === 0 ? (
+              <div className="grid flex-1 place-items-center pb-2">
                 <EmptyState
                   icon={PieChartIcon}
                   title={domiciliations === null ? 'Chargement…' : 'Aucune donnée disponible'}
@@ -551,7 +435,7 @@ export default function Dashboard() {
                       // sélection) : l'association entre la zone et l'infobulle
                       // devient immédiatement visible.
                       const rOuter = DONUT_BASE_R + (selectionnee || survolee ? DONUT_GROW : 0)
-                      const percent = totalRepartition > 0 ? seg.value / totalRepartition : 0
+                      const percent = seg.percent
                       // Étiquette à position fixe : la croissance de la part
                       // sélectionnée ne doit pas déplacer son pourcentage.
                       const labelR = (DONUT_BASE_R + DONUT_INNER_R) / 2
@@ -571,8 +455,9 @@ export default function Dashboard() {
                           }}
                         >
                           <path
-                            d={describeArc(DONUT_CX, DONUT_CY, rOuter, DONUT_INNER_R, seg.startAngle, seg.endAngle)}
+                            d={decrireArc(DONUT_CX, DONUT_CY, rOuter, DONUT_INNER_R, seg.startAngle, seg.endAngle)}
                             fill={seg.color}
+                            fillRule="evenodd"
                             style={{ transition: 'd .18s ease' }}
                           />
                           {percent > 0 && (
@@ -632,33 +517,18 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Indication sous le graphique : la part actuellement
-                    sélectionnée (clic) ressort du reste de la légende. */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 px-6 pt-2 pb-6">
-                  {SERIES.map((s) => {
-                    const partCorrespondante = repartition.find((r) => r.key === s.key)
-                    const selectionnee = partSelectionneeValide?.key === s.key
-                    return (
-                      <button
-                        key={s.key}
-                        type="button"
-                        onClick={() => partCorrespondante && setPartSelectionnee((sel) => (sel?.key === s.key ? null : partCorrespondante))}
-                        onMouseEnter={() => partCorrespondante && setPartSurvolee(partCorrespondante)}
-                        onMouseLeave={() => setPartSurvolee(null)}
-                        disabled={!partCorrespondante}
-                        className={`flex items-center gap-2 rounded-lg px-2 py-1 -mx-2 text-left text-sm transition-colors focus-ring disabled:cursor-not-allowed disabled:opacity-40 ${
-                          selectionnee ? 'font-semibold text-ink-900' : 'text-ink-800 hover:bg-surface'
-                        }`}
-                        style={selectionnee ? { background: `${s.color}1a` } : undefined}
-                      >
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
-                        {s.label}
-                      </button>
-                    )
-                  })}
-                </div>
               </>
-            )
+            )}
+
+            {/* Légende FIXE sous le cercle : les 4 actions restent toujours visibles, même à 0 ou sans aucune donnée.
+                La part sélectionnée (clic) ressort du reste de la légende. */}
+            <LegendeRepartition
+              series={valeursPeriode}
+              selectionneeKey={partSelectionneeValide?.key ?? null}
+              onSelect={(s) => setPartSelectionnee((sel) => (sel?.key === s.key ? null : s))}
+              onHover={setPartSurvolee}
+            />
+            </>
           )}
         </div>
       </div>
@@ -697,13 +567,8 @@ export default function Dashboard() {
         <div className="overflow-hidden rounded-xl bg-white shadow-card">
           <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-2">
             <h2 className="text-xl text-ink-900 truncate">
-              {selectedService ? `Activité — ${selectedService.service || 'Service'}` : 'Activité Services'}
+              {selectedService ? `Activité Services — ${selectedService.service || 'Service'}` : 'Activité Services'}
             </h2>
-            {selectedService && (
-              <RowBtn title="Revenir à l'activité globale" onClick={closeServiceActivite}>
-                <ArrowLeft size={14} />
-              </RowBtn>
-            )}
           </div>
 
           {serviceActiviteLoading ? (
@@ -715,50 +580,11 @@ export default function Dashboard() {
               <EmptyState title={selectedService ? 'Aucune opération enregistrée' : 'Aucune activité récente'} />
             </div>
           ) : (
-            <div className="space-y-5 px-6 pb-6">
+            <FilActivite className="space-y-5 px-6 pb-6">
               {activiteFeed.map((a, i) => (
-                <div key={a.id} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full bg-info-500" />
-                    {i < activiteFeed.length - 1 && <span className="mt-1 w-px flex-1 bg-line" />}
-                  </div>
-
-                  <div className="min-w-0 flex-1 pb-1">
-                    {/* Badge + « Par » à gauche, horodatage à droite sur deux
-                        lignes (date puis heure), exactement comme la capture. */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                        <BadgeStatutService statut={a.statut} />
-                        <span className="text-sm text-ink-700">Par</span>
-                      </div>
-                      <div className="flex shrink-0 items-start gap-1.5 text-xs text-ink-600">
-                        <Clock size={13} className="mt-0.5 shrink-0" />
-                        <span className="tabular text-right leading-tight">
-                          {formatDate(a.createdAt)}
-                          <br />
-                          {formatHeure(a.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Le cabinet est affiché, jamais le membre de l'équipe
-                        qui a réellement effectué l'opération. */}
-                    <div className="mt-0.5 text-sm font-semibold text-ink-900">Via Experts</div>
-
-                    {a.fichierChemin && (
-                      <a
-                        href={`${API_URL}/storage/${a.fichierChemin}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-flex items-center gap-1.5 break-all text-sm text-ink-800 hover:text-brand-500 hover:underline"
-                      >
-                        <Download size={14} className="shrink-0" /> {a.fichierNom}
-                      </a>
-                    )}
-                  </div>
-                </div>
+                <ItemActiviteService key={a.id} a={a} dernier={i === activiteFeed.length - 1} />
               ))}
-            </div>
+            </FilActivite>
           )}
         </div>
       </div>

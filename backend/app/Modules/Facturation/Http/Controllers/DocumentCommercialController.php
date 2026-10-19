@@ -9,6 +9,7 @@ use App\Modules\Facturation\Http\Requests\StoreDocumentCommercialRequest;
 use App\Modules\Facturation\Http\Requests\UpdateDocumentCommercialRequest;
 use App\Modules\Facturation\Http\Resources\DocumentCommercialResource;
 use App\Modules\Facturation\Models\DocumentCommercial;
+use App\Modules\Facturation\Models\DocumentLigne;
 use App\Modules\Facturation\Services\NumerotationDocuments;
 use App\Support\VerrouPaiements;
 use Illuminate\Database\QueryException;
@@ -71,25 +72,34 @@ class DocumentCommercialController extends Controller
         $this->autoriser($request, 'ajouter', $type);
 
         $data = $request->validated();
+        // Les prix unitaires gardent leurs centimes ; c'est le TOTAL HT du document qui est arrondi (règle 0,50).
         $lignes = $data['lignes'];
         unset($data['lignes']);
+        $numeroAuto = (bool) ($data['numero_auto'] ?? false);
+        unset($data['numero_auto']);
 
         try {
-            $document = DB::transaction(function () use ($data, $lignes, $type, $request) {
+            $document = DB::transaction(function () use ($data, $lignes, $type, $request, $numeroAuto) {
+                // Numéro proposé par la numérotation de l'émetteur (Centre de domiciliation ou Bureau de comptabilité) et resté
+                // tel quel côté écran : attribué ICI, sous verrou, pour qu'il soit libre et jamais partagé entre deux créations.
+                if ($numeroAuto) {
+                    $data['numero'] = $this->numerotation->attribuer($data['emetteur'], $type);
+                }
+
                 $document = DocumentCommercial::create($data + [
                     'type' => $type,
                     'created_by' => $request->user()->id,
                 ]);
 
                 foreach (array_values($lignes) as $ordre => $ligne) {
-                    $document->lignes()->create($ligne + ['ordre' => $ordre]);
+                    $document->lignes()->create(DocumentLigne::attributsEcrivables($ligne) + ['ordre' => $ordre]);
                 }
 
                 $document->load('lignes');
                 $document->recalculerTotaux();
 
                 // Les services saisis sur les lignes apparaissent dans « Services en cours ».
-                $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
+                $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id, ['type' => $document->type, 'id' => $document->id]);
 
                 // Le compteur avance dans la MÊME transaction que la création.
                 $this->numerotation->avancer($document->emetteur, $type, $document->numero);
@@ -124,7 +134,6 @@ class DocumentCommercialController extends Controller
         $data = $request->validated();
         $lignes = $data['lignes'] ?? null;
         unset($data['lignes']);
-
         // Une FACTURE dont on touche aux lignes, au montant payé ou au client est modifiée sous le MÊME verrou que les
         // paiements : un paiement et une modification simultanés ne se croisent pas, et « total payé ≤ TTC » est évalué sur
         // l'état réel de cet instant.
@@ -152,7 +161,7 @@ class DocumentCommercialController extends Controller
                 if ($lignes !== null) {
                     $document->lignes()->delete();
                     foreach (array_values($lignes) as $ordre => $ligne) {
-                        $document->lignes()->create($ligne + ['ordre' => $ordre]);
+                        $document->lignes()->create(DocumentLigne::attributsEcrivables($ligne) + ['ordre' => $ordre]);
                     }
                 }
 
@@ -166,7 +175,7 @@ class DocumentCommercialController extends Controller
                 }
 
                 // Un service ajouté lors d'une modification apparaît lui aussi dans « Services en cours ».
-                $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id);
+                $this->servicesEnCours->assurerPourTiers($document->party_id, $document->lignes->pluck('service_id'), $request->user()->id, ['type' => $document->type, 'id' => $document->id]);
             });
         };
 

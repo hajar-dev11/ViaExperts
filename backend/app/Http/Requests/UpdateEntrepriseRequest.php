@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Entreprise;
 use App\Models\EntrepriseAssocie;
+use App\Rules\DenominationEntrepriseUnique;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,7 @@ class UpdateEntrepriseRequest extends FormRequest
         $id = $this->route('entreprise');
 
         return [
-            'denomination' => ['sometimes', 'required', 'string', 'max:200'],
+            'denomination' => ['sometimes', 'required', 'string', 'max:200', new DenominationEntrepriseUnique($id instanceof Entreprise ? $id : null)],
             'tribunal' => ['nullable', 'string', 'max:150'],
             'forme' => ['sometimes', 'required', 'in:SARL,SARL AU,SA,SNC,Auto-Entrepreneur,Établissement Public'],
             'ice' => ['nullable', 'string', 'max:20', Rule::unique('entreprises', 'ice')->ignore($id, 'party_id')],

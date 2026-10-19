@@ -42,6 +42,7 @@ class ArchiveController extends Controller
             'clients' => Party::where('type', 'client')->where('status', $status)->count(),
             'entreprises' => Party::where('type', 'entreprise')->where('status', $status)->count(),
             'domiciliation' => $this->domiciliations->compterParStatut($status),
+            'centres' => $this->domiciliations->compterCentresParStatut($status),
             'services' => Service::where('status', $status)->count(),
             'services_en_cours' => $this->servicesEnCours->compterParStatut($status),
             'facture' => $documents['facture'],

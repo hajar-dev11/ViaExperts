@@ -18,9 +18,14 @@ export const VUES_BLOC = { actif: 'Actifs', archive: 'Archive', corbeille: 'Corb
  * Omettre `onAjouter` retire le bouton d'action ; omettre `onVue` retire les
  * bascules Archive/Corbeille — utile pour un affichage purement consultatif
  * (ex. le résumé Documents/Observations sur la fiche Client).
+ *
+ * actions : boutons d'en-tête supplémentaires (IconButton), placés juste avant « Archive » (ex. « Renouveler » du bloc Domiciliation).
+ *
+ * ouvertParDefaut (vrai par défaut) : à `false`, le bloc démarre MASQUÉ — seuls son titre et sa flèche sont visibles ; un clic
+ * sur la flèche l'affiche, un second le masque. Les données restent chargées par la page : rien n'est perdu à l'ouverture.
  */
-export default function CarteBloc({ icon: Icon, titre, onAjouter, titreAjout = 'Ajouter', iconeAjout, vue, onVue, children }) {
-  const [ouvert, setOuvert] = useState(true)
+export default function CarteBloc({ icon: Icon, titre, onAjouter, titreAjout = 'Ajouter', iconeAjout, actions, vue, onVue, ouvertParDefaut = true, children }) {
+  const [ouvert, setOuvert] = useState(ouvertParDefaut)
   const bascule = (cible) => onVue?.(vue === cible ? 'actif' : cible)
 
   return (
@@ -30,6 +35,8 @@ export default function CarteBloc({ icon: Icon, titre, onAjouter, titreAjout = '
           type="button"
           onClick={() => setOuvert((o) => !o)}
           aria-expanded={ouvert}
+          aria-label={`${ouvert ? 'Masquer' : 'Afficher'} ${titre}`}
+          title={`${ouvert ? 'Masquer' : 'Afficher'} ${titre}`}
           className="flex min-w-0 items-center gap-2 text-left focus-ring"
         >
           <Icon size={19} className="shrink-0 text-ink-700" />
@@ -47,6 +54,7 @@ export default function CarteBloc({ icon: Icon, titre, onAjouter, titreAjout = '
               {iconeAjout ?? <Plus size={18} />}
             </IconButton>
           )}
+          {actions}
           {onVue && (
             <>
               <IconButton

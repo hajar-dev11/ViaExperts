@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Archive, Download as DownloadIcon, FileText, Folder, ListTree,
+  Archive, Download as DownloadIcon, FileText, Folder,
   Lock, Paperclip, RefreshCw, RotateCcw, Trash2, Building2,
 } from 'lucide-react'
+import { IconeActions } from './ui/icons.jsx'
 import DataTable from './DataTable.jsx'
 import Alert from './ui/Alert.jsx'
 import Button from './ui/Button.jsx'
@@ -13,6 +14,7 @@ import ConfirmDialog from './ConfirmDialog.jsx'
 import { RowBtn } from './ListToolbar.jsx'
 import { Field, FileInput, Input, Textarea } from './Field.jsx'
 import CarteBloc, { VUES_BLOC as VUES } from './CarteBloc.jsx'
+import { formaterMontant } from '../utils/montants.js'
 import {
   StatutDomiciliation as StatutDomiciliationBadge, FormulaireRenouvellement, MenuImprimer,
   archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation, renouvelerDomiciliation,
@@ -23,6 +25,7 @@ import {
   addEntrepriseObservation, entrepriseObservationFichierUrl, archiveEntrepriseObservation,
   corbeilleEntrepriseObservation, restoreEntrepriseObservation, deleteEntrepriseObservationForever,
 } from '../api/entreprises.js'
+import { ApiError } from '../api/http.js'
 import { formatDate, formatDateHeure } from '../utils/format.js'
 
 /**
@@ -72,7 +75,7 @@ function ActionsLigne({ vue, telecharger, archiver, restaurer, corbeille, suppri
           <DownloadIcon size={16} />
         </RowBtn>
       )}
-      <ActionMenu label="Actions" icon={<ListTree size={16} />} items={items} />
+      <ActionMenu label="Actions" icon={<IconeActions />} items={items} />
     </div>
   )
 }
@@ -163,19 +166,21 @@ export default function BlocsEntreprise({
     { key: 'moisPayee', header: 'Payee', render: (r) => `${r.moisPayee ?? 0} Mois` },
     { key: 'moisGratuits', header: 'Gratuits', render: (r) => `${r.moisGratuits ?? 0} Mois` },
     { key: 'dateLegalisation', header: 'Date Galisation', render: (r) => formatDate(r.dateLegalisation) },
-    { key: 'prixTotal', header: 'Prix', numeric: true, render: (r) => `${r.prixTotal ?? 0} Dh` },
+    { key: 'prixTotal', header: 'Prix HT', numeric: true, render: (r) => `${formaterMontant(r.prixTotal ?? 0)} Dh` },
     { key: 'createdAt', header: "Date d'ajout", render: (r) => formatDateHeure(r.createdAt) || '—' },
     { key: 'createdBy', header: 'Action de', render: (r) => r.createdBy ?? '—' },
   ]
 
   return (
     <>
-      {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')}>{erreur}</Alert>}
+      {/* Pendant que la fenêtre de renouvellement est ouverte, l'erreur s'affiche DANS la fenêtre (pas deux fois). */}
+      {!renouvellementFor && erreur && <Alert tone="danger" onAutoClose={() => setErreur('')}>{erreur}</Alert>}
 
       {/* Documents */}
       <CarteBloc
         icon={Folder}
         titre="Documents"
+        ouvertParDefaut={false}
         onAjouter={() => { setFichier(null); setNomDocument(''); setAjoutDocument(true) }}
         vue={vueDocuments}
         onVue={setVueDocuments}
@@ -209,6 +214,7 @@ export default function BlocsEntreprise({
       <CarteBloc
         icon={FileText}
         titre="Observations"
+        ouvertParDefaut={false}
         onAjouter={() => {
           setTexteObservation('')
           setFichiersObservation([])
@@ -284,16 +290,18 @@ export default function BlocsEntreprise({
       {renouvellementFor && (
         <FormulaireRenouvellement
           domiciliation={renouvellementFor}
-          onAnnuler={() => setRenouvellementFor(null)}
-          onEnregistrer={async ({ champs }) => {
+          erreur={erreur}
+          onEffacerErreur={() => setErreur('')}
+          onAnnuler={() => { setRenouvellementFor(null); setErreur('') }}
+          onEnregistrer={async ({ champs, fichier }) => {
             const cible = renouvellementFor
             try {
-              await renouvelerDomiciliation(cible.id, champs)
+              await renouvelerDomiciliation(cible.id, champs, fichier)
               setRenouvellementFor(null)
               setVueDomiciliations('actif')
               onDomiciliationsChange?.()
-            } catch {
-              setErreur("Le renouvellement n'a pas pu être enregistré.")
+            } catch (err) {
+              setErreur(err instanceof ApiError ? err.message : "Le renouvellement n'a pas pu être enregistré.")
             }
           }}
         />
@@ -306,6 +314,7 @@ export default function BlocsEntreprise({
       <CarteBloc
         icon={Building2}
         titre="Domiciliations"
+        ouvertParDefaut={false}
         titreAjout="Renouveler Domiciliation"
         iconeAjout={<RefreshCw size={18} />}
         onAjouter={() => (derniereDomiciliation
@@ -325,7 +334,7 @@ export default function BlocsEntreprise({
               <MenuImprimer domiciliation={r} signaturePath={signaturePath} />
               <ActionMenu
                 label="Actions"
-                icon={<ListTree size={16} />}
+                icon={<IconeActions />}
                 items={vueDomiciliations === 'actif'
                   ? [
                       {
@@ -374,6 +383,7 @@ export default function BlocsEntreprise({
       <Modal
         open={ajoutDocument}
         onClose={() => setAjoutDocument(false)}
+        size="xxl"
         title="Ajouter un document"
         footer={(
           <>
@@ -394,7 +404,7 @@ export default function BlocsEntreprise({
           </>
         )}
       >
-        <div className="space-y-4">
+        <div className="grid gap-5 lg:grid-cols-2">
           <Field label="Fichier" required hint="5 Mo maximum.">
             <FileInput onChange={(e) => setFichier(e.target.files?.[0] ?? null)} />
           </Field>
@@ -412,6 +422,7 @@ export default function BlocsEntreprise({
       <Modal
         open={ajoutObservation}
         onClose={() => setAjoutObservation(false)}
+        size="xxl"
         title="Ajouter une observation"
         footer={(
           <>
@@ -435,10 +446,10 @@ export default function BlocsEntreprise({
           </>
         )}
       >
-        <div className="space-y-4">
-          <Field label="Observation" required>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Field label="Observation" required className="lg:col-span-2">
             <Textarea
-              rows={5}
+              rows={8}
               placeholder="Saisissez l'observation…"
               value={texteObservation}
               onChange={(e) => setTexteObservation(e.target.value)}

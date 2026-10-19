@@ -6,7 +6,6 @@
 export { default as DomiciliationList } from './pages/DomiciliationList.jsx'
 export { default as DomiciliationForm } from './pages/DomiciliationForm.jsx'
 export { default as DomiciliationDetails } from './pages/DomiciliationDetails.jsx'
-export { default as DomiciliationStatuts } from './pages/DomiciliationStatuts.jsx'
 export { default as DomiciliationCalendar } from './pages/DomiciliationCalendar.jsx'
 export { default as DomiciliationCentres } from './pages/DomiciliationCentres.jsx'
 export { default as CentreDomiciliationDetails } from './pages/CentreDomiciliationDetails.jsx'
@@ -23,8 +22,10 @@ export {
   listDomiciliations, createDomiciliation, archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation,
   renouvelerDomiciliation, deleteDomiciliationForever,
 } from './api/domiciliations.js'
-export { listCentres } from './api/centres.js'
+export { listCentres, listAllCentres, corbeilleCentre, restoreCentre, deleteCentre } from './api/centres.js'
 
 // Fonctions utilitaires consommées à l'extérieur
 export { chargerSignatureDomiciliation } from './documents/documentsDomiciliation.js'
-export { calculerDateFin } from './utils/domiciliation.js'
+export { calculerDateFin, calculerPrixTotal, classerNouveauRenouveler, domiciliationSaisie } from './utils/domiciliation.js'
+// Périodes d'analyse partagées avec le tableau de bord (Expense Ratio) : une seule définition de la fenêtre de temps.
+export { MOIS, PERIODES, casesDeLaPeriode, cleDeDate } from './utils/periodeAnalyse.js'

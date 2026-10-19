@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Entreprise;
 use App\Models\EntrepriseAssocie;
+use App\Rules\DenominationEntrepriseUnique;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +18,7 @@ class StoreEntrepriseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'denomination' => ['required', 'string', 'max:200'],
+            'denomination' => ['required', 'string', 'max:200', new DenominationEntrepriseUnique()],
             'tribunal' => ['nullable', 'string', 'max:150'],
             'forme' => ['required', 'in:SARL,SARL AU,SA,SNC,Auto-Entrepreneur,Établissement Public'],
             'ice' => ['nullable', 'string', 'max:20', Rule::unique('entreprises', 'ice')],

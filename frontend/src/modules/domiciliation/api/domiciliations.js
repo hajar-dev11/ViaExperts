@@ -15,12 +15,23 @@ export async function getDomiciliation(id) {
   return unwrap(await apiFetch(`/api/v1/domiciliations/${id}`))
 }
 
+// Une période créée ou modifiée déplace l'échéance de l'entreprise : le bandeau d'alerte (Topbar) se recalcule, sans quoi il
+// afficherait une alerte périmée. L'événement n'est émis qu'APRÈS la réponse positive du serveur.
+const signalerModification = (resultat) => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(EVT_DOMICILIATIONS_MODIFIEES, { detail: { entrepriseId: resultat?.entrepriseId ?? null } }))
+}
+
 export async function createDomiciliation(payload) {
-  return unwrap(await apiFetch('/api/v1/domiciliations', { method: 'POST', body: payload }))
+  const creee = unwrap(await apiFetch('/api/v1/domiciliations', { method: 'POST', body: payload }))
+  signalerModification(creee)
+  return creee
 }
 
 export async function updateDomiciliation(id, payload) {
-  return unwrap(await apiFetch(`/api/v1/domiciliations/${id}`, { method: 'PUT', body: payload }))
+  const modifiee = unwrap(await apiFetch(`/api/v1/domiciliations/${id}`, { method: 'PUT', body: payload }))
+  signalerModification(modifiee)
+  return modifiee
 }
 
 const action = (id, verb) => apiFetch(`/api/v1/domiciliations/${id}/${verb}`, { method: 'POST' })
@@ -69,7 +80,7 @@ export const activerDomiciliation = (id) => envoyerAction(id, 'activer')
 export async function renouvelerDomiciliation(id, champs, fichier = null) {
   const nouvelle = await envoyerAction(id, 'renouveler', champs, fichier)
   // Le renouvellement déplace l'échéance : le bandeau d'alerte (Topbar) doit se recalculer immédiatement.
-  window.dispatchEvent(new CustomEvent(EVT_DOMICILIATIONS_MODIFIEES, { detail: { entrepriseId: nouvelle?.entrepriseId ?? null } }))
+  signalerModification(nouvelle)
   return nouvelle
 }
 

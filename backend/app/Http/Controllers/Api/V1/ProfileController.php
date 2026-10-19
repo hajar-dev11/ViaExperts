@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
+use App\Support\ImageTeleversee;
 use App\Support\SessionsUtilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,7 @@ class ProfileController extends Controller
 
     public function uploadPhoto(Request $request)
     {
-        $request->validate(['file' => ['required', 'image', 'mimes:jpg,jpeg,png,gif', 'max:800']]);
+        $request->validate(['file' => ImageTeleversee::regles()], ImageTeleversee::messages());
 
         $user = $request->user();
         if ($user->photo_path) {

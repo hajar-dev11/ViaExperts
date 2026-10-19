@@ -1,6 +1,7 @@
 import { apiFetch } from './http.js'
 
-const params = ({ dateDebut = '', dateFin = '', annee = '', trimestre = '' } = {}) => {
+/** Paramètres de recherche : un champ vide n'est jamais envoyé (aucune date = aucun filtre de date ; une seule date est acceptée). */
+export const params = ({ dateDebut = '', dateFin = '', annee = '', trimestre = '' } = {}) => {
   const p = new URLSearchParams()
   if (dateDebut) p.set('date_debut', dateDebut)
   if (dateFin) p.set('date_fin', dateFin)

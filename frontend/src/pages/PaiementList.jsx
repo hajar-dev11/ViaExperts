@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Printer, Archive, Trash2, RotateCcw, Pencil, ArrowLeft, ListTree, Paperclip } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Printer, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
+import { CelluleFichierPaiement, useObservationPaiement } from '../components/CellulesPaiement.jsx'
+import { IconeActions } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -10,8 +12,9 @@ import Button, { IconButton } from '../components/ui/Button.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import { Select } from '../components/Field.jsx'
-import { ApiError, API_URL } from '../api/http.js'
+import { ApiError } from '../api/http.js'
 import { EMETTEURS } from '../shared/constants/documents.js'
+import { correspondAuResponsable, listerResponsables } from '../shared/utils/responsables.js'
 import { formatDate } from '../utils/format.js'
 import ChoixFormatRecu from '../components/ChoixFormatRecu.jsx'
 import { imprimerRecuPaiement, imprimerRecuPaiementPdf } from '../modules/paiements/index.js'
@@ -25,7 +28,6 @@ const dh = (v) => `${Number(v ?? 0).toLocaleString('fr-FR', { minimumFractionDig
 export const imprimerPaiement = imprimerRecuPaiement
 
 export default function PaiementList() {
-  const navigate = useNavigate()
   const toast = useToast()
   const location = useLocation()
   const [status, setStatus] = useState(() => location.state?.initialStatus || 'actif')
@@ -70,8 +72,11 @@ export default function PaiementList() {
 
   useEffect(load, [load])
 
+  // « Via Experts » et « Maitre : Morad Bendeq » figurent toujours dans le filtre ; « Via Experts » / « via Experts » ne font qu'une entrée.
+  const responsables = useMemo(() => listerResponsables(rows, EMETTEURS), [rows])
+
   const visibles = useMemo(() => {
-    const filtered = responsable ? rows.filter((r) => r.responsable === responsable) : rows
+    const filtered = responsable ? rows.filter((r) => correspondAuResponsable(r, responsable)) : rows
     return filtered.map((r, i) => ({ ...r, numeroOrdre: `#${i + 1}` }))
   }, [rows, responsable])
 
@@ -89,6 +94,8 @@ export default function PaiementList() {
   const ask = (message, fn, messageOk, tone = 'warning', confirmLabel = 'Confirmer') => {
     setConfirm({ message, tone, confirmLabel, run: () => run(fn, messageOk) })
   }
+
+  const observation = useObservationPaiement()
 
   const columns = [
     { key: 'numeroOrdre', header: 'Reference', render: (r) => <span className="font-semibold text-brand-700">{r.numeroOrdre}</span> },
@@ -115,22 +122,8 @@ export default function PaiementList() {
       render: (r) => <span className="font-semibold text-ink-900">{dh(r.prixRestant)}</span>,
     },
     { key: 'modePaiement', header: 'Paiements Method', render: (r) => r.modePaiement || <span className="text-ink-600">—</span> },
-    { key: 'observation', header: 'Observation', clamp: 1, render: (r) => <span className="text-ink-600">{r.observation || '—'}</span> },
-    {
-      key: 'fichier',
-      header: 'Fichier',
-      render: (r) => (r.pieceJointeChemin ? (
-        <a
-          href={`${API_URL}/storage/${r.pieceJointeChemin}`}
-          target="_blank"
-          rel="noreferrer"
-          title={r.pieceJointeNom || 'Télécharger'}
-          className="inline-flex items-center gap-1.5 text-brand-600 hover:underline"
-        >
-          <Paperclip size={14} />
-        </a>
-      ) : <span className="text-ink-600">—</span>),
-    },
+    { key: 'observation', header: 'Observation', clamp: 1, render: observation.cellule },
+    { key: 'fichier', header: 'Fichier', render: (r) => <CelluleFichierPaiement paiement={r} /> },
     { key: 'dateOperation', header: 'Date Opération', render: (r) => formatDate(r.dateOperation) },
   ]
 
@@ -148,11 +141,7 @@ export default function PaiementList() {
   const menuItems = (r) => {
     if (status === 'actif') {
       return [
-        {
-          label: 'Modifier',
-          icon: <Pencil size={15} />,
-          onClick: () => navigate(`/paiement/${r.id}/modifier`),
-        },
+        // Pas d'action « Modifier » : un paiement enregistré ne se modifie pas (on ajoute un paiement complémentaire).
         {
           label: 'Archiver',
           icon: <Archive size={15} />,
@@ -240,6 +229,7 @@ export default function PaiementList() {
 
       <DataTable
         title="List Des Paiements"
+        filterCentre
         filter={(
           <>
             {filtreActif && (
@@ -256,10 +246,10 @@ export default function PaiementList() {
                 Retour à la liste
               </Button>
             )}
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:flex-1">
               <Select value={responsable} onChange={(e) => setResponsable(e.target.value)}>
                 <option value="">Tous les responsables</option>
-                {EMETTEURS.map((e) => <option key={e.value} value={e.label}>{e.label}</option>)}
+                {responsables.map((r) => <option key={r.cle} value={r.cle}>{r.libelle}</option>)}
               </Select>
             </div>
           </>
@@ -296,15 +286,16 @@ export default function PaiementList() {
         loading={loading}
         emptyText={status === 'actif' ? 'Aucun paiement' : status === 'archive' ? 'Aucun paiement archivé' : 'Corbeille vide'}
         actionsHeader="ACTION"
-        rowClassName={(r) => (Number(r.prixRestant) > 0 ? 'bg-warning-200' : 'bg-success-200')}
-        striped={false}
+        striped={false} // fond blanc uniforme : aucune coloration conditionnelle des lignes
         rowActions={(r) => (
           <div className="flex justify-end gap-1.5">
             <RowBtn title="Imprimer" onClick={() => setChoixRecu(r)}><Printer size={14} /></RowBtn>
-            <ActionMenu label="Actions" icon={<ListTree size={16} />} items={menuItems(r)} />
+            <ActionMenu label="Actions" icon={<IconeActions />} items={menuItems(r)} />
           </div>
         )}
       />
+
+      {observation.modale}
 
       <ChoixFormatRecu
         open={!!choixRecu}

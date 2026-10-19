@@ -5,6 +5,7 @@
             "avoir": "int",
             "bl": "int",
             "cachets": "int",
+            "centres": "int",
             "chiffre_affaire": "int",
             "clients": "int",
             "data_center": "int",
@@ -475,6 +476,8 @@
                             "id": "int",
                             "prixUnitaire": "string",
                             "quantite": "string",
+                            "remiseEnMontant": "bool",
+                            "remiseMontant": "string",
                             "remisePourcent": "string",
                             "serviceId": "int",
                             "totalHt": "string",
@@ -525,6 +528,8 @@
                             "id": "int",
                             "prixUnitaire": "string",
                             "quantite": "string",
+                            "remiseEnMontant": "bool",
+                            "remiseMontant": "string",
                             "remisePourcent": "string",
                             "serviceId": "int",
                             "totalHt": "string",
@@ -575,6 +580,8 @@
                             "id": "int",
                             "prixUnitaire": "string",
                             "quantite": "string",
+                            "remiseEnMontant": "bool",
+                            "remiseMontant": "string",
                             "remisePourcent": "string",
                             "serviceId": "int",
                             "totalHt": "string",
@@ -625,6 +632,8 @@
                             "id": "int",
                             "prixUnitaire": "string",
                             "quantite": "string",
+                            "remiseEnMontant": "bool",
+                            "remiseMontant": "string",
                             "remisePourcent": "string",
                             "serviceId": "int",
                             "totalHt": "string",
@@ -680,6 +689,8 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "remiseEnMontant": "bool",
+                        "remiseMontant": "string",
                         "remisePourcent": "string",
                         "serviceId": "int",
                         "totalHt": "string",
@@ -816,6 +827,7 @@
             "data": [
                 "[]",
                 {
+                    "aFichier": "bool",
                     "client": "string",
                     "clientCin": "string",
                     "clientId": "int",
@@ -826,6 +838,7 @@
                     "emetteur": "string",
                     "entrepriseIce": "null",
                     "entrepriseId": "null",
+                    "estComplement": "bool",
                     "factureNumero": "string",
                     "id": "int",
                     "lignes": [
@@ -835,12 +848,14 @@
                             "id": "int",
                             "prixUnitaire": "string",
                             "quantite": "string",
+                            "service": "string",
                             "serviceId": "int",
                             "total": "string"
                         }
                     ],
                     "modePaiement": "string",
                     "observation": "null",
+                    "paiementOrigineId": "null",
                     "partyId": "int",
                     "pieceJointeChemin": "null",
                     "pieceJointeNom": "null",
@@ -877,10 +892,13 @@
             {
                 "client": "string",
                 "clientId": "int",
+                "complementsPossibles": "bool",
                 "dateCredit": "null",
                 "dateOperation": "string",
+                "enRetard": "bool",
                 "entrepriseId": "null",
                 "id": "int",
+                "nbPaiements": "int",
                 "paiementId": "int",
                 "prixPaye": "string",
                 "prixRestant": "string",
@@ -896,6 +914,7 @@
         "statut": 200,
         "forme": {
             "data": {
+                "aFichier": "bool",
                 "client": "string",
                 "clientCin": "string",
                 "clientId": "int",
@@ -906,6 +925,7 @@
                 "emetteur": "string",
                 "entrepriseIce": "null",
                 "entrepriseId": "null",
+                "estComplement": "bool",
                 "factureNumero": "string",
                 "id": "int",
                 "lignes": [
@@ -915,12 +935,14 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "service": "string",
                         "serviceId": "int",
                         "total": "string"
                     }
                 ],
                 "modePaiement": "string",
                 "observation": "null",
+                "paiementOrigineId": "null",
                 "partyId": "int",
                 "pieceJointeChemin": "null",
                 "pieceJointeNom": "null",
@@ -1023,7 +1045,26 @@
     "GET /api/v1/services-en-cours/activite": {
         "statut": 200,
         "forme": [
-            "[]"
+            "[]",
+            {
+                "action": "string",
+                "ancienStatut": "null",
+                "client": "string",
+                "commentaire": "null",
+                "createdAt": "string",
+                "fichierChemin": "null",
+                "fichierNom": "null",
+                "fichierSource": "null",
+                "id": "int",
+                "par": "string",
+                "service": "string",
+                "serviceEnCoursId": "int",
+                "source": {
+                    "id": "int",
+                    "type": "string"
+                },
+                "statut": "null"
+            }
         ]
     },
     "GET /api/v1/settings/cabinet": {
@@ -1239,6 +1280,8 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "remiseEnMontant": "bool",
+                        "remiseMontant": "string",
                         "remisePourcent": "string",
                         "serviceId": "int",
                         "totalHt": "string",
@@ -1286,6 +1329,8 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "remiseEnMontant": "bool",
+                        "remiseMontant": "string",
                         "remisePourcent": "string",
                         "serviceId": "int",
                         "totalHt": "string",
@@ -1333,6 +1378,8 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "remiseEnMontant": "bool",
+                        "remiseMontant": "string",
                         "remisePourcent": "string",
                         "serviceId": "int",
                         "totalHt": "string",
@@ -1380,6 +1427,8 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "remiseEnMontant": "bool",
+                        "remiseMontant": "string",
                         "remisePourcent": "string",
                         "serviceId": "int",
                         "totalHt": "string",
@@ -1438,6 +1487,7 @@
         "statut": 201,
         "forme": {
             "data": {
+                "aFichier": "bool",
                 "client": "string",
                 "clientCin": "string",
                 "clientId": "int",
@@ -1448,6 +1498,7 @@
                 "emetteur": "string",
                 "entrepriseIce": "null",
                 "entrepriseId": "null",
+                "estComplement": "bool",
                 "factureNumero": "string",
                 "id": "int",
                 "lignes": [
@@ -1457,12 +1508,14 @@
                         "id": "int",
                         "prixUnitaire": "string",
                         "quantite": "string",
+                        "service": "string",
                         "serviceId": "int",
                         "total": "string"
                     }
                 ],
                 "modePaiement": "string",
                 "observation": "null",
+                "paiementOrigineId": "null",
                 "partyId": "int",
                 "pieceJointeChemin": "null",
                 "pieceJointeNom": "null",

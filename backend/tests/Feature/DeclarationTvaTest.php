@@ -285,15 +285,16 @@ class DeclarationTvaTest extends TestCase
             {
             }
 
-            public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar): void
+            public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar, array $source = []): void
             {
                 $this->appelsTiers[] = [$partyId, collect($serviceIds)->all(), $creePar];
             }
 
-            public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void
+            public function assurerPourClient(string $nomService, ?int $clientId, int $creePar, array $source = []): void
             {
                 $declaration = \App\Models\DeclarationTva::with('lignes')->first();
                 $this->appels[] = [
+                    'source' => $source,
                     'nomService' => $nomService,
                     'clientId' => $clientId,
                     'creePar' => $creePar,
@@ -330,6 +331,8 @@ class DeclarationTvaTest extends TestCase
         $this->assertSame('Déclaration TVA', $appel['nomService']);
         $this->assertSame($entreprise->client_id, $appel['clientId']);
         $this->assertSame($admin->id, $appel['creePar']);
+        // Le document d'origine est transmis : c'est lui que l'activité de création du service référence.
+        $this->assertSame(['type' => 'declaration_tva', 'id' => \App\Models\DeclarationTva::first()->id], $appel['source']);
         $this->assertGreaterThan($niveauInitial, $appel['niveauTransaction'], 'Dans la transaction de la déclaration.');
         $this->assertSame(1, $appel['declarations']);
         $this->assertSame(2, $appel['lignes'], 'Après l\'enregistrement des lignes.');

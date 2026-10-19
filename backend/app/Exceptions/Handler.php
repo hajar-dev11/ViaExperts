@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -55,6 +56,18 @@ class Handler extends ExceptionHandler
     {
         $this->reportable(function (Throwable $e) {
             //
+        });
+
+        // Envoi plus gros que `post_max_size` de PHP : Laravel le refuse avant même de lire les champs. Sans ce message
+        // la réponse était vide et l'écran affichait seulement « Erreur serveur ».
+        $this->renderable(function (PostTooLargeException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => "Le fichier envoyé est trop volumineux pour le serveur. Choisissez un fichier plus léger (2 Mo maximum pour une image).",
+                ], 413);
+            }
+
+            return null;
         });
     }
 }

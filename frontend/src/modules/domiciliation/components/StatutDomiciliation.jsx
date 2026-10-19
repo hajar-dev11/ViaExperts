@@ -17,7 +17,7 @@ export const STATUT_LABELS = {
 export default function StatutDomiciliation({ statut }) {
   const s = STATUT_LABELS[statut] || STATUT_LABELS.active
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${s.className}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[14px] font-semibold ${s.className}`}>
       {s.label}
     </span>
   )

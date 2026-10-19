@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Search, Send, RotateCw, UserRound, MessageSquare, Paperclip, Smile,
-  Pencil, Trash2, X, FileText, Check, Lock,
+  Search, Send, RotateCw, UserRound, MessageSquare, Paperclip, Smile, Trash2, X, FileText, Check, Lock,
 } from 'lucide-react'
+import { IconeModifier } from '../components/ui/icons.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import ImageAvecSecours from '../components/ImageAvecSecours.jsx'
 import Alert from '../components/ui/Alert.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import { API_URL, ApiError } from '../api/http.js'
@@ -19,9 +20,11 @@ const EMOJIS = [
 function Avatar({ photoPath, size = 16 }) {
   return (
     <div className="h-9 w-9 rounded-full bg-surface grid place-items-center text-ink-600 overflow-hidden">
-      {photoPath
-        ? <img src={`${API_URL}/storage/${photoPath}`} alt="" className="h-full w-full object-cover" />
-        : <UserRound size={size} />}
+      <ImageAvecSecours
+        src={photoPath ? `${API_URL}/storage/${photoPath}` : null}
+        className="h-full w-full object-cover"
+        fallback={<UserRound size={size} />}
+      />
     </div>
   )
 }
@@ -264,7 +267,7 @@ export default function Chat() {
                       {m.mine && editingId !== m.id && (
                         <div className="flex items-center gap-1 self-center opacity-0 transition-opacity group-hover:opacity-100 order-first">
                           <button type="button" title="Modifier" onClick={() => commencerEdition(m)} className="grid h-7 w-7 place-items-center rounded-lg text-ink-600 hover:bg-white hover:text-brand-600">
-                            <Pencil size={13} />
+                            <IconeModifier size={13} />
                           </button>
                           <button type="button" title="Supprimer" onClick={() => setASupprimer(m)} className="grid h-7 w-7 place-items-center rounded-lg text-ink-600 hover:bg-white hover:text-danger-600">
                             <Trash2 size={13} />

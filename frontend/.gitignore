@@ -1,3 +1,5 @@
 node_modules
 dist
 .DS_Store
+# Moteur OCR local copié depuis node_modules par scripts/copier-ocr.mjs (généré, non versionné)
+public/ocr

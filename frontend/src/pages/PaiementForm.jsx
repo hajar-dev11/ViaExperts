@@ -4,21 +4,34 @@ import { Save, Plus, X } from 'lucide-react'
 import { Field, Input, Select, Textarea, Switch, FormCard, FormActions, FileInput } from '../components/Field.jsx'
 import Alert from '../components/ui/Alert.jsx'
 import Button from '../components/ui/Button.jsx'
+import { CelluleCalculee, CelluleInput, TableauLignes } from '../components/ui/LigneSaisie.jsx'
+import ModePaiementChamp from '../components/ModePaiementChamp.jsx'
+import ChampSignature from '../components/ChampSignature.jsx'
+import SelectRecherche from '../components/SelectRecherche.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import { ApiError } from '../api/http.js'
 import { listClients } from '../api/clients.js'
 import { listEntreprises } from '../api/entreprises.js'
 import { listServices } from '../api/services.js'
-import { EMETTEURS, MODES_PAIEMENT } from '../shared/constants/documents.js'
+import { EMETTEURS } from '../shared/constants/documents.js'
 import { aujourdhui } from '../shared/utils/date.js'
-import { createPaiement, updatePaiement, getPaiement } from '../api/paiements.js'
+import { enNombre } from '../utils/arrondi.js'
+import { modePourEnvoi } from '../utils/modePaiement.js'
+import { formaterMontant, montantAPayer, quantiteEntiere, saisieQuantite, soldeRestant } from '../utils/montants.js'
+import { createPaiement, updatePaiement, getPaiement, listFacturesDisponibles } from '../api/paiements.js'
 
-const n = (v) => {
-  const x = parseFloat(v)
-  return Number.isNaN(x) ? 0 : x
-}
+const n = enNombre
 
 const jour = aujourdhui()
+
+// Colonnes des lignes (compactes) : Désignation, PU HT, Qté, Total, retirer.
+const COLONNES = 'grid-cols-[minmax(11rem,3fr)_6rem_4.5rem_6rem_2rem]'
+const EN_TETES = ['Désignation', 'PU HT', 'Qté', 'Total', '']
+
+/** Prix unitaire HT retenu : arrondi à l'entier, sauf un prix déjà enregistré resté identique. */
+const prixLigne = (l) => enNombre(l.prix_unitaire) // prix unitaire HT avec ses centimes (seul le TOTAL est arrondi)
+
+const dh = (v) => `${n(v).toFixed(2)} Dh`
 
 export default function PaiementForm() {
   const navigate = useNavigate()
@@ -40,6 +53,10 @@ export default function PaiementForm() {
     observation: '',
     prix_paye: '',
   })
+  // « Prix à payer » (montant de ce paiement) : proposé automatiquement — solde restant de la facture rattachée, sinon total des
+  // lignes — tant que l'utilisateur n'y a pas touché ; sa saisie n'est ensuite jamais écrasée par un changement de ligne.
+  // Changer de facture est un changement de contexte : la proposition est alors recalculée.
+  const [prixPayeManuel, setPrixPayeManuel] = useState(false)
   const [lignes, setLignes] = useState([])
   const [serviceChoisi, setServiceChoisi] = useState('')
   const [fichier, setFichier] = useState(null)
@@ -47,6 +64,7 @@ export default function PaiementForm() {
   const [clients, setClients] = useState([])
   const [entreprises, setEntreprises] = useState([])
   const [services, setServices] = useState([])
+  const [factures, setFactures] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [erreurChargement, setErreurChargement] = useState('')
@@ -58,6 +76,7 @@ export default function PaiementForm() {
     listClients('actif').then(setClients).catch(() => setClients([]))
     listEntreprises('actif').then(setEntreprises).catch(() => setEntreprises([]))
     listServices('actif').then(setServices).catch(() => setServices([]))
+    listFacturesDisponibles().then((r) => setFactures(Array.isArray(r) ? r : (r?.data ?? []))).catch(() => setFactures([]))
   }, [])
 
   const charger = useCallback(() => {
@@ -66,6 +85,7 @@ export default function PaiementForm() {
       .then((p) => {
         setErreurChargement('')
         setEmetteur(p.emetteur)
+        setPrixPayeManuel(true) // un paiement enregistré garde son montant
         setForm({
           party_id: p.partyId ?? '',
           document_id: p.documentId ?? '',
@@ -106,7 +126,7 @@ export default function PaiementForm() {
   const ajouterLigne = () => {
     const service = servicesResponsable.find((s) => String(s.id) === String(serviceChoisi))
     setLignes((ls) => [...ls, service
-      ? { service_id: service.id, designation: service.nom, quantite: 1, prix_unitaire: service.prix }
+      ? { service_id: service.id, designation: service.nom, quantite: 1, prix_unitaire: service.prix ?? 0 }
       : { service_id: '', designation: '', quantite: 1, prix_unitaire: 0 }])
     setServiceChoisi('')
   }
@@ -114,15 +134,39 @@ export default function PaiementForm() {
   const majLigne = (i, k, v) => setLignes((ls) => ls.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)))
   const retirerLigne = (i) => setLignes((ls) => ls.filter((_, idx) => idx !== i))
 
+  // Total HT du paiement : somme exacte des lignes (prix unitaire × quantité entière), centimes conservés comme le serveur.
   const total = useMemo(
-    () => lignes.reduce((acc, l) => acc + n(l.quantite) * n(l.prix_unitaire), 0),
+    () => Math.round(lignes.reduce((acc, l) => acc + quantiteEntiere(l.quantite) * prixLigne(l), 0) * 100) / 100,
     [lignes],
   )
-  const prixRestant = Math.max(0, total - n(form.prix_paye))
+
+  // Facture déjà rattachée au paiement (modification d'un paiement existant) : ses totaux restent affichés plus bas.
+  const facture = useMemo(
+    () => factures.find((f) => String(f.id) === String(form.document_id)) ?? null,
+    [factures, form.document_id],
+  )
+
+  // Proposition du montant à payer : tant qu'il n'a pas été saisi à la main, il suit la facture rattachée (solde restant) ou le
+  // total des lignes. Évite aussi le piège du double paiement : une facture soldée ne propose rien.
+  useEffect(() => {
+    if (isEdit || prixPayeManuel) return
+    if (form.document_id && !facture) return // facture pas encore chargée
+    const propose = montantAPayer(facture, total)
+    setForm((f) => (f.prix_paye === propose ? f : { ...f, prix_paye: propose }))
+  }, [isEdit, prixPayeManuel, form.document_id, facture, total])
+
+  const soldeAvant = facture ? n(facture.prixRestant) : total
+  const resteApres = soldeRestant(soldeAvant, form.prix_paye)
+  const depasse = !!facture && !isEdit && n(form.prix_paye) > soldeAvant + 0.004
+  // Règle serveur : le montant payé ne dépasse jamais le total des services (lignes) du paiement.
+  const depasseLignes = !depasse && lignes.length > 0 && n(form.prix_paye) > total + 0.004
 
   const submit = async (e) => {
     e.preventDefault()
-    setSaving(true); setErrors({}); setError('')
+    setErrors({}); setError('')
+    // Un paiement porte toujours au moins un service : message clair avant tout envoi.
+    if (lignes.length === 0) { setError('Ajoutez au moins un service au paiement (« Sélectionner le Service » puis « Ajouter »).'); return }
+    setSaving(true)
     try {
       const payload = {
         emetteur,
@@ -131,15 +175,15 @@ export default function PaiementForm() {
         document_id: form.document_id || '',
         date_operation: form.date_operation,
         date_credit: form.date_credit,
-        mode_paiement: form.mode_paiement,
+        mode_paiement: modePourEnvoi(form.mode_paiement),
         signature: form.signature,
         observation: form.observation,
         prix_paye: form.prix_paye === '' ? 0 : Number(form.prix_paye),
         lignes: lignes.map((l) => ({
           service_id: l.service_id || '',
           designation: l.designation,
-          quantite: Number(l.quantite) || 0,
-          prix_unitaire: Number(l.prix_unitaire) || 0,
+          quantite: quantiteEntiere(l.quantite),
+          prix_unitaire: prixLigne(l),
         })),
       }
       if (fichier) payload.piece_jointe = fichier
@@ -181,11 +225,11 @@ export default function PaiementForm() {
             </FormActions>
           )}
         >
-          <div className="mb-5 grid gap-4 sm:grid-cols-2">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
             {EMETTEURS.map((e) => (
               <label
                 key={e.value}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3.5 transition-colors ${
+                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-2.5 transition-colors ${
                   emetteur === e.value ? 'border-brand-400 bg-brand-50/60' : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -202,16 +246,21 @@ export default function PaiementForm() {
             ))}
           </div>
 
-          <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Trois colonnes pleine largeur, comme la référence : tiers | date d'opération | date crédit, puis mode | signature | services. */}
+          <div className="grid gap-x-5 gap-y-4 md:grid-cols-2 lg:grid-cols-3">
             <div>
               <div className="mb-1.5 flex items-center gap-4">
                 <Switch label="Entreprises" checked={showEntreprises} onChange={(e) => setShowEntreprises(e.target.checked)} />
                 <Switch label="Clients" checked={showClients} onChange={(e) => setShowClients(e.target.checked)} />
               </div>
-              <Select required value={form.party_id} onChange={set('party_id')}>
-                <option value="">Sélectionner Entreprise/Client</option>
-                {tiers.map((t) => <option key={`${t.groupe}-${t.id}`} value={t.id}>{t.label} — {t.groupe}</option>)}
-              </Select>
+              <SelectRecherche
+                required
+                options={tiers.map((t) => ({ cle: `${t.groupe}-${t.id}`, value: t.id, label: t.label, groupe: t.groupe }))}
+                value={form.party_id}
+                onChange={(valeur) => set('party_id')({ target: { value: valeur } })}
+                placeholder="Sélectionner Entreprise/Client"
+                error={!!errors.party_id}
+              />
               {err('party_id')}
             </div>
 
@@ -224,32 +273,21 @@ export default function PaiementForm() {
               <Input type="date" value={form.date_credit} onChange={set('date_credit')} />
             </Field>
 
-            <Field label="Mode de Paiement">
-              <Select value={form.mode_paiement} onChange={set('mode_paiement')}>
-                <option value="">Au choix du client</option>
-                {MODES_PAIEMENT.map((m) => <option key={m} value={m}>{m}</option>)}
-              </Select>
-            </Field>
+            <ModePaiementChamp value={form.mode_paiement} onChange={(v) => setForm((f) => ({ ...f, mode_paiement: v }))} />
 
-            <Field label="Signature">
-              <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-lg border border-line bg-white px-3.5 text-sm text-ink-800">
-                <input
-                  type="checkbox"
-                  checked={form.signature}
-                  onChange={(e) => setForm((f) => ({ ...f, signature: e.target.checked }))}
-                  className="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500/40"
-                />
-                Ajouter la Signature
-              </label>
-            </Field>
+            <ChampSignature
+              texte="Ajouter une signature sur le reçu de paiement"
+              checked={form.signature}
+              onChange={(e) => setForm((f) => ({ ...f, signature: e.target.checked }))}
+            />
 
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-ink-800">Services</span>
+              <span className="mb-1.5 block text-sm font-medium text-ink-800">Services <span className="font-normal text-ink-600">(prix HT)</span></span>
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <Select value={serviceChoisi} onChange={(e) => setServiceChoisi(e.target.value)}>
                     <option value="">Sélectionner le Service</option>
-                    {servicesResponsable.map((s) => <option key={s.id} value={s.id}>{s.nom} — {s.prix} Dh</option>)}
+                    {servicesResponsable.map((s) => <option key={s.id} value={s.id}>{s.nom} — {formaterMontant(s.prix)} Dh HT</option>)}
                   </Select>
                 </div>
                 <Button type="button" variant="success-soft" icon={<Plus size={15} />} onClick={ajouterLigne}>
@@ -259,62 +297,77 @@ export default function PaiementForm() {
             </div>
           </div>
 
+          {/* Lignes COMPACTES : une rangée par ligne ; au-delà de 4 lignes la zone défile dans sa propre hauteur. */}
           {lignes.length > 0 && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-[13px] font-semibold tracking-wide uppercase text-ink-600">
-                    <th className="py-2 pr-2">Désignation</th>
-                    <th className="w-24 px-2 py-2">Qté</th>
-                    <th className="w-32 px-2 py-2">Prix</th>
-                    <th className="w-32 px-2 py-2 text-right">Total</th>
-                    <th className="w-10 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lignes.map((l, i) => (
-                    <tr key={i} className="border-b border-line">
-                      <td className="py-2 pr-2"><Input required value={l.designation} onChange={(e) => majLigne(i, 'designation', e.target.value)} placeholder="Désignation" /></td>
-                      <td className="px-2 py-2"><Input type="number" step="0.01" min="0" value={l.quantite} onChange={(e) => majLigne(i, 'quantite', e.target.value)} /></td>
-                      <td className="px-2 py-2"><Input type="number" step="0.01" min="0" value={l.prix_unitaire} onChange={(e) => majLigne(i, 'prix_unitaire', e.target.value)} /></td>
-                      <td className="px-2 py-2 text-right font-semibold text-ink-900">{(n(l.quantite) * n(l.prix_unitaire)).toFixed(2)}</td>
-                      <td className="py-2">
-                        <RowBtn title="Retirer" onClick={() => retirerLigne(i)} className="hover:bg-danger-50 hover:text-danger-600">
-                          <X size={15} />
-                        </RowBtn>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4">
+              <TableauLignes colonnes={COLONNES} enTetes={EN_TETES} nombre={lignes.length}>
+                {lignes.map((l, i) => (
+                  <div key={i} className={`grid ${COLONNES} items-center gap-2 px-3 py-1.5`}>
+                    <CelluleInput required aria-label={`Désignation de la ligne ${i + 1}`} value={l.designation} onChange={(e) => majLigne(i, 'designation', e.target.value)} placeholder="Désignation" />
+                    <CelluleInput
+                      type="number" step="0.01" min="0" className="text-right" aria-label={`Prix unitaire HT de la ligne ${i + 1}`}
+                      value={l.prix_unitaire}
+                      onChange={(e) => majLigne(i, 'prix_unitaire', e.target.value)}
+                    />
+                    <CelluleInput
+                      type="text" inputMode="numeric" pattern="[0-9]*" className="text-right" aria-label={`Quantité de la ligne ${i + 1}`}
+                      value={l.quantite}
+                      onChange={(e) => majLigne(i, 'quantite', saisieQuantite(e.target.value))}
+                      erreur={!!errors[`lignes.${i}.quantite`]}
+                    />
+                    <CelluleCalculee positif gras>{(quantiteEntiere(l.quantite) * prixLigne(l)).toFixed(2)}</CelluleCalculee>
+                    <div className="flex justify-center">
+                      <RowBtn title="Retirer" onClick={() => retirerLigne(i)} className="hover:bg-danger-50 hover:text-danger-600">
+                        <X size={15} />
+                      </RowBtn>
+                    </div>
+                  </div>
+                ))}
+              </TableauLignes>
             </div>
           )}
           {errors.lignes && <span className="mt-2 block text-xs text-danger-600">{errors.lignes[0]}</span>}
+          {Object.keys(errors).filter((k) => /^lignes\.\d+\.quantite$/.test(k)).map((k) => (
+            <span key={k} className="mt-2 block text-xs text-danger-600">{errors[k][0]}</span>
+          ))}
 
-          <Field label="Pièce jointe" className="mt-5" hint="5 Mo maximum.">
-            <FileInput onChange={(e) => setFichier(e.target.files?.[0] || null)} />
-            {err('piece_jointe')}
-          </Field>
+          {/* Pièce jointe puis Observation, chacune sur toute la largeur (référence). */}
+          <div className="mt-4 space-y-4">
+            <Field label="Pièce jointe" hint="5 Mo maximum.">
+              <FileInput onChange={(e) => setFichier(e.target.files?.[0] || null)} />
+              {err('piece_jointe')}
+            </Field>
+            <Field label="Observation">
+              <Textarea rows={6} value={form.observation} onChange={set('observation')} className="min-h-[10rem]" />
+            </Field>
+          </div>
 
-          <Field label="Observation" className="mt-5">
-            <Textarea rows={6} value={form.observation} onChange={set('observation')} />
-          </Field>
-
-          <Field label="Total" className="mt-5">
-            <Input
-              readOnly
-              value={total.toFixed(2)}
-              className="border-emerald-400 bg-emerald-50/50 text-ink-900 focus:border-emerald-500 focus:ring-emerald-500/20"
-            />
-          </Field>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Prix Payer">
-              <Input type="number" step="0.01" min="0" value={form.prix_paye} onChange={set('prix_paye')} placeholder="0.00" />
+          {/* Le total, puis le prix à payer (cadre vert) et le solde restant (cadre orange). Le déjà payé n'est jamais saisi ici :
+              il se déduit des paiements enregistrés (solde restant de la facture rattachée), et l'ajout d'un paiement complémentaire
+              se fait depuis « Gestion des Paiements ». */}
+          <div className="mt-4">
+            <Field label={facture ? 'Total TTC de la facture' : 'Total HT'}>
+              <Input readOnly value={(facture ? n(facture.totalTtc) : total).toFixed(2)} className="border-success-500 bg-surface text-ink-900" />
+            </Field>
+          </div>
+          <div className="mt-4 grid gap-x-5 gap-y-4 md:grid-cols-2">
+            <Field
+              label="Prix à payer (ce paiement)"
+              hint={isEdit ? undefined : (prixPayeManuel ? 'Montant saisi à la main.' : 'Proposé automatiquement ; modifiable.')}
+              error={depasse
+                ? `Dépasse le solde restant de la facture (${dh(soldeAvant)}).`
+                : (depasseLignes ? `Dépasse le total des services du paiement (${dh(total)}) : ajoutez les services correspondants.` : undefined)}
+            >
+              <Input
+                type="number" step="0.01" min="0" value={form.prix_paye} placeholder="0.00"
+                onChange={(e) => { setPrixPayeManuel(true); set('prix_paye')(e) }}
+                error={depasse || depasseLignes || undefined}
+                className="border-success-500"
+              />
               {err('prix_paye')}
             </Field>
-            <Field label="Prix Restants">
-              <Input readOnly value={prixRestant.toFixed(2)} className="border-slate-200 bg-slate-100 text-slate-500" />
+            <Field label="Solde restant après ce paiement">
+              <Input readOnly value={resteApres.toFixed(2)} className="border-warning-500 bg-surface text-ink-700" />
             </Field>
           </div>
         </FormCard>

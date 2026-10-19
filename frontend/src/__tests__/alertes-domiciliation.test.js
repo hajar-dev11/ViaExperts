@@ -1,7 +1,7 @@
 // Bandeau d'alerte d'échéance (Topbar) : règles de calcul, dont l'exclusion d'une période déjà renouvelée.
 // Environnement Node (pas de jsdom) : fonction pure uniquement.
 import { describe, expect, it } from 'vitest'
-import { calculerAlertesEcheance, JOURS_ALERTE } from '../utils/alertesDomiciliation.js'
+import { calculerAlertesEcheance, destinationAlerte, JOURS_ALERTE } from '../utils/alertesDomiciliation.js'
 
 const MAINTENANT = new Date('2026-10-07T10:00:00')
 
@@ -17,7 +17,7 @@ describe('calculerAlertesEcheance', () => {
 
   it('une domiciliation arrivant à échéance sous 30 jours déclenche une alerte', () => {
     const alertes = calculerAlertesEcheance([periode(1, 10, '2026-10-17')], MAINTENANT)
-    expect(alertes).toEqual([{ entrepriseId: 10, nom: 'ENT 10', dateFin: '2026-10-17', expiree: false }])
+    expect(alertes).toEqual([{ id: 1, entrepriseId: 10, nom: 'ENT 10', dateFin: '2026-10-17', expiree: false }])
   })
 
   it('une échéance lointaine ne déclenche rien ; une échéance dépassée non renouvelée reste en alerte (expirée)', () => {
@@ -40,15 +40,22 @@ describe('calculerAlertesEcheance', () => {
     expect(calculerAlertesEcheance(sansFin, MAINTENANT)).toEqual([])
     // Ici la NOUVELLE période (échue le 01/10) est elle-même la plus récente : l'alerte vient d'elle, pas de l'ancienne.
     expect(calculerAlertesEcheance(finAnterieure, MAINTENANT)).toEqual([
-      { entrepriseId: 10, nom: 'ENT 10', dateFin: '2026-10-01', expiree: true },
+      { id: 2, entrepriseId: 10, nom: 'ENT 10', dateFin: '2026-10-01', expiree: true },
     ])
   })
 
   it('l\'alerte est recalculée à partir de la NOUVELLE date de fin', () => {
     const lignes = [periode(1, 10, '2026-10-17'), periode(2, 10, '2026-10-30', { renouvelleDeId: 1 })]
     expect(calculerAlertesEcheance(lignes, MAINTENANT)).toEqual([
-      { entrepriseId: 10, nom: 'ENT 10', dateFin: '2026-10-30', expiree: false },
+      { id: 2, entrepriseId: 10, nom: 'ENT 10', dateFin: '2026-10-30', expiree: false },
     ])
+  })
+
+  it('un clic sur l\'alerte ouvre la fiche du contrat concerné (ou l\'onglet « En alerte » si l\'alerte mémorisée n\'a pas d\'id)', () => {
+    const [alerte] = calculerAlertesEcheance([periode(7, 10, '2026-10-17')], MAINTENANT)
+    expect(destinationAlerte(alerte)).toBe('/domiciliation/7')
+    expect(destinationAlerte({ entrepriseId: 10, nom: 'ENT 10' })).toBe('/domiciliation?statut=alerte')
+    expect(destinationAlerte(undefined)).toBe('/domiciliation?statut=alerte')
   })
 
   it('une autre entreprise réellement à échéance garde son alerte', () => {

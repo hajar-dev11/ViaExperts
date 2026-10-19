@@ -1,4 +1,4 @@
-import { FileDown, Printer, FileSpreadsheet, FileText, FileType2 } from 'lucide-react'
+import { FileOutput, Printer, FileSpreadsheet, FileText, FileType2 } from 'lucide-react'
 import Popover from './Popover.jsx'
 import { IconButton } from './ui/Button.jsx'
 import { exportCsv, exportExcel, printTable } from '../utils/exporters.js'
@@ -25,7 +25,7 @@ export default function ExportMenu({ filename, title, subtitle = '', columns, ro
       panelClassName="w-56 overflow-hidden rounded-xl bg-white shadow-menu"
       trigger={(toggle) => (
         <IconButton variant="primary" title="Exporter" onClick={toggle} disabled={disabled}>
-          <FileDown size={18} />
+          <FileOutput size={18} />
         </IconButton>
       )}
     >

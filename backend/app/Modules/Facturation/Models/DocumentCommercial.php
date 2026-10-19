@@ -5,6 +5,7 @@ namespace App\Modules\Facturation\Models;
 use App\Models\Client;
 use App\Models\Entreprise;
 use App\Models\Party;
+use App\Support\ArrondiPrix;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -82,31 +83,19 @@ class DocumentCommercial extends Model
 
     /**
      * Recalcule les 5 totaux à partir des lignes.
-     * Remise en %, TVA en % — appliquées ligne par ligne comme sur la capture.
+     * Remise en MONTANT (Dh) — ou, pour une ligne ancienne, en % — et TVA en %, ligne par ligne (voir DocumentLigne::remiseEnDh).
      */
     public function recalculerTotaux(): void
     {
-        $ht = $remise = $tva = 0.0;
+        // Prix unitaires et lignes : centimes conservés. TOTAL HT arrondi à l'entier (règle du demi) ; TVA et TTC calculés sur
+        // ce total arrondi (voir ArrondiPrix::totauxDocument, identique au frontend).
+        $totaux = ArrondiPrix::totauxDocument($this->lignes->map(fn ($ligne) => [
+            'brut' => $ligne->brut(),
+            'remise' => $ligne->remiseEnDh(),
+            'tva_pourcent' => (float) $ligne->tva_pourcent,
+        ]));
 
-        foreach ($this->lignes as $ligne) {
-            $brut = (float) $ligne->quantite * (float) $ligne->prix_unitaire;
-            $ligneRemise = $brut * ((float) $ligne->remise_pourcent / 100);
-            $net = $brut - $ligneRemise;
-
-            $ht += $brut;
-            $remise += $ligneRemise;
-            $tva += $net * ((float) $ligne->tva_pourcent / 100);
-        }
-
-        $netHt = $ht - $remise;
-
-        $this->forceFill([
-            'total_ht' => round($ht, 2),
-            'total_remise' => round($remise, 2),
-            'total_net_ht' => round($netHt, 2),
-            'total_tva' => round($tva, 2),
-            'total_ttc' => round($netHt + $tva, 2),
-        ])->save();
+        $this->forceFill($totaux)->save();
     }
 
     public function scopeType($query, string $type)

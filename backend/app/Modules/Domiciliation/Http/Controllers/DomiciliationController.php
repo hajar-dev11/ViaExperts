@@ -11,12 +11,12 @@ use App\Modules\Domiciliation\Models\DomiciliationDocument;
 use App\Modules\Domiciliation\Models\DomiciliationObservation;
 use App\Modules\Domiciliation\Models\DomiciliationOperation;
 use App\Modules\Domiciliation\Services\PeriodesDomiciliation;
+use App\Modules\Domiciliation\Services\PrixDomiciliation;
 use App\Rules\FichierAutorise;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DomiciliationController extends Controller
@@ -79,11 +79,22 @@ class DomiciliationController extends Controller
         $data = $request->validated();
         $data['created_by'] = $request->user()->id;
 
+        // Prix HT arrondis à l'entier ; le total saisi à la main est conservé, sinon prix par mois × mois PAYÉS (les mois
+        // gratuits ne sont pas facturés).
+        $data = PrixDomiciliation::avecTotal($data);
+
         // Une entreprise ne peut pas avoir deux périodes actives qui se chevauchent — contrôle sous verrou, pour que deux
         // créations simultanées ne passent pas toutes les deux.
         $domiciliation = DB::transaction(function () use ($data) {
             PeriodesDomiciliation::verrouillerEntreprise((int) $data['entreprise_id']);
-            PeriodesDomiciliation::verifierAbsenceDeChevauchement((int) $data['entreprise_id'], $data['date_depart'], $data['date_fin'] ?? null);
+            PeriodesDomiciliation::verifierAbsenceDeChevauchement(
+                (int) $data['entreprise_id'],
+                $data['date_depart'],
+                $data['date_fin'] ?? null,
+                null,
+                isset($data['centre_domiciliation_id']) ? (int) $data['centre_domiciliation_id'] : null,
+                detecterDoublon: true
+            );
 
             return Domiciliation::create($data);
         });
@@ -137,6 +148,24 @@ class DomiciliationController extends Controller
 
                 if (PeriodesDomiciliation::estBloquante($domiciliation)) {
                     PeriodesDomiciliation::verifierAbsenceDeChevauchement($entrepriseId, $depart, $fin, $domiciliation->id);
+                }
+            }
+
+            // Un prix renvoyé tel qu'il est déjà enregistré n'est pas touché (donc pas arrondi) : un montant historique n'est
+            // jamais réécrit. Un prix réellement modifié est arrondi à l'entier.
+            foreach (['prix_par_mois', 'prix_total'] as $champ) {
+                if (array_key_exists($champ, $data) && $data[$champ] !== null && $domiciliation->{$champ} !== null
+                    && abs((float) $data[$champ] - (float) $domiciliation->{$champ}) < 0.005) {
+                    unset($data[$champ]);
+                }
+            }
+            $data = PrixDomiciliation::arrondir($data);
+
+            // Sans total fourni, il n'est recalculé que si le prix par mois ou les mois payés changent.
+            if (! array_key_exists('prix_total', $data) || $data['prix_total'] === null) {
+                $total = PrixDomiciliation::totalSiChange($data, $domiciliation->prix_par_mois, (int) $domiciliation->mois_payee);
+                if ($total !== null) {
+                    $data['prix_total'] = $total;
                 }
             }
 
@@ -210,7 +239,7 @@ class DomiciliationController extends Controller
             'date_fin' => ['nullable', 'date', 'after_or_equal:date_depart'],
             'mois_payee' => ['nullable', 'integer', 'min:0', 'max:600'],
             'mois_gratuits' => ['nullable', 'integer', 'min:0', 'max:600'],
-            'mode_paiement' => ['nullable', 'string', Rule::in(StoreDomiciliationRequest::MODES_PAIEMENT)],
+            'mode_paiement' => StoreDomiciliationRequest::reglesModePaiement(),
             'prix_par_mois' => ['nullable', 'numeric', 'min:0'],
             'prix_total' => ['nullable', 'numeric', 'min:0'],
             'signature_sur_facture' => ['nullable', 'boolean'],
@@ -224,6 +253,9 @@ class DomiciliationController extends Controller
             'commentaire' => ['nullable', 'string', 'max:5000'],
             'fichier' => ['nullable', 'file', FichierAutorise::document(), 'max:5120'],
         ]);
+
+        // Prix HT arrondis à l'entier ; total saisi conservé, sinon prix par mois × mois PAYÉS.
+        $data = PrixDomiciliation::avecTotal($data);
 
         $nouvelle = DB::transaction(function () use ($request, $domiciliation, $data) {
             // Tout se joue SOUS VERROU de l'entreprise : deux renouvellements simultanés (double-clic, deux onglets)

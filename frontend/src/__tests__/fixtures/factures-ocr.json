@@ -1,0 +1,626 @@
+{
+ "photo": {
+  "lignes": [
+   {
+    "texte": "SARL ATLAS PIECES",
+    "confiance": 91
+   },
+   {
+    "texte": "ADRESSE: 77 RUE MOHAMED SMIHA ETG 10 N75 CASABLANCA",
+    "confiance": 89
+   },
+   {
+    "texte": "1CE:001234567000011 RC:112233 IF :12345678",
+    "confiance": 44
+   },
+   {
+    "texte": "TEL: (+212)07 10 98 66 66 EMAIL: 21595069408qa. com",
+    "confiance": 78
+   },
+   {
+    "texte": "AU:",
+    "confiance": 96
+   },
+   {
+    "texte": "Garage etoile FACTURE",
+    "confiance": 95
+   },
+   {
+    "texte": "FACTURE DETAIL :170220:",
+    "confiance": 90
+   },
+   {
+    "texte": "DATE : 14-09-2026",
+    "confiance": 92
+   },
+   {
+    "texte": "ICE:009876543000022",
+    "confiance": 83
+   },
+   {
+    "texte": "No. DESIGNATION QTE P.U(OH) MONTANT HT",
+    "confiance": 88
+   },
+   {
+    "texte": "! | CP4 PORCHETTE 5 100.00 | 500. 00",
+    "confiance": 76
+   },
+   {
+    "texte": "TOTAL #T 500. 00",
+    "confiance": 74
+   },
+   {
+    "texte": "Arrêtée la présente facture à la somme de DONT TVA (208) : 100.00",
+    "confiance": 88
+   },
+   {
+    "texte": "SLY CENT DHS ET 0.0 CTS TOTAL TTC 600. 00",
+    "confiance": 87
+   },
+   {
+    "texte": "ATLAS PIECES SARL.",
+    "confiance": 76
+   },
+   {
+    "texte": "ADRESSE: 77 RUE MOHAMED SMIHA ETG 10 N75 CASABLANCA",
+    "confiance": 81
+   },
+   {
+    "texte": "|CE:001234567000011 RC:112233 IF :12345678",
+    "confiance": 23
+   },
+   {
+    "texte": "TEL: (+212)07 10 98 66 66 EMAIL: 21595069408g. com",
+    "confiance": 66
+   }
+  ],
+  "alternatives": [
+   [
+    {
+     "texte": "pu L- Gé",
+     "confiance": 40
+    },
+    {
+     "texte": "S æ 1 Ë",
+     "confiance": 22
+    },
+    {
+     "texte": "2 d'enbèes",
+     "confiance": 0
+    },
+    {
+     "texte": ". 7 ERA ADRESSE: 77 RUE MOHAMED SMIHA ETG 10 N75 CASABLANCA",
+     "confiance": 74
+    },
+    {
+     "texte": "\\CE:001234567000011 RC:112233 1F:12345678",
+     "confiance": 65
+    },
+    {
+     "texte": "TEL: (+212)07 10 98 66 66 EMAIL: 21595069408qa. com",
+     "confiance": 84
+    },
+    {
+     "texte": "AU:",
+     "confiance": 96
+    },
+    {
+     "texte": "Garage etoile FACTURE",
+     "confiance": 96
+    },
+    {
+     "texte": "FACTURE DETAIL :17022026",
+     "confiance": 92
+    },
+    {
+     "texte": "DATE : 14-09-2026",
+     "confiance": 89
+    },
+    {
+     "texte": "ICE:009876543000022",
+     "confiance": 77
+    },
+    {
+     "texte": "=",
+     "confiance": 33
+    },
+    {
+     "texte": "0",
+     "confiance": 12
+    },
+    {
+     "texte": "TOTAL ir 500. 0",
+     "confiance": 52
+    },
+    {
+     "texte": "Arrêtée la présente facture à la somme de DONT TVA (208) : 100. 00",
+     "confiance": 88
+    },
+    {
+     "texte": "SLE_CENT DIS ET 0.0 CIS TOTAL TTC: 600.00",
+     "confiance": 57
+    },
+    {
+     "texte": "ATLAS PIECES SARL B P",
+     "confiance": 84
+    },
+    {
+     "texte": "ADRESSE: 77 RUE MOHAMED SMIHA ETG 10 N75 CASABLANCA ABIN =",
+     "confiance": 72
+    },
+    {
+     "texte": "ICE:001234567000011 RC:112233 IF:12345678 ICE: pB7 az AU",
+     "confiance": 29
+    },
+    {
+     "texte": "TEL: (+212)07 10 98 66 66 EMAIL: 21595069408qa. com 77, lohamed 2",
+     "confiance": 80
+    },
+    {
+     "texte": "smi",
+     "confiance": 38
+    },
+    {
+     "texte": "c s7",
+     "confiance": 71
+    },
+    {
+     "texte": "/ an",
+     "confiance": 73
+    },
+    {
+     "texte": "_—",
+     "confiance": 24
+    }
+   ]
+  ]
+ },
+ "blPhoto": {
+  "lignes": [
+   {
+    "texte": "ACCESSOIRES PIÈCES AUTO",
+    "confiance": 78
+   },
+   {
+    "texte": "PIECOTO",
+    "confiance": 89
+   },
+   {
+    "texte": "SIEGE ET MAGASIN : 37, Rue Soldat Raphael",
+    "confiance": 87
+   },
+   {
+    "texte": "Mariscal - Ain Bordja - C.P: 20320 - CASABLANCA",
+    "confiance": 89
+   },
+   {
+    "texte": "Tél ; 0522 65 14 14 (L.G]- 0522 65 26 43/46/47 PIECOTO",
+    "confiance": 84
+   },
+   {
+    "texte": "Fax : 05 22 65 2645",
+    "confiance": 80
+   },
+   {
+    "texte": "E-mail : pieceotomarocshotmail.fr ai",
+    "confiance": 55
+   },
+   {
+    "texte": "RYADI IMPORT",
+    "confiance": 93
+   },
+   {
+    "texte": "COMPTANT ESPECE",
+    "confiance": 92
+   },
+   {
+    "texte": "GARAGE ETOILE",
+    "confiance": 96
+   },
+   {
+    "texte": ". CASA",
+    "confiance": 63
+   },
+   {
+    "texte": "Facture N° C26024363 ICE009876543000022",
+    "confiance": 65
+   },
+   {
+    "texte": "EXPEDITION PAIEMENT REPRESENTANT",
+    "confiance": 93
+   },
+   {
+    "texte": "Casablanca le 11/08/26",
+    "confiance": 58
+   },
+   {
+    "texte": "LUIM MAJIDI",
+    "confiance": 82
+   },
+   {
+    "texte": "REFERENCE | DESIGNATION QUTE REM | TOTAI",
+    "confiance": 89
+   },
+   {
+    "texte": "093400-50303D | INJECTEUR MITS.CANTER-4D32 / DLLA160P3 4 35% 93",
+    "confiance": 78
+   },
+   {
+    "texte": "a)",
+    "confiance": 38
+   },
+   {
+    "texte": "LAPA,",
+    "confiance": 40
+   },
+   {
+    "texte": "2-0",
+    "confiance": 28
+   },
+   {
+    "texte": "82",
+    "confiance": 81
+   },
+   {
+    "texte": "PSS CES DS",
+    "confiance": 8
+   },
+   {
+    "texte": "Arrêté le Présente Bon de Livraison à la Somme dé MONTANT H.T | MONTANT T.V.A TOTAL T",
+    "confiance": 63
+   },
+   {
+    "texte": "Neuf cent trente DIRHAMS, deux CENTIMES 775,02 155,00 930,02",
+    "confiance": 94
+   },
+   {
+    "texte": "peorr: TIMBRE NET A PAYER 932:",
+    "confiance": 63
+   },
+   {
+    "texte": "Bt) S pay 0 a ms de I EU 008 7 AS",
+    "confiance": 21
+   },
+   {
+    "texte": "EŒtsmere 2455474 vannoot PECTE MES T0 Musee RAS CES srem",
+    "confiance": 0
+   },
+   {
+    "texte": "“7 vess PRESS TENTE LAS CNE 00 ESS er CN",
+    "confiance": 19
+   },
+   {
+    "texte": "> © EP: 58",
+    "confiance": 48
+   },
+   {
+    "texte": "RC. N° 60861 CASA - identifiant Fincal N° : 03600938 - C.N.S.5: 1074088 - C CP“ 3095-68K - Patente : 31916781",
+    "confiance": 66
+   }
+  ],
+  "alternatives": [
+   [
+    {
+     "texte": "—————————_—",
+     "confiance": 0
+    },
+    {
+     "texte": "=",
+     "confiance": 64
+    },
+    {
+     "texte": "PIECOTO :e Loeb",
+     "confiance": 41
+    },
+    {
+     "texte": "SIEGE FT MAGASIN : 37, Rue Soldat Raphael 3 ECRIRE CE RE EEE EE",
+     "confiance": 65
+    },
+    {
+     "texte": "Mariscal - Ain Bordja - C.P: 20320 - CASABLANCA 2 TA. 08 2260.62.64 (LG) - 05 22 60.83, 56/6",
+     "confiance": 69
+    },
+    {
+     "texte": "Tél : 0522 65 14 14 (L.G} - 0822 65 26 43/46/47 : PIECOTO Fax 08 22 60.82-13 Fax Magain: 08 22 63.",
+     "confiance": 73
+    },
+    {
+     "texte": "Fax : 05 22 65 26 45 E-mail : pieceotomarocahotmail.!",
+     "confiance": 87
+    },
+    {
+     "texte": "E-mail : pieceotomarochotmail.fr 2x ICE : 002468135000033",
+     "confiance": 70
+    },
+    {
+     "texte": "COMPTANT ESPECE",
+     "confiance": 93
+    },
+    {
+     "texte": "GARAGE ETOILE",
+     "confiance": 96
+    },
+    {
+     "texte": ". CASA",
+     "confiance": 63
+    },
+    {
+     "texte": "Facture N° C26024363 ICE009876543000022",
+     "confiance": 65
+    },
+    {
+     "texte": "PAIEMENT REPRESENTANT",
+     "confiance": 94
+    },
+    {
+     "texte": "Casablanca le 11/08/26",
+     "confiance": 88
+    },
+    {
+     "texte": "p= =] —",
+     "confiance": 2
+    },
+    {
+     "texte": "093400-50303D | INJECTEUR MITS.CANTER-4D32 / DLLA160P3 4 357,70 35% 930",
+     "confiance": 86
+    },
+    {
+     "texte": "> ac,",
+     "confiance": 43
+    },
+    {
+     "texte": "riAÏ Bts ,",
+     "confiance": 0
+    },
+    {
+     "texte": "22624 EpsaniS 0e d s€",
+     "confiance": 0
+    },
+    {
+     "texte": "ee peu 0204 60 84 *",
+     "confiance": 9
+    },
+    {
+     "texte": "eos",
+     "confiance": 20
+    },
+    {
+     "texte": "Arrêté le Présente Bon de Livraison à la Somme dé MONTANT H.T | MONTANT T.V.A TOTAL T",
+     "confiance": 63
+    },
+    {
+     "texte": "Neuf cent trente DIRHAMS, deux CENTIMES 775,02 [ee | 230,02",
+     "confiance": 83
+    },
+    {
+     "texte": "pro TIMBRE NET A PAYER 932:",
+     "confiance": 76
+    },
+    {
+     "texte": "Bt) S pay 0 a ms de I EU 008 7 AS",
+     "confiance": 21
+    },
+    {
+     "texte": "Œhocmpe ZN15SI74 vanmat PTE VE LT Dune RAS CESsremx<",
+     "confiance": 0
+    },
+    {
+     "texte": "D ere ee EE 1 8e Mecs tan Me \"À",
+     "confiance": 19
+    },
+    {
+     "texte": "mn rame VAL AAA |‘ ÉCHESD RNCS — PIE EE rame",
+     "confiance": 14
+    },
+    {
+     "texte": "RC. N° 60861 CASA - identifiant Fincal N° : 03600938 - C.N.5.8: 1074088 - C.C.P: 3005-08K - Patente : 31916701",
+     "confiance": 65
+    },
+    {
+     "texte": "—_—_—_———",
+     "confiance": 11
+    }
+   ]
+  ]
+ },
+ "pdf": {
+  "lignes": [
+   {
+    "texte": "FACTURE",
+    "confiance": 96
+   },
+   {
+    "texte": "772",
+    "confiance": 4
+   },
+   {
+    "texte": "CABINET EXEMPLE",
+    "confiance": 96
+   },
+   {
+    "texte": "Cabinet Comptable et de Conseil",
+    "confiance": 67
+   },
+   {
+    "texte": "cabinet Exemple",
+    "confiance": 96
+   },
+   {
+    "texte": "Facture N° : fac 666 Information de Client :",
+    "confiance": 94
+   },
+   {
+    "texte": "Date de Facturation : 06/10/2026 DEMO ATLAS TRADING ]",
+    "confiance": 90
+   },
+   {
+    "texte": "Date de Paiement : 06/10/2026 ICE : 90000000000001",
+    "confiance": 93
+   },
+   {
+    "texte": "Qte Total TTC",
+    "confiance": 94
+   },
+   {
+    "texte": "Désignation",
+    "confiance": 95
+   },
+   {
+    "texte": "extration du modèle",
+    "confiance": 95
+   },
+   {
+    "texte": "7 du registre du",
+    "confiance": 96
+   },
+   {
+    "texte": "commerce",
+    "confiance": 96
+   },
+   {
+    "texte": "100,00 Dh 120,00 Dh",
+    "confiance": 96
+   },
+   {
+    "texte": "100,00 Dh 100,00 Dh",
+    "confiance": 96
+   },
+   {
+    "texte": "CENT VINGT DIRHAMS",
+    "confiance": 91
+   },
+   {
+    "texte": "Mode paiement : Espèce Prix Restant : 0,00 Dh",
+    "confiance": 94
+   },
+   {
+    "texte": "Total Net HT",
+    "confiance": 96
+   },
+   {
+    "texte": "Montant TVA",
+    "confiance": 96
+   },
+   {
+    "texte": "Total TTC 120,00 Dh",
+    "confiance": 96
+   },
+   {
+    "texte": "Total Payé 120,00 Dh",
+    "confiance": 94
+   },
+   {
+    "texte": "Signature",
+    "confiance": 96
+   },
+   {
+    "texte": "Bd 30 Juillet Res Les Champs Du Printemps Ghl Imm F Etage 5 Bureau N° 15 Casablanca ICE :",
+    "confiance": 94
+   },
+   {
+    "texte": "001357924000044 - RC : 556677 - IF : 41424344- Email : contact@exemple.test Tele : +212",
+    "confiance": 92
+   },
+   {
+    "texte": "606 098 759 - +212 522 728 944 - Site Web : www.exemple.com",
+    "confiance": 94
+   }
+  ],
+  "alternatives": [
+   [
+    {
+     "texte": "V2)",
+     "confiance": 0
+    },
+    {
+     "texte": "LP",
+     "confiance": 30
+    },
+    {
+     "texte": "CABINET EXEMPLE",
+     "confiance": 96
+    },
+    {
+     "texte": "cabinet Exemple e",
+     "confiance": 79
+    },
+    {
+     "texte": "Facture N° : fac 666 Information de Client :",
+     "confiance": 94
+    },
+    {
+     "texte": "Date de Facturation : 06/10/2026 DEMO ATLAS TRADING ]",
+     "confiance": 90
+    },
+    {
+     "texte": "Date de Paiement : 06/10/2026 ICE : 90000000000001",
+     "confiance": 93
+    },
+    {
+     "texte": "Désignation PUHT Qte Total HT Remise Net HT TVA Total TTC",
+     "confiance": 95
+    },
+    {
+     "texte": "extration du modèle",
+     "confiance": 95
+    },
+    {
+     "texte": "7 du registre du 100,00 Dh 1.00 100,00 Dh 0,00 Dh 100,00 Dh 20,00 Dh (20%) 120,00 Dh",
+     "confiance": 94
+    },
+    {
+     "texte": "commerce",
+     "confiance": 96
+    },
+    {
+     "texte": "CENT VINGT DIRHAMS Total HT 100,00 Dh",
+     "confiance": 94
+    },
+    {
+     "texte": "Mode paiement : Espèce Prix Restant : 0,00 Dh Remise 0,00 Dh",
+     "confiance": 94
+    },
+    {
+     "texte": "Total Net HT 100,00 Dh",
+     "confiance": 96
+    },
+    {
+     "texte": "Montant TVA 20,00 Dh",
+     "confiance": 95
+    },
+    {
+     "texte": "Total TTC 120,00 Dh",
+     "confiance": 96
+    },
+    {
+     "texte": "Total Payé 120,00 Dh",
+     "confiance": 94
+    },
+    {
+     "texte": "Signature",
+     "confiance": 96
+    },
+    {
+     "texte": "RORE",
+     "confiance": 0
+    },
+    {
+     "texte": "SOS,",
+     "confiance": 11
+    },
+    {
+     "texte": "Ba 30 Juillet Res Les Champs Du Printemps Ghl Imm F Etage 5 Bureau N° 15 Casablanca ICE :",
+     "confiance": 93
+    },
+    {
+     "texte": "001357924000044 - RC : 556677 - IF : 41424344- Email : contact@exemple.test Tele : +212",
+     "confiance": 89
+    },
+    {
+     "texte": "606 098 759 - +212 522 728 944 - Site Web : www.exemple.com",
+     "confiance": 93
+    }
+   ]
+  ]
+ }
+}

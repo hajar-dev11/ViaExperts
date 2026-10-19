@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Archive, ArrowLeft, Ban, BadgeCheck, Building2, CalendarClock, CircleCheck, Coins, CreditCard, FileText,
-  Folder, IdCard, ListTree, Lock, Mail, Paperclip, Pencil, RefreshCw, RotateCcw, ScanLine,
+  Archive, ArrowLeft, Building2, CalendarClock, Coins, CreditCard, FileText,
+  Folder, IdCard, ListTree, Lock, Mail, Paperclip, RefreshCw, RotateCcw, ScanLine,
   Trash2, Wallet,
 } from 'lucide-react'
-import Button from '../../../components/ui/Button.jsx'
+import { IconeActions, IconeModifier } from '../../../components/ui/icons.jsx'
+import Button, { IconButton } from '../../../components/ui/Button.jsx'
 import Alert from '../../../components/ui/Alert.jsx'
 import Modal from '../../../components/ui/Modal.jsx'
 import ActionMenu from '../../../components/ui/ActionMenu.jsx'
@@ -17,10 +18,12 @@ import CarteBloc, { VUES_BLOC as VUES } from '../../../components/CarteBloc.jsx'
 import StatutDomiciliation from '../components/StatutDomiciliation.jsx'
 import { Ligne, Section } from '../../../components/FicheInfos.jsx'
 import { Field, FileInput, Textarea } from '../../../components/Field.jsx'
-import { FormulaireRenouvellement, FormulaireActionSimple, JournalOperations } from '../components/DomiciliationActions.jsx'
+import { FormulaireRenouvellement, JournalOperations, MenuImprimer } from '../components/DomiciliationActions.jsx'
+import { DOCUMENTS_DOMICILIATION, chargerSignatureDomiciliation } from '../documents/documentsDomiciliation.js'
+import { getIdentiteDomiciliation } from '../../../api/settings.js'
 import {
   getDomiciliation, listDomiciliations, archiveDomiciliation, corbeilleDomiciliation, restoreDomiciliation,
-  renouvelerDomiciliation, activerDomiciliation, declarerDomiciliation, resilierDomiciliation,
+  renouvelerDomiciliation,
   addObservation, addDocument, deleteDocument, deleteObservation,
   archiveDocument, corbeilleDocument, restoreDocument,
   archiveObservation, corbeilleObservation, restoreObservation,
@@ -29,6 +32,7 @@ import {
 import { API_URL } from '../../../api/http.js'
 import { ApiError } from '../../../api/http.js'
 import { formatDate, formatDateHeure } from '../../../utils/format.js'
+import { formaterMontant } from '../../../utils/montants.js'
 
 /** Poids d'un fichier en unité lisible. */
 function formatTaille(octets) {
@@ -55,8 +59,6 @@ export default function DomiciliationDetails() {
   // { id, data } de la période à renouveler — la fiche courante pour le
   // bouton d'en-tête, ou une période de l'historique pour son bouton dédié.
   const [renouvellementCible, setRenouvellementCible] = useState(null)
-  const [declarationOuvert, setDeclarationOuvert] = useState(false)
-  const [resiliationOuvert, setResiliationOuvert] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [confirmCorbeille, setConfirmCorbeille] = useState(false)
 
@@ -96,6 +98,10 @@ export default function DomiciliationDetails() {
   useEffect(charger, [charger])
 
   useEffect(rechargerHistorique, [rechargerHistorique])
+
+  // Cachet des documents imprimés (menu « Imprimer » des documents du dossier).
+  const [signaturePath, setSignaturePath] = useState(null)
+  useEffect(() => { chargerSignatureDomiciliation(getIdentiteDomiciliation).then(setSignaturePath) }, [])
 
   const executer = async (action, message, messageErreur) => {
     setErreur('')
@@ -166,7 +172,8 @@ export default function DomiciliationDetails() {
           <StatutDomiciliation statut={d.statutAffichage} />
         </div>
 
-        {erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} className="mt-4" onClose={() => setErreur('')}>{erreur}</Alert>}
+        {/* Pendant qu'une fenêtre d'action est ouverte, l'erreur s'affiche DANS la fenêtre (pas deux fois). */}
+        {!renouvellementCible && erreur && <Alert tone="danger" onAutoClose={() => setErreur('')} className="mt-4" onClose={() => setErreur('')}>{erreur}</Alert>}
 
         <Section>À propos</Section>
         <Ligne icon={FileText} label="Denomination" value={d.denomination} />
@@ -185,47 +192,43 @@ export default function DomiciliationDetails() {
 
         <Section>Facturation</Section>
         <Ligne icon={CreditCard} label="Mode de Paiement" value={d.modePaiement} />
-        <Ligne icon={Wallet} label="Prix Par Mois (Dh)" value={d.prixParMois} />
-        <Ligne icon={Coins} label="Prix Totale (Dh)" value={d.prixTotal} />
+        <Ligne icon={Wallet} label="Prix Par Mois (Dh HT)" value={d.prixParMois != null ? formaterMontant(d.prixParMois) : null} />
+        <Ligne icon={Coins} label="Prix Total (Dh HT)" value={d.prixTotal != null ? formaterMontant(d.prixTotal) : null} />
         <Ligne icon={CalendarClock} label="Date Facture" value={formatDate(d.dateFacture)} />
         <Ligne icon={CalendarClock} label="Date Paiement" value={formatDate(d.datePaiement)} />
+
+        {/* Les cases « Documents du dossier » cochées à l'enregistrement de CETTE domiciliation. */}
+        <Section>Documents du dossier</Section>
+        {DOCUMENTS_DOMICILIATION.map((doc) => (
+          <Ligne key={doc.cle} icon={FileText} label={doc.label} value={d[doc.drapeau] ? 'Inclus au dossier' : 'Non inclus'} />
+        ))}
+        <div className="mt-2 flex items-center gap-2 text-sm text-ink-800">
+          <MenuImprimer domiciliation={d} signaturePath={signaturePath} />
+          <span>Imprimer les documents inclus</span>
+        </div>
 
         <Section>Détail de création</Section>
         <Ligne icon={CalendarClock} label="Créé Le" value={formatDateHeure(d.createdAt)} />
         <Ligne icon={IdCard} label="Créé par" value={d.createdBy} />
         <Ligne icon={RefreshCw} label="Type de période" value={d.renouvelleDeId ? 'Renouvellement' : 'Première période'} />
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button variant="secondary" icon={<Pencil size={15} />} onClick={() => navigate(`/domiciliation/${id}/modifier`)}>
+        {/* Trois actions seulement. Archiver et Corbeille demandent une confirmation (voir plus bas). Renouveler reste dans le
+            tableau des périodes ; Activer, Déclarer et Résilier restent dans le menu d'actions de « Gestion Domiciliation ». */}
+        <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
+          <Button variant="secondary" icon={<IconeModifier size={15} />} onClick={() => navigate(`/domiciliation/${id}/modifier`)}>
             Modifier
-          </Button>
-          <Button variant="success" icon={<RefreshCw size={15} />} onClick={() => setRenouvellementCible({ id, data: d })}>
-            Renouveler
           </Button>
           {d.status === 'actif' && (
             <>
-              <Button
-                variant="success"
-                icon={<CircleCheck size={15} />}
-                disabled={d.etat === 'active' || !d.etat}
-                onClick={() => executer(() => activerDomiciliation(id), 'Domiciliation activée.', "L'activation n'a pas pu être effectuée.")}
-              >
-                Activer
-              </Button>
-              <Button variant="secondary" icon={<BadgeCheck size={15} />} onClick={() => setDeclarationOuvert(true)}>
-                {d.etat === 'declare' ? 'Déclarée' : 'Déclary'}
-              </Button>
-              <Button variant="danger" icon={<Ban size={15} />} onClick={() => setResiliationOuvert(true)}>
-                {d.etat === 'resilie' ? 'Résiliée' : 'Résilier'}
-              </Button>
               <Button variant="warning" icon={<Archive size={15} />} onClick={() => setConfirmArchive(true)}>
-                Archive
+                Archiver
               </Button>
               <Button variant="dark" icon={<Trash2 size={15} />} onClick={() => setConfirmCorbeille(true)}>
                 Corbeille
               </Button>
             </>
           )}
+          {/* Une domiciliation archivée ou à la corbeille se restaure (comportement existant). */}
           {d.status !== 'actif' && (
             <Button
               variant="success"
@@ -235,8 +238,7 @@ export default function DomiciliationDetails() {
               Restaurer
             </Button>
           )}
-        </div>
-      </div>
+        </div>      </div>
 
       {/* ---- Colonne droite -------------------------------------------------- */}
       <div className="space-y-6 xl:col-span-2">
@@ -251,6 +253,7 @@ export default function DomiciliationDetails() {
         <CarteBloc
           icon={Folder}
           titre="Documents"
+          ouvertParDefaut={false}
           onAjouter={() => setAjoutDocument(true)}
           vue={vueDocuments}
           onVue={setVueDocuments}
@@ -279,7 +282,7 @@ export default function DomiciliationDetails() {
                 </a>
                 <ActionMenu
                   label="Actions"
-                  icon={<ListTree size={16} />}
+                  icon={<IconeActions />}
                   items={vueDocuments === 'actif' ? [
                     {
                       label: 'Archiver',
@@ -337,6 +340,7 @@ export default function DomiciliationDetails() {
         <CarteBloc
           icon={ListTree}
           titre="Observations"
+          ouvertParDefaut={false}
           onAjouter={() => { setTexteObservation(''); setAjoutObservation(true) }}
           vue={vueObservations}
           onVue={setVueObservations}
@@ -376,7 +380,7 @@ export default function DomiciliationDetails() {
                 )}
                 <ActionMenu
                   label="Actions"
-                  icon={<ListTree size={16} />}
+                  icon={<IconeActions />}
                   items={vueObservations === 'actif' ? [
                     {
                       label: 'Archiver',
@@ -434,6 +438,12 @@ export default function DomiciliationDetails() {
         <CarteBloc
           icon={CalendarClock}
           titre="Domiciliation"
+          ouvertParDefaut={false}
+          actions={d.status === 'actif' && (
+            <IconButton variant="success" title="Renouveler cette domiciliation" onClick={() => setRenouvellementCible({ id, data: d })}>
+              <RefreshCw size={18} />
+            </IconButton>
+          )}
           vue={vueHistorique}
           onVue={setVueHistorique}
         >
@@ -444,7 +454,7 @@ export default function DomiciliationDetails() {
               { key: 'dateFin', header: 'Date fin', render: (r) => formatDate(r.dateFin) },
               { key: 'moisPayee', header: 'Payée', value: (r) => (r.moisPayee != null ? `${r.moisPayee} Mois` : '—') },
               { key: 'dateLegalisation', header: 'Date légalisation', render: (r) => formatDate(r.dateLegalisation) },
-              { key: 'prixTotal', header: 'Prix', numeric: true, value: (r) => r.prixTotal },
+              { key: 'prixTotal', header: 'Prix HT', numeric: true, value: (r) => r.prixTotal },
               { key: 'createdBy', header: 'Action de', value: (r) => r.createdBy || '—' },
             ]}
             rows={historique}
@@ -455,7 +465,7 @@ export default function DomiciliationDetails() {
               <div className="flex justify-end gap-1.5">
                 <ActionMenu
                   label="Actions"
-                  icon={<ListTree size={16} />}
+                  icon={<IconeActions />}
                   items={vueHistorique === 'actif' ? [
                     {
                       label: 'Renouveler',
@@ -516,11 +526,13 @@ export default function DomiciliationDetails() {
       {renouvellementCible && (
         <FormulaireRenouvellement
           domiciliation={renouvellementCible.data}
-          onAnnuler={() => setRenouvellementCible(null)}
-          onEnregistrer={async ({ champs }) => {
+          erreur={erreur}
+          onEffacerErreur={() => setErreur('')}
+          onAnnuler={() => { setRenouvellementCible(null); setErreur('') }}
+          onEnregistrer={async ({ champs, fichier }) => {
             setErreur('')
             try {
-              await renouvelerDomiciliation(renouvellementCible.id, champs)
+              await renouvelerDomiciliation(renouvellementCible.id, champs, fichier)
               setRenouvellementCible(null)
               toast.success('Domiciliation renouvelée.')
               charger()
@@ -532,51 +544,10 @@ export default function DomiciliationDetails() {
         />
       )}
 
-      {declarationOuvert && (
-        <FormulaireActionSimple
-          titre={`Déclarer la domiciliation — ${d.denomination}`}
-          description="La domiciliation passe à l'état « Déclaré » à la date du jour."
-          libelleBouton="Déclarer"
-          tone="success"
-          onAnnuler={() => setDeclarationOuvert(false)}
-          onEnregistrer={async ({ commentaire, fichier }) => {
-            setErreur('')
-            try {
-              await declarerDomiciliation(id, { commentaire, fichier })
-              setDeclarationOuvert(false)
-              toast.success('Domiciliation déclarée.')
-              charger()
-            } catch (err) {
-              setErreur(err instanceof ApiError ? err.message : "L'action n'a pas pu être effectuée.")
-            }
-          }}
-        />
-      )}
-
-      {resiliationOuvert && (
-        <FormulaireActionSimple
-          titre={`Résilier la domiciliation — ${d.denomination}`}
-          description="La domiciliation passe à l'état « Résilié » à la date du jour."
-          libelleBouton="Résilier"
-          tone="danger"
-          onAnnuler={() => setResiliationOuvert(false)}
-          onEnregistrer={async ({ commentaire, fichier }) => {
-            setErreur('')
-            try {
-              await resilierDomiciliation(id, { commentaire, fichier })
-              setResiliationOuvert(false)
-              toast.success('Domiciliation résiliée.')
-              charger()
-            } catch (err) {
-              setErreur(err instanceof ApiError ? err.message : "L'action n'a pas pu être effectuée.")
-            }
-          }}
-        />
-      )}
-
       <Modal
         open={ajoutObservation}
         onClose={fermerAjoutObservation}
+        size="xxl"
         title="Ajouter une observation"
         footer={(
           <>
@@ -585,11 +556,11 @@ export default function DomiciliationDetails() {
           </>
         )}
       >
-        <div className="space-y-4">
-          <Field label="Observation" required>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Field label="Observation" required className="lg:col-span-2">
             <Textarea
               autoFocus
-              rows={3}
+              rows={8}
               value={texteObservation}
               onChange={(e) => setTexteObservation(e.target.value)}
               placeholder="Votre observation…"
@@ -616,6 +587,7 @@ export default function DomiciliationDetails() {
       <Modal
         open={ajoutDocument}
         onClose={fermerAjoutDocument}
+        size="xxl"
         title="Ajouter un document"
         footer={(
           <>
@@ -624,7 +596,7 @@ export default function DomiciliationDetails() {
           </>
         )}
       >
-        <div className="space-y-4">
+        <div className="grid gap-5 lg:grid-cols-2">
           <Field label="Nom du document" hint="Laissé vide, le nom du fichier est repris.">
             <input
               type="text"

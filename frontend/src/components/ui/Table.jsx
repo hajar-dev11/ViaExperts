@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import EmptyState from '../EmptyState.jsx'
 import Pagination from './Pagination.jsx'
 import { SkeletonTable } from './Skeleton.jsx'
+import { CLASSE_SELECT_BLEU } from '../Field.jsx'
 
 /**
  * Table — tableau unique du design system, en DEUX MODES.
@@ -71,6 +72,11 @@ export default function Table({
   title,
   filter,
   actions,
+  // Contenu intégré dans la carte, entre le titre et la barre « Afficher N entrées / Rechercher » (ex. tuiles de statut :
+  // le filtre se trouve ainsi AU-DESSUS de la barre de recherche, dans la même carte que le tableau).
+  beforeToolbar,
+  // Place le filtre dans la zone centrale de l'en-tête de carte (voir plus bas).
+  filterCentre = false,
   // --- barre d'outils ---
   showToolbar = true,
   showSizePicker = true,
@@ -106,6 +112,9 @@ export default function Table({
   striped = true,
   stickyHeader = false,
   dense = false,
+  // Tableau large dans un cadre étroit : marges latérales des cellules réduites et intitulés qui passent à la ligne, pour que le
+  // tableau tienne dans son cadre (le défilement horizontal ne sert plus que sur les écrans vraiment étroits).
+  compact = false,
   className = '',
   footer,
 }) {
@@ -182,27 +191,41 @@ export default function Table({
 
   const palette = tone ? (TONES[tone] ?? TONES.neutral) : null
   const colCount = columns.length + (rowActions ? 1 : 0)
-  const padY = dense ? 'py-2.5' : 'py-4'
+  const padY = dense ? 'py-2.5' : 'py-3.5'
+  const padX = compact ? 'px-1.5' : 'px-4'
+  const classeEntete = compact
+    ? 'text-[14px] font-medium tracking-normal uppercase'
+    : 'text-[14px] font-medium tracking-wide uppercase whitespace-nowrap'
 
   return (
     <div className={`overflow-hidden rounded-xl bg-white shadow-card ${className}`}>
       {(title || filter || actions) && (
-        <div className="flex flex-wrap items-center gap-4 px-6 pt-6">
-          {title && <h2 className="min-w-0 truncate text-xl text-ink-900">{title}</h2>}
-          {filter}
-          {actions && <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>}
+        // `filterCentre` : le filtre occupe la zone CENTRALE de la carte (titre à gauche, actions à droite), comme la
+        // référence ; en dessous de `xl`, ou sans `filterCentre`, la rangée garde sa disposition en ligne habituelle.
+        <div className={`flex flex-wrap items-center gap-4 px-6 pt-6 ${filterCentre ? 'xl:grid xl:grid-cols-[minmax(max-content,1fr)_minmax(0,34rem)_minmax(max-content,1fr)] 2xl:grid-cols-[minmax(max-content,1fr)_minmax(0,42rem)_minmax(max-content,1fr)]' : ''}`}>
+          {title ? <h2 className="min-w-0 truncate text-lg font-medium text-ink-900">{title}</h2> : filterCentre ? <span /> : null}
+          {filterCentre
+            ? <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-2 max-xl:order-last max-xl:basis-full">{filter}</div>
+            : filter}
+          {actions && <div className="ml-auto flex flex-wrap items-center gap-2 xl:justify-self-end">{actions}</div>}
         </div>
       )}
 
+      {beforeToolbar && <div className="px-6 pt-5">{beforeToolbar}</div>}
+
       {showToolbar && (searchable || showSizePicker || toolbarRight) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+        // Afficher N entrées à gauche, recherche CENTRÉE et large au milieu, actions à droite (xl et plus) ;
+        // en dessous, la recherche passe sur sa propre ligne, pleine largeur.
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 pt-4 pb-6 xl:grid xl:grid-cols-[1fr_minmax(0,40rem)_1fr] 2xl:grid-cols-[1fr_minmax(0,52rem)_1fr]">
           {showSizePicker ? (
-            <label className="flex items-center gap-2 text-sm text-ink-600">
+            <label className="flex items-center gap-2 text-[15px] text-ink-800">
               Afficher
               <select
                 value={perPage}
                 onChange={(e) => handlePerPage(Number(e.target.value))}
-                className="h-9 cursor-pointer rounded-lg border border-line bg-white px-2 text-sm text-ink-800 transition-colors focus-ring hover:border-brand-300"
+                // Largeur fixée (important) : sans cela `w-full` de la classe partagée le laisse rétrécir dans le libellé et la
+                // flèche recouvre le nombre (« 10 » devenait « 1 »).
+                className={`h-9 rounded-lg px-2 text-sm text-ink-800 focus-ring ${CLASSE_SELECT_BLEU} w-[5.5rem]! pl-3.5! pr-9!`}
               >
                 {pageSizeOptions.map((opt) => (
                   <option key={opt} value={opt}>
@@ -216,6 +239,7 @@ export default function Table({
             <span />
           )}
 
+          {!searchable && <span className="max-xl:hidden" />}
           {searchable && (
             <input
               type="search"
@@ -223,22 +247,22 @@ export default function Table({
               onChange={(e) => handleSearch(e.target.value)}
               placeholder={searchPlaceholder}
               aria-label="Rechercher dans le tableau"
-              className="h-10 w-full max-w-xs rounded-lg border border-line bg-white px-3.5 text-sm text-ink-800 transition-colors placeholder:text-ink-600 focus-ring hover:border-brand-300"
+              className="h-10 w-full min-w-0 rounded-lg border border-line bg-white px-3.5 text-sm text-ink-800 transition-colors placeholder:text-ink-600 focus-ring hover:border-brand-300 max-xl:order-last max-xl:basis-full"
             />
           )}
 
-          {toolbarRight && <div className="flex items-center gap-2">{toolbarRight}</div>}
+          {toolbarRight ? <div className="flex items-center gap-2 xl:justify-self-end">{toolbarRight}</div> : <span className="max-xl:hidden" />}
         </div>
       )}
 
       <div className="table-wrap overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-[15px]">
           <thead>
             <tr
               className={
                 palette
                   ? palette.head
-                  : 'border-y border-line bg-white text-ink-600'
+                  : 'border-y border-line bg-white text-ink-950'
               }
             >
               {columns.map((c) => {
@@ -250,7 +274,7 @@ export default function Table({
                     scope="col"
                     style={c.width ? { width: c.width } : undefined}
                     aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
-                    className={`px-4 ${padY} text-[13px] font-semibold tracking-wide uppercase whitespace-nowrap ${alignClass(
+                    className={`${padX} ${padY} ${classeEntete} ${alignClass(
                       c
                     )} ${stickyHeader ? 'sticky top-0 z-10 bg-white' : ''} ${c.headerClassName ?? ''}`}
                   >
@@ -258,7 +282,9 @@ export default function Table({
                       <button
                         type="button"
                         onClick={() => toggleSort(c)}
-                        className={`inline-flex items-center gap-1.5 rounded transition-colors focus-ring hover:text-brand-600 ${
+                        // `uppercase` répété : le navigateur impose `text-transform: none` aux boutons, qui n'héritent donc pas
+                        // des majuscules de la cellule — sans cela, ces en-têtes paraissaient plus petits que « ACTION(S) ».
+                        className={`inline-flex items-center gap-1.5 rounded uppercase transition-colors focus-ring hover:text-brand-600 ${
                           active ? 'text-brand-600' : ''
                         } ${c.align === 'right' || c.numeric ? 'flex-row-reverse' : ''}`}
                       >
@@ -282,7 +308,7 @@ export default function Table({
               {rowActions && (
                 <th
                   scope="col"
-                  className={`px-4 ${padY} text-right text-[13px] font-semibold tracking-wide uppercase whitespace-nowrap ${
+                  className={`${padX} ${padY} text-right ${compact ? 'text-[14px] font-medium tracking-normal uppercase' : 'text-[14px] font-medium tracking-wide uppercase'} whitespace-nowrap ${
                     stickyHeader ? 'sticky top-0 z-10 bg-white' : ''
                   }`}
                 >
@@ -321,7 +347,7 @@ export default function Table({
                   {columns.map((c) => (
                     <td
                       key={c.key}
-                      className={`px-4 ${padY} align-middle text-ink-800 ${alignClass(c)} ${
+                      className={`${padX} ${padY} align-middle text-ink-800 ${alignClass(c)} ${
                         c.numeric ? 'tabular' : ''
                       } ${c.clamp ? '' : c.wrap ? '' : 'whitespace-nowrap'} ${c.cellClassName ?? ''}`}
                     >

@@ -25,7 +25,7 @@ class ArchiveCountsTest extends TestCase
     use RefreshDatabase;
 
     private const CLES = [
-        'clients', 'entreprises', 'domiciliation', 'services', 'services_en_cours',
+        'clients', 'entreprises', 'domiciliation', 'centres', 'services', 'services_en_cours',
         'facture', 'devis', 'bl', 'avoir', 'paiements', 'tva', 'chiffre_affaire',
         'rapports', 'cachets', 'mails', 'data_center',
     ];
@@ -66,7 +66,7 @@ class ArchiveCountsTest extends TestCase
             $this->assertSame(0, $reponse->json($cle), "{$cle} doit valoir l'entier 0 sans donnée.");
         }
         $this->assertSame(
-            '{"clients":0,"entreprises":0,"domiciliation":0,"services":0,"services_en_cours":0,"facture":0,"devis":0,"bl":0,"avoir":0,"paiements":0,"tva":0,"chiffre_affaire":0,"rapports":0,"cachets":0,"mails":0,"data_center":0}',
+            '{"clients":0,"entreprises":0,"domiciliation":0,"centres":0,"services":0,"services_en_cours":0,"facture":0,"devis":0,"bl":0,"avoir":0,"paiements":0,"tva":0,"chiffre_affaire":0,"rapports":0,"cachets":0,"mails":0,"data_center":0}',
             $reponse->getContent()
         );
     }
@@ -125,8 +125,8 @@ class ArchiveCountsTest extends TestCase
             $requetes->contains(fn ($q) => str_contains($q, 'select count(*) as aggregate from `service_en_cours` where `status` = ? and `service_en_cours`.`deleted_at` is null')),
             'Requête agrégée attendue (count) avec la portée de suppression douce.'
         );
-        // Une requête par compteur (16) : le nombre total ne dépend pas du nombre de lignes.
-        $this->assertSame(16, $requetes->filter(fn ($q) => str_contains($q, 'count(*) as aggregate'))->count());
+        // Une requête par compteur (17) : le nombre total ne dépend pas du nombre de lignes.
+        $this->assertSame(17, $requetes->filter(fn ($q) => str_contains($q, 'count(*) as aggregate'))->count());
     }
 
     // ---- Caractérisation du compteur « domiciliation » (écrite AVANT son contrat, étape 17) -------------------------
@@ -197,7 +197,7 @@ class ArchiveCountsTest extends TestCase
 
         $this->assertSame(1, $requetes->filter(fn ($q) => str_contains($q, 'from `domiciliations`'))->count());
         $this->assertTrue($requetes->contains(fn ($q) => str_contains($q, 'select count(*) as aggregate from `domiciliations` where `status` = ? and `domiciliations`.`deleted_at` is null')));
-        $this->assertSame(16, $requetes->filter(fn ($q) => str_contains($q, 'count(*) as aggregate'))->count(), 'Toujours une requête de comptage par catégorie.');
+        $this->assertSame(17, $requetes->filter(fn ($q) => str_contains($q, 'count(*) as aggregate'))->count(), 'Toujours une requête de comptage par catégorie.');
     }
     // ---- Découplage : Archive passe par le contrat de Services en cours -------------------------------------------
 
@@ -299,6 +299,11 @@ class ArchiveCountsTest extends TestCase
 
                 return 77;
             }
+
+            public function compterCentresParStatut(string $statut): int
+            {
+                return 5;
+            }
         });
         $admin = $this->admin();
 
@@ -309,6 +314,24 @@ class ArchiveCountsTest extends TestCase
 
         $this->actingAs($admin)->getJson('/api/v1/archive/counts')->assertOk();
         $this->assertSame(['corbeille', 'archive'], $appels, 'Statut par défaut : archive.');
+    }
+
+    public function test_les_centres_de_domiciliation_sont_comptes_par_statut_et_sans_les_lignes_supprimees(): void
+    {
+        DB::table('centres_domiciliation')->delete(); // la migration livre des centres de départ : on part d'une table vide
+        CentreDomiciliation::create(['nom' => 'CENTRE ACTIF 1']);
+        CentreDomiciliation::create(['nom' => 'CENTRE ACTIF 2']);
+        CentreDomiciliation::create(['nom' => 'CENTRE ARCHIVE', 'status' => 'archive']);
+        CentreDomiciliation::create(['nom' => 'CENTRE CORBEILLE 1', 'status' => 'corbeille']);
+        CentreDomiciliation::create(['nom' => 'CENTRE CORBEILLE 2', 'status' => 'corbeille']);
+        CentreDomiciliation::create(['nom' => 'CENTRE SUPPRIME', 'status' => 'archive'])->delete(); // suppression douce : jamais compté
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=actif')->assertOk()->assertJsonPath('centres', 2);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=archive')->assertOk()->assertJsonPath('centres', 1);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=corbeille')->assertOk()->assertJsonPath('centres', 2);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts?status=inconnu')->assertOk()->assertJsonPath('centres', 0);
+        $this->actingAs($admin)->getJson('/api/v1/archive/counts')->assertOk()->assertJsonPath('centres', 1);
     }
 
     public function test_archive_controller_ne_reference_plus_le_modele_domiciliation(): void

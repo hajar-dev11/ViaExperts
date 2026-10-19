@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, Pencil, Archive, Trash2, RotateCcw, ArrowLeft, ListTree } from 'lucide-react'
+import { Plus, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import ActionMenu from '../components/ui/ActionMenu.jsx'
@@ -10,6 +11,8 @@ import Button, { IconButton } from '../components/ui/Button.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import { Field, Input, Textarea } from '../components/Field.jsx'
 import { ApiError } from '../api/http.js'
+import { enNombre } from '../utils/arrondi.js'
+import { formaterMontant } from '../utils/montants.js'
 import {
   listServices, createService, updateService, archiveService, corbeilleService, restoreService, deleteServiceForever,
 } from '../api/services.js'
@@ -19,7 +22,7 @@ const responsableLabel = (r) => (r.via_experts ? 'Via Experts' : (r.maitre ? `Ma
 const columns = [
   { key: 'responsable', header: 'Responsable', value: responsableLabel, render: (r) => responsableLabel(r) },
   { key: 'nom', header: 'Service', clamp: 2, render: (r) => <span className="font-semibold text-ink-900">{r.nom}</span> },
-  { key: 'prix', header: 'Prix', render: (r) => `${Number(r.prix ?? 0).toFixed(2)} Dh` },
+  { key: 'prix', header: 'Prix HT', render: (r) => `${formaterMontant(r.prix ?? 0)} Dh` },
   {
     key: 'description',
     header: 'Description',
@@ -108,7 +111,8 @@ export default function ServicesList() {
         via_experts: form.via_experts,
         maitre: form.via_experts ? null : MAITRE,
         nom: form.nom,
-        prix: form.prix === '' ? 0 : Number(form.prix),
+        // Prix HT unitaire avec ses centimes : seuls les totaux sont arrondis (règle 0,50).
+        prix: form.prix === '' ? 0 : enNombre(form.prix),
         description: form.description || null,
       }
       if (editing) await updateService(editing.id, payload)
@@ -210,9 +214,9 @@ export default function ServicesList() {
           return (
             <div className="flex justify-end gap-1.5">
               {(status === 'actif' || status === 'archive') && (
-                <RowBtn title="Modifier" onClick={() => ouvrirModifier(r)}><Pencil size={14} /></RowBtn>
+                <RowBtn title="Modifier" onClick={() => ouvrirModifier(r)}><IconeModifier /></RowBtn>
               )}
-              <ActionMenu label="Actions" icon={<ListTree size={16} />} items={items} />
+              <ActionMenu label="Actions" icon={<IconeActions />} items={items} />
             </div>
           )
         }}
@@ -277,7 +281,7 @@ export default function ServicesList() {
             {formErrors.nom && <span className="mt-1 block text-xs text-danger-600">{formErrors.nom[0]}</span>}
           </Field>
 
-          <Field label="Prix" required>
+          <Field label="Prix HT (Dh)" required>
             <Input
               type="number"
               step="0.01"
@@ -285,7 +289,7 @@ export default function ServicesList() {
               required
               value={form.prix}
               onChange={(e) => setForm((f) => ({ ...f, prix: e.target.value }))}
-              placeholder="0.00"
+              placeholder="0"
             />
             {formErrors.prix && <span className="mt-1 block text-xs text-danger-600">{formErrors.prix[0]}</span>}
           </Field>

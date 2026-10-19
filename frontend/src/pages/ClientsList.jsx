@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Plus, Pencil, ListTree, Archive, Trash2, RotateCcw, ArrowLeft, Eye,
+  Plus, ListTree, Archive, Trash2, RotateCcw, ArrowLeft, Eye,
 } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
@@ -128,11 +129,11 @@ export default function ClientsList() {
             <div className="flex justify-end gap-1.5">
               {status === 'actif' && (
                 <>
-                  <RowBtn title="Modifier" onClick={() => navigate(`/clients/${r.id}/modifier`)}><Pencil size={14} /></RowBtn>
+                  <RowBtn title="Modifier" onClick={() => navigate(`/clients/${r.id}/modifier`)}><IconeModifier /></RowBtn>
                   {/* Menu d'actions : Afficher / Archiver / Supprimer. */}
                   <ActionMenu
                     label="Actions"
-                    icon={<ListTree size={16} />}
+                    icon={<IconeActions />}
                     items={[
                       {
                         label: 'Afficher',

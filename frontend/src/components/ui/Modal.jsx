@@ -6,6 +6,9 @@ const SIZES = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
+  xxl: 'max-w-6xl',
+  // Très large (Calculateur de TVA) : 6xl jusqu'aux écrans larges, puis ~1400 px comme la référence.
+  wide: 'max-w-6xl 2xl:max-w-[88rem]',
 }
 
 const FOCUSABLE =
@@ -31,6 +34,8 @@ export default function Modal({
   description,
   size = 'md',
   variant = 'center',
+  // 'center' (par défaut) ou 'haut' : fenêtre remontée vers le haut de l'écran (ex. calculateur de TVA).
+  position = 'center',
   footer,
   closeOnBackdrop = true,
   children,
@@ -126,7 +131,7 @@ export default function Modal({
         className="absolute inset-0"
         onClick={closeOnBackdrop ? onClose : undefined}
       />
-      <div className={isRight ? 'contents' : 'flex min-h-full items-center justify-center p-4'}>
+      <div className={isRight ? 'contents' : `flex min-h-full justify-center p-4 ${position === 'haut' ? 'items-start pt-[5vh]' : 'items-center'}`}>
         <div
           ref={panelRef}
           role="dialog"

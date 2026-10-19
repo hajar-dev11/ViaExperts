@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
 import RequireAuth from './components/RequireAuth.jsx'
 import Login from './pages/Login.jsx'
@@ -11,10 +11,9 @@ import ClientDetails from './pages/ClientDetails.jsx'
 import EntreprisesList from './pages/EntreprisesList.jsx'
 import EntrepriseForm from './pages/EntrepriseForm.jsx'
 import EntrepriseDetails from './pages/EntrepriseDetails.jsx'
-import { EntreprisesListeNoire, EntreprisesBloquees } from './pages/EntreprisesSituation.jsx'
 import {
   DomiciliationList, DomiciliationForm, DomiciliationDetails, AttestationDomiciliation, ContratDomiciliation,
-  ProcurationDomiciliation, DomiciliationStatuts, DomiciliationCalendar, DomiciliationCentres, CentreDomiciliationDetails,
+  ProcurationDomiciliation, DomiciliationCalendar, DomiciliationCentres, CentreDomiciliationDetails,
 } from './modules/domiciliation/index.js'
 import Chat from './pages/Chat.jsx'
 import ServicesList from './pages/ServicesList.jsx'
@@ -25,6 +24,8 @@ import PaiementForm from './pages/PaiementForm.jsx'
 import PaiementGestion from './pages/PaiementGestion.jsx'
 import { MouvementRecu, MouvementFacture } from './pages/Mouvement.jsx'
 import { DeclarationForm, DeclarationList, ChiffreAffairesForm, ChiffreAffairesList } from './pages/DeclarationTVA.jsx'
+import ImportateurTva from './pages/ImportateurTva.jsx'
+import ImportateurTvaFichier from './pages/ImportateurTvaFichier.jsx'
 import { RapportForm, RapportList } from './pages/Rapports.jsx'
 import Cachets from './pages/Cachets.jsx'
 import Mails from './pages/Mails.jsx'
@@ -64,14 +65,15 @@ export default function App() {
           <Route path="/entreprises/nouvelle" element={<EntrepriseForm />} />
           <Route path="/entreprises/:id/modifier" element={<EntrepriseForm />} />
           <Route path="/entreprises/:id" element={<EntrepriseDetails />} />
-          <Route path="/entreprises-liste-noire" element={<EntreprisesListeNoire />} />
-          <Route path="/entreprises-bloquees" element={<EntreprisesBloquees />} />
+          {/* Anciennes pages : Liste Noire et Entreprises Bloquées sont désormais des FILTRES de la liste des entreprises. */}
+          <Route path="/entreprises-liste-noire" element={<Navigate to="/entreprises?situation=Liste%20Noire" replace />} />
+          <Route path="/entreprises-bloquees" element={<Navigate to="/entreprises?situation=Bloqu%C3%A9" replace />} />
 
           <Route path="/domiciliation" element={<DomiciliationList />} />
           {/* `key` : « Nouvelle » repart toujours d'un formulaire neuf (« Ajouter Signature » coché par défaut), sans reprendre l'état d'une modification. */}
           <Route path="/domiciliation/nouvelle" element={<DomiciliationForm key="domiciliation-nouvelle" />} />
           <Route path="/domiciliation/:id/modifier" element={<DomiciliationForm key="domiciliation-modifier" />} />
-          <Route path="/domiciliation/liste" element={<DomiciliationStatuts />} />
+          <Route path="/domiciliation/liste" element={<Navigate to="/domiciliation" replace />} />
           <Route path="/domiciliation/calendrier" element={<DomiciliationCalendar />} />
           <Route path="/domiciliation/centres" element={<DomiciliationCentres />} />
           <Route path="/domiciliation/centres/:id" element={<CentreDomiciliationDetails />} />
@@ -121,6 +123,12 @@ export default function App() {
           <Route path="/declaration-tva/chiffre-affaires/nouveau" element={<ChiffreAffairesForm key="ca-nouveau" />} />
           <Route path="/declaration-tva/chiffre-affaires/:id/modifier" element={<ChiffreAffairesForm key="ca-modifier" />} />
           <Route path="/declaration-tva/:id/modifier" element={<DeclarationForm key="tva-modifier" />} />
+          {/* Importateur de Déclaration : DANS la section Déclaration TVA (entrée de menu au milieu du groupe). */}
+          <Route path="/declaration-tva/importateur" element={<ImportateurTva />} />
+          {/* Import de lignes Excel / CSV : autre outil, sans entrée de menu. */}
+          <Route path="/declaration-tva/importateur/fichier" element={<ImportateurTvaFichier />} />
+          {/* Ancienne adresse : conservée pour les favoris. */}
+          <Route path="/importateur-tva" element={<Navigate to="/declaration-tva/importateur" replace />} />
 
           <Route path="/rapports" element={<RapportList />} />
           <Route path="/rapports/nouveau" element={<RapportForm />} />

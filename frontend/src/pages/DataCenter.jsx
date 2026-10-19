@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, Pencil, Archive, Trash2, RotateCcw, ArrowLeft, ListTree } from 'lucide-react'
+import { Plus, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../components/ui/icons.jsx'
 import ServerTable from '../components/ServerTable.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import ActionMenu from '../components/ui/ActionMenu.jsx'
@@ -166,10 +167,10 @@ export default function DataCenter() {
           <div className="flex justify-end gap-1.5">
             {status === 'actif' && (
               <>
-                <RowBtn title="Modifier" onClick={() => ouvrirModifier(r)}><Pencil size={14} /></RowBtn>
+                <RowBtn title="Modifier" onClick={() => ouvrirModifier(r)}><IconeModifier /></RowBtn>
                 <ActionMenu
                   label="Actions"
-                  icon={<ListTree size={16} />}
+                  icon={<IconeActions />}
                   items={[
                     {
                       label: 'Archiver',
@@ -190,7 +191,7 @@ export default function DataCenter() {
             {status === 'archive' && (
               <ActionMenu
                 label="Actions"
-                icon={<ListTree size={16} />}
+                icon={<IconeActions />}
                 items={[
                   { label: 'Restaurer', icon: <RotateCcw size={15} />, onClick: () => run(() => restoreFiche(r.id), 'Fiche restaurée.') },
                   {
@@ -205,7 +206,7 @@ export default function DataCenter() {
             {status === 'corbeille' && (
               <ActionMenu
                 label="Actions"
-                icon={<ListTree size={16} />}
+                icon={<IconeActions />}
                 items={[
                   { label: 'Restaurer', icon: <RotateCcw size={15} />, onClick: () => run(() => restoreFiche(r.id), 'Fiche restaurée.') },
                   {

@@ -1452,30 +1452,30 @@ exports[`documents commerciaux (documentPrint.js) > facture de domiciliation : H
         <tbody>
     <tr>
       <td>Domiciliation</td>
-      <td class="num">104,17 Dh</td>
+      <td class="num">125,00 Dh</td>
       <td class="num">12</td>
-      <td class="num">1 250,00 Dh</td>
-      <td class="num">0,00 Dh</td>
-      <td class="num">1 250,00 Dh</td>
-      <td class="num">250,00 Dh (20%)</td>
       <td class="num">1 500,00 Dh</td>
+      <td class="num">0,00 Dh</td>
+      <td class="num">1 500,00 Dh</td>
+      <td class="num">300,00 Dh (20%)</td>
+      <td class="num">1 800,00 Dh</td>
     </tr></tbody>
       </table>
 
       <div class="doc-corps">
         <div class="doc-gauche">
-          <div class="doc-lettres doc-ombre">MILLE CINQ CENTS DIRHAMS</div>
+          <div class="doc-lettres doc-ombre">MILLE HUIT CENTS DIRHAMS</div>
           <div class="doc-paiement-split"><span>Mode paiement : Virement</span><span>Prix Restant : 0,00 Dh</span></div>
           <div class="doc-info"><strong>Information :</strong><br>Période : 01/08/2026 au 01/08/2027<br>Centre de domiciliation : VIA EXPERTS<br>Mois payés : 12<br>N° Archive : ARC-12</div>
         </div>
         <div class="doc-droite">
           <table>
-            <tr><th>Total HT</th><td>1 250,00 Dh</td></tr>
+            <tr><th>Total HT</th><td>1 500,00 Dh</td></tr>
             <tr><th>Remise</th><td>0,00 Dh</td></tr>
-            <tr><th>Total Net HT</th><td>1 250,00 Dh</td></tr>
-            <tr><th>Montant TVA</th><td>250,00 Dh</td></tr>
-            <tr class="total-ttc"><th>Total TTC</th><td>1 500,00 Dh</td></tr>
-            <tr><th>Total Payé</th><td>1 500,00 Dh</td></tr>
+            <tr><th>Total Net HT</th><td>1 500,00 Dh</td></tr>
+            <tr><th>Montant TVA</th><td>300,00 Dh</td></tr>
+            <tr class="total-ttc"><th>Total TTC</th><td>1 800,00 Dh</td></tr>
+            <tr><th>Total Payé</th><td>1 800,00 Dh</td></tr>
           </table>
           <div class="doc-signature doc-signature-avec-libelle"><div class="doc-sig-label">Signature</div><img src="data:image/png;base64,CACHET" alt="Signature" /></div>
         </div>
@@ -1645,12 +1645,12 @@ exports[`documents commerciaux (documentPrint.js) > facture de domiciliation : c
   "lignes": [
     {
       "designation": "Domiciliation",
-      "prixUnitaire": 104.17,
+      "prixUnitaire": 125,
       "quantite": 12,
-      "totalHt": 1250,
-      "totalNetHt": 1250,
-      "totalTtc": 1500,
-      "totalTva": 250,
+      "totalHt": 1500,
+      "totalNetHt": 1500,
+      "totalTtc": 1800,
+      "totalTva": 300,
       "tvaPourcent": 20,
     },
   ],
@@ -1660,17 +1660,17 @@ Centre de domiciliation : VIA EXPERTS
 Mois payés : 12
 N° Archive : ARC-12",
   "numero": "DOM-358/26",
-  "prixPaye": 1500,
+  "prixPaye": 1800,
   "prixRestant": 0,
   "signature": true,
   "tiers": "VIRKAD TECHNOLOGY",
   "tiersCin": "bh108879",
   "tiersIce": "003790162000044",
-  "totalHt": 1250,
-  "totalNetHt": 1250,
+  "totalHt": 1500,
+  "totalNetHt": 1500,
   "totalRemise": 0,
-  "totalTtc": 1500,
-  "totalTva": 250,
+  "totalTtc": 1800,
+  "totalTva": 300,
 }
 `;
 

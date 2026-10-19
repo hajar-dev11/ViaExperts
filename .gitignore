@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 !.env.testing.example
+!.env.production.example
 
 node_modules/
 vendor/
@@ -31,3 +32,6 @@ backups/
 
 # Composer portable : outil de développement, jamais versionné (se télécharge sur getcomposer.org)
 composer.phar
+
+# Archives (sauvegardes, builds, livraisons) : jamais versionnées — elles peuvent contenir .env, logs ou données clients
+*.zip

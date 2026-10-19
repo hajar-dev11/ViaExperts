@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Activity, Archive, Building, Building2, CalendarClock, Contact,
   DollarSign, FileText, Folder, IdCard, Info,
-  Mail, MapPin, Phone, ScanLine, UserRound, Users,
+  Mail, MapPin, Phone, ScanLine, UserRound,
 } from 'lucide-react'
 import Button from '../components/ui/Button.jsx'
 import Badge from '../components/ui/Badge.jsx'
@@ -198,10 +198,8 @@ export default function EntrepriseDetails() {
               <Ligne key={i} icon={Activity} label="Activité" value={s.activite} />
             ))}
 
-        <Section>Détail de domiciliation</Section>
-        <Ligne icon={CalendarClock} label="date depart" value={formatDate(domiciliations[0]?.dateDepart)} />
-        <Ligne icon={Users} label="date fin" value={formatDate(domiciliations[0]?.dateFin)} />
-
+        {/* Zone « Détail de domiciliation » (dates de départ/fin) masquée : les périodes restent consultables dans le bloc
+            repliable « Domiciliations » de cette page et sur la page Gestion Domiciliation. */}
         <Section>Date début d'activité</Section>
         <Ligne icon={CalendarClock} label="Date d'Activité" value={formatDate(entreprise.dateDebut)} />
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateCabinetSettingRequest;
 use App\Models\CabinetSetting;
+use App\Support\ImageTeleversee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -25,7 +26,7 @@ class CabinetSettingController extends Controller
 
     public function uploadLogo(Request $request)
     {
-        $request->validate(['file' => ['required', 'image', 'mimes:jpg,jpeg,png,gif', 'max:800']]);
+        $request->validate(['file' => ImageTeleversee::regles()], ImageTeleversee::messages());
         $settings = CabinetSetting::firstOrCreate([]);
         if ($settings->logo_path) {
             Storage::disk('public')->delete($settings->logo_path);
@@ -48,7 +49,7 @@ class CabinetSettingController extends Controller
 
     public function uploadSignature(Request $request)
     {
-        $request->validate(['file' => ['required', 'image', 'mimes:jpg,jpeg,png,gif', 'max:800']]);
+        $request->validate(['file' => ImageTeleversee::regles()], ImageTeleversee::messages());
         $settings = CabinetSetting::firstOrCreate([]);
         if ($settings->signature_path) {
             Storage::disk('public')->delete($settings->signature_path);

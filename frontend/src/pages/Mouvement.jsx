@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, Printer, Archive, Trash2, ListTree } from 'lucide-react'
+import { Eye, Printer, Archive, Trash2 } from 'lucide-react'
+import { IconeActions } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -11,6 +12,8 @@ import { useToast } from '../components/ui/Toast.jsx'
 import { Field, Input, Select } from '../components/Field.jsx'
 import { ApiError } from '../api/http.js'
 import { mouvementRecu, mouvementFacture } from '../api/mouvements.js'
+import { DATE_MIN_MOUVEMENT, anneesMouvement, erreurPeriode, periodeParDefaut } from '../utils/periodeMouvement.js'
+import { aujourdhui } from '../shared/utils/date.js'
 import { getPaiement, archivePaiement, corbeillePaiement } from '../api/paiements.js'
 import { getDocument, imprimerDocument } from '../modules/facturation/index.js'
 import ChoixFormatRecu from '../components/ChoixFormatRecu.jsx'
@@ -38,8 +41,9 @@ function VueMouvement({
   carteTitre, tableauTitre, charger, totauxDef, columns, exportColumns,
   rowActions, actionsHeader, onReloadReady, rowClassName,
 }) {
-  const [filtres, setFiltres] = useState({ dateDebut: '', dateFin: '', annee: '', trimestre: '' })
-  const [appliques, setAppliques] = useState({ dateDebut: '', dateFin: '', annee: '', trimestre: '' })
+  // Par défaut : champs de dates VIDES (aucun filtre) ; c'est l'utilisateur qui choisit la période à filtrer.
+  const [filtres, setFiltres] = useState(() => periodeParDefaut())
+  const [appliques, setAppliques] = useState(() => periodeParDefaut())
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,7 +57,9 @@ function VueMouvement({
       .then(setData)
       .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter ce mouvement."
-        : 'Impossible de charger les mouvements.'))
+        : err instanceof ApiError && err.status === 422
+          ? err.message
+          : 'Impossible de charger les mouvements.'))
       .finally(() => setLoading(false))
   }, [charger, appliques])
 
@@ -62,6 +68,17 @@ function VueMouvement({
 
   const set = (k) => (e) => setFiltres((f) => ({ ...f, [k]: e.target.value }))
   const lignes = data?.lignes ?? []
+  const auj = aujourdhui()
+
+  const appliquer = () => {
+    const probleme = erreurPeriode(filtres, auj)
+    if (probleme) {
+      setError(probleme)
+      return
+    }
+    setError('')
+    setAppliques(filtres)
+  }
 
   return (
     <div>
@@ -69,11 +86,11 @@ function VueMouvement({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-4 items-end">
           <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
             <Field label="Date Range">
-              <Input type="date" value={filtres.dateDebut} onChange={set('dateDebut')} />
+              <Input type="date" min={DATE_MIN_MOUVEMENT} max={filtres.dateFin || auj} value={filtres.dateDebut} onChange={set('dateDebut')} />
             </Field>
             <span className="pb-3 text-sm text-ink-600">to</span>
             <Field label="&nbsp;">
-              <Input type="date" value={filtres.dateFin} onChange={set('dateFin')} />
+              <Input type="date" min={filtres.dateDebut || DATE_MIN_MOUVEMENT} max={auj} value={filtres.dateFin} onChange={set('dateFin')} />
             </Field>
           </div>
 
@@ -81,7 +98,7 @@ function VueMouvement({
             <Field label="Date Range">
               <Select value={filtres.annee} onChange={set('annee')}>
                 <option value="">Toute</option>
-                {(data?.annees ?? []).map((a) => <option key={a} value={a}>{a}</option>)}
+                {anneesMouvement(data?.annees, auj).map((a) => <option key={a} value={a}>{a}</option>)}
               </Select>
             </Field>
             <Field label="&nbsp;">
@@ -94,7 +111,7 @@ function VueMouvement({
 
           <button
             type="button"
-            onClick={() => setAppliques(filtres)}
+            onClick={appliquer}
             className="rounded-lg border border-brand-300 bg-white text-brand-700 font-semibold px-6 py-2.5 text-sm hover:bg-brand-50 transition-colors"
           >
             Filtre
@@ -194,7 +211,7 @@ export function MouvementRecu() {
     { key: 'dateCredit', header: 'Date Fine', render: (r) => r.dateCredit || <span className="text-ink-600">—</span> },
   ]
 
-  const rowClassName = (r) => (Number(r.prixRestant) > 0 ? 'bg-warning-200' : 'bg-success-200')
+  const rowClassName = (r) => (Number(r.prixRestant) > 0 ? 'bg-warning-100' : 'bg-success-100')
 
   return (
     <>
@@ -218,7 +235,7 @@ export function MouvementRecu() {
             <RowBtn title="Imprimer" onClick={() => setChoixRecu(r)}><Printer size={14} /></RowBtn>
             <ActionMenu
               label="Actions"
-              icon={<ListTree size={16} />}
+              icon={<IconeActions />}
               items={[
                 {
                   label: 'Archiver',
@@ -270,7 +287,7 @@ export function MouvementFacture() {
 
   const columns = [
     { key: 'responsable', header: 'Responsable' },
-    { key: 'numero', header: 'Numéro', render: (r) => <span className="font-mono text-xs font-semibold text-ink-900">{r.numero}</span> },
+    { key: 'numero', header: 'Numéro', render: (r) => <span className="tabular text-[13px] font-semibold text-ink-900">{r.numero}</span> },
     {
       key: 'client',
       header: 'Client / Entreprise',
@@ -293,7 +310,7 @@ export function MouvementFacture() {
     },
   ]
 
-  const rowClassName = (r) => (Number(r.prixRestant) > 0 ? 'bg-warning-200' : 'bg-success-200')
+  const rowClassName = (r) => (Number(r.prixRestant) > 0 ? 'bg-warning-100' : 'bg-success-100')
 
   return (
     <>

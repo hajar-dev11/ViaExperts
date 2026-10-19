@@ -65,7 +65,7 @@ describe('Bandeaux de succès / d\'erreur des pages', () => {
       }
     }
     expect(faux).toEqual([])
-    expect(total).toBeGreaterThanOrEqual(30)
+    expect(total).toBeGreaterThanOrEqual(29) // 30 avant la fusion de « List Domiciliation » dans la gestion de domiciliation
   })
 
   it('plus aucun message de chargement dans l\'état des erreurs d\'ACTION (qui, lui, se ferme seul)', () => {

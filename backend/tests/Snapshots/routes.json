@@ -1173,6 +1173,30 @@
         "methodes": [
             "POST"
         ],
+        "uri": "api/v1/declarations/{type}/factures-existantes",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@facturesExistantes"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/declarations/{type}/especes-existantes",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "DeclarationTvaController@especesExistantes"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
         "uri": "api/v1/declarations/{type}",
         "nom": null,
         "middleware": [
@@ -1264,6 +1288,45 @@
             "auth:sanctum"
         ],
         "action": "DeclarationTvaController@destroy"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/importateur-tva/image",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:declaration,importeur"
+        ],
+        "action": "ImportateurTvaController@image"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/importateur-tva/apercu",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:declaration,importeur"
+        ],
+        "action": "ImportateurTvaController@apercu"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/importateur-tva/importer",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:declaration,importeur"
+        ],
+        "action": "ImportateurTvaController@importer"
     },
     {
         "methodes": [
@@ -1919,6 +1982,42 @@
     },
     {
         "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/paiements/{paiement}/historique",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@historique"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
+        "uri": "api/v1/paiements/{paiement}/fichier",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@fichier"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/paiements/{paiement}/complements",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum"
+        ],
+        "action": "PaiementController@ajouterComplement"
+    },
+    {
+        "methodes": [
             "POST"
         ],
         "uri": "api/v1/paiements/{paiement}/archive",
@@ -1995,6 +2094,19 @@
         "methodes": [
             "GET"
         ],
+        "uri": "api/v1/services-en-cours/statuts",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,list"
+        ],
+        "action": "ServiceEnCoursController@statuts"
+    },
+    {
+        "methodes": [
+            "GET"
+        ],
         "uri": "api/v1/services-en-cours/{serviceEnCour}",
         "nom": null,
         "middleware": [
@@ -2029,6 +2141,32 @@
             "permission:services_en_cours,modifier"
         ],
         "action": "ServiceEnCoursController@storeOperation"
+    },
+    {
+        "methodes": [
+            "POST"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}/operations/{operation}/fichier",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,modifier"
+        ],
+        "action": "ServiceEnCoursController@remplacerFichier"
+    },
+    {
+        "methodes": [
+            "DELETE"
+        ],
+        "uri": "api/v1/services-en-cours/{serviceEnCour}/operations/{operation}/fichier",
+        "nom": null,
+        "middleware": [
+            "api",
+            "auth:sanctum",
+            "permission:services_en_cours,modifier"
+        ],
+        "action": "ServiceEnCoursController@supprimerFichier"
     },
     {
         "methodes": [

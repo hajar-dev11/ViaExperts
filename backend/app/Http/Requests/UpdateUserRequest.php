@@ -22,7 +22,8 @@ class UpdateUserRequest extends FormRequest
             'telephone' => ['nullable', 'string', 'max:30'],
             'email' => ['sometimes', 'required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($id)],
             'password' => ['nullable', 'string', new MotDePasseFort],
-            'fonction' => ['nullable', 'in:Assistant,Comptable,Autre'],
+            // Saisie libre (la colonne users.fonction fait 30 caractères) ; purement informatif, jamais lu par les autorisations.
+            'fonction' => ['nullable', 'string', 'max:30'],
         ];
     }
 }

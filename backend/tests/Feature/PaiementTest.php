@@ -343,9 +343,10 @@ class PaiementTest extends TestCase
             {
             }
 
-            public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar): void
+            public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar, array $source = []): void
             {
                 $this->appels[] = [
+                    'source' => $source,
                     'partyId' => $partyId,
                     'serviceIds' => collect($serviceIds)->all(),
                     'creePar' => $creePar,
@@ -358,7 +359,7 @@ class PaiementTest extends TestCase
                 }
             }
 
-            public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void
+            public function assurerPourClient(string $nomService, ?int $clientId, int $creePar, array $source = []): void
             {
                 throw new \LogicException('Paiements n\'utilise pas assurerPourClient.');
             }

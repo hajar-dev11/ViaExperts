@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Download, Pencil } from 'lucide-react'
+import { Save, Download } from 'lucide-react'
+import { IconeModifier } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
 import Alert from '../components/ui/Alert.jsx'
@@ -262,7 +263,7 @@ export function RapportList() {
         actionsHeader="ACTION"
         rowActions={(r) => (
             <div className="flex justify-end gap-1.5">
-              <RowBtn title="Modifier" onClick={() => navigate(`/rapports/${r.id}/modifier`)}><Pencil size={14} /></RowBtn>
+              <RowBtn title="Modifier" onClick={() => navigate(`/rapports/${r.id}/modifier`)}><IconeModifier /></RowBtn>
               {r.documentNom && (
                 <a
                   href={urlDocument(r.id)}

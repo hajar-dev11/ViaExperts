@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Plus, Archive, Trash2, RotateCcw, FileText, CircleCheck, Pencil,
-  MessageSquarePlus, BadgeCheck, Ban, ArrowLeft, RefreshCw, ListTree, Eye,
+  Plus, Archive, Trash2, RotateCcw, FileText, CircleCheck,
+  MessageSquarePlus, BadgeCheck, Ban, ArrowLeft, RefreshCw, Eye,
 } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../../../components/ui/icons.jsx'
 import DataTable from '../../../components/DataTable.jsx'
 import ExportMenu from '../../../components/ExportMenu.jsx'
 import ConfirmDialog from '../../../components/ConfirmDialog.jsx'
@@ -13,9 +14,14 @@ import Button, { IconButton } from '../../../components/ui/Button.jsx'
 import { useToast } from '../../../components/ui/Toast.jsx'
 import ActionMenu from '../../../components/ui/ActionMenu.jsx'
 import { RowBtn } from '../../../components/ListToolbar.jsx'
-import { Field, FileInput, Textarea } from '../../../components/Field.jsx'
+import { Field, FileInput, Select, Textarea } from '../../../components/Field.jsx'
 import StatutDomiciliationBadge, { STATUT_LABELS } from '../components/StatutDomiciliation.jsx'
-import { FormulaireRenouvellement, FormulaireActionSimple } from '../components/DomiciliationActions.jsx'
+import { FormulaireRenouvellement, FormulaireActionSimple, MenuImprimer } from '../components/DomiciliationActions.jsx'
+import { chargerSignatureDomiciliation } from '../documents/documentsDomiciliation.js'
+import { TUILES_STATUT, repartirParTuile, tuileValide } from '../utils/ongletsStatut.js'
+import { PERIODES, PERIODE_PAR_DEFAUT, periodeValide } from '../utils/periodeAnalyse.js'
+import TuilesStatut from '../components/TuilesStatut.jsx'
+import { getIdentiteDomiciliation } from '../../../api/settings.js'
 import { formatDate } from '../../../utils/format.js'
 import { ApiError } from '../../../api/http.js'
 import {
@@ -63,7 +69,13 @@ export default function DomiciliationList() {
   const navigate = useNavigate()
   const toast = useToast()
   const [status, setStatus] = useState('actif')
-  const [rows, setRows] = useState([])
+  // Tuile de statut (« Total en cours » par défaut), conservée dans l'adresse : ?statut=alerte ouvre « Expire bientôt ».
+  const [params, setParams] = useSearchParams()
+  const tuile = tuileValide(params.get('statut'))
+  const [signaturePath, setSignaturePath] = useState(null)
+  const [rows, setRows] = useState([]) // domiciliations actives (alimentent les tuiles et le tableau)
+  const [archivees, setArchivees] = useState([])
+  const [corbeille, setCorbeille] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [erreurChargement, setErreurChargement] = useState('')
@@ -91,8 +103,13 @@ export default function DomiciliationList() {
     setLoading(true)
     setError('')
     setErreurChargement('')
-    listDomiciliations({ status })
-      .then(setRows)
+    // Les actives et les archivées sont toujours chargées (compteurs des tuiles) ; la corbeille seulement quand on la consulte.
+    Promise.all([
+      listDomiciliations({ status: 'actif' }),
+      listDomiciliations({ status: 'archive' }),
+      status === 'corbeille' ? listDomiciliations({ status: 'corbeille' }) : Promise.resolve([]),
+    ])
+      .then(([actives, archives, supprimees]) => { setRows(actives); setArchivees(archives); setCorbeille(supprimees) })
       .catch((err) => setErreurChargement(err instanceof ApiError && err.status === 403
         ? "Vous n'avez pas la permission de consulter les domiciliations."
         : 'Impossible de charger les domiciliations.'))
@@ -100,6 +117,28 @@ export default function DomiciliationList() {
   }, [status])
 
   useEffect(load, [load])
+  // Cachet / signature configurés dans Paramètre > Centre Domiciliation, repris par la facture imprimée.
+  useEffect(() => { chargerSignatureDomiciliation(getIdentiteDomiciliation).then(setSignaturePath) }, [])
+
+  // Répartition par statut : compteur et liste de chaque tuile partent du même calcul.
+  // Les 4 tuiles d'actions (Nouveaux, Renouvelés, Déclarées, Résiliées) suivent la période d'« Expense Ratio » (tableau de bord).
+  const periode = periodeValide(params.get('periode'))
+  const parTuile = useMemo(() => repartirParTuile(rows, archivees, periode), [rows, archivees, periode])
+  const comptes = useMemo(() => Object.fromEntries(Object.entries(parTuile).map(([cle, lignes]) => [cle, lignes.length])), [parTuile])
+  const visibles = status === 'archive' ? archivees : status === 'corbeille' ? corbeille : parTuile[tuile]
+  // Tuile sélectionnée : « Archivées » quand on consulte les archives ; aucune pour la corbeille (elle a son bouton).
+  const selection = status === 'archive' ? 'archive' : status === 'corbeille' ? null : tuile
+  const choisirTuile = (cle) => {
+    setStatus(cle === 'archive' ? 'archive' : 'actif')
+    if (cle !== 'archive') majAdresse({ statut: cle === tuileValide('') ? null : cle })
+  }
+  // Adresse : `?statut=` (tuile) et `?periode=` (période des actions) se conservent mutuellement ; une valeur par défaut n'y figure pas.
+  const majAdresse = (changements) => {
+    const suivante = new URLSearchParams(params)
+    Object.entries(changements).forEach(([cle, valeur]) => (valeur === null ? suivante.delete(cle) : suivante.set(cle, valeur)))
+    setParams(suivante, { replace: true })
+  }
+  const choisirPeriode = (cle) => majAdresse({ periode: cle === PERIODE_PAR_DEFAUT.cle ? null : cle })
 
   const run = async (fn, message) => {
     setError('')
@@ -138,7 +177,8 @@ export default function DomiciliationList() {
 
   return (
     <div>
-      {error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
+      {/* Pendant qu'une fenêtre d'action est ouverte, l'erreur s'affiche DANS la fenêtre (pas deux fois). */}
+      {!renouvellementFor && !declarationFor && !resiliationFor && error && <Alert tone="danger" onAutoClose={() => setError('')} className="mb-3" onClose={() => setError('')}>{error}</Alert>}
       {erreurChargement && <Alert tone="danger" className="mb-3" onRetry={load}>{erreurChargement}</Alert>}
       {status !== 'actif' && (
         <Alert tone="neutral" className="mb-3">
@@ -150,11 +190,13 @@ export default function DomiciliationList() {
       {renouvellementFor && (
         <FormulaireRenouvellement
           domiciliation={renouvellementFor}
-          onAnnuler={() => setRenouvellementFor(null)}
-          onEnregistrer={async ({ champs }) => {
+          erreur={error}
+          onEffacerErreur={() => setError('')}
+          onAnnuler={() => { setRenouvellementFor(null); setError('') }}
+          onEnregistrer={async ({ champs, fichier }) => {
             const cible = renouvellementFor
             const ok = await run(
-              () => renouvelerDomiciliation(cible.id, champs),
+              () => renouvelerDomiciliation(cible.id, champs, fichier),
               `Domiciliation « ${cible.denomination} » renouvelée.`
             )
             if (ok) setRenouvellementFor(null)
@@ -168,7 +210,9 @@ export default function DomiciliationList() {
           description="La domiciliation passe à l'état « Déclaré » à la date du jour."
           libelleBouton="Déclarer"
           tone="success"
-          onAnnuler={() => setDeclarationFor(null)}
+          erreur={error}
+          onEffacerErreur={() => setError('')}
+          onAnnuler={() => { setDeclarationFor(null); setError('') }}
           onEnregistrer={async ({ commentaire, fichier }) => {
             const cible = declarationFor
             const ok = await run(
@@ -186,7 +230,9 @@ export default function DomiciliationList() {
           description="La domiciliation passe à l'état « Résilié » à la date du jour."
           libelleBouton="Résilier"
           tone="danger"
-          onAnnuler={() => setResiliationFor(null)}
+          erreur={error}
+          onEffacerErreur={() => setError('')}
+          onAnnuler={() => { setResiliationFor(null); setError('') }}
           onEnregistrer={async ({ commentaire, fichier }) => {
             const cible = resiliationFor
             const ok = await run(
@@ -199,6 +245,7 @@ export default function DomiciliationList() {
       )}
 
       <Modal
+        size="xxl"
         open={!!observationFor}
         onClose={() => { setObservationFor(null); setObservationText(''); setObservationPrivee(false); setObservationFichier(null) }}
         title={`Ajouter une observation — ${observationFor?.denomination ?? ''}`}
@@ -209,11 +256,11 @@ export default function DomiciliationList() {
           </>
         )}
       >
-        <div className="space-y-4">
-          <Field label="Observation" required>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Field label="Observation" required className="lg:col-span-2">
             <Textarea
               autoFocus
-              rows={3}
+              rows={8}
               value={observationText}
               onChange={(e) => setObservationText(e.target.value)}
               placeholder="Votre observation…"
@@ -238,6 +285,7 @@ export default function DomiciliationList() {
       </Modal>
 
       <Modal
+        size="xxl"
         open={!!documentFor}
         onClose={() => { setDocumentFor(null); setDocumentNom(''); setDocumentFichier(null) }}
         title={`Ajouter un document — ${documentFor?.denomination ?? ''}`}
@@ -248,7 +296,7 @@ export default function DomiciliationList() {
           </>
         )}
       >
-        <div className="space-y-4">
+        <div className="grid gap-5 lg:grid-cols-2">
           <Field label="Nom du document" hint="Laissé vide, le nom du fichier est repris.">
             <input
               type="text"
@@ -264,13 +312,29 @@ export default function DomiciliationList() {
         </div>
       </Modal>
 
+      {/* Statuts réels avec compteurs : un dossier dont le statut change passe d'une tuile à l'autre, sans disparaître. */}
       <DataTable
         title="Gestion Domiciliation"
-        filter={status !== 'actif' && (
+        beforeToolbar={(
+          <>
+            {/* Même période que la flèche d'« Expense Ratio » : Nouveaux, Renouvelés, Déclarées et Résiliées comptent les actions de cette période. */}
+            <div className="mb-2 flex flex-wrap items-center justify-end gap-2 text-sm text-ink-800">
+              <label htmlFor="periode-tuiles" title="Période de comptage des tuiles Nouveaux, Renouvelés, Déclarées et Résiliées — la même que celle d'Expense Ratio (Accueil)">
+                Période (Nouveaux, Renouvelés, Déclarées, Résiliées)
+              </label>
+              <div className="w-56">
+                <Select id="periode-tuiles" className="!h-9" value={periode.cle} onChange={(e) => choisirPeriode(e.target.value)}>
+                  {PERIODES.map((p) => <option key={p.cle} value={p.cle}>{p.label}</option>)}
+                </Select>
+              </div>
+            </div>
+            <TuilesStatut tuiles={TUILES_STATUT} comptes={comptes} selection={selection} onSelect={choisirTuile} chargement={loading && rows.length === 0} />
+          </>
+        )}
+        filter={status === 'corbeille' && (
           <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => setStatus('actif')}>
             Retour aux domiciliations
-          </Button>
-        )}
+          </Button>        )}
         actions={(
           <>
             <Button variant="success" to="/domiciliation/nouvelle" icon={<Plus size={16} />}>Nouvelle Domiciliation</Button>
@@ -279,8 +343,8 @@ export default function DomiciliationList() {
               title="Gestion Domiciliation"
               subtitle={VUES[status]}
               columns={exportColumns}
-              rows={rows}
-              disabled={rows.length === 0}
+              rows={visibles}
+              disabled={visibles.length === 0}
             />
             <IconButton
               variant="warning"
@@ -301,9 +365,9 @@ export default function DomiciliationList() {
           </>
         )}
         columns={columns}
-        rows={rows}
+        rows={visibles}
         loading={loading}
-        emptyText={status === 'actif' ? 'Aucune domiciliation' : status === 'archive' ? 'Aucune domiciliation archivée' : 'Corbeille vide'}
+        emptyText={status === 'actif' ? `Aucune domiciliation « ${TUILES_STATUT.find((o) => o.cle === tuile)?.label} »` : status === 'archive' ? 'Aucune domiciliation archivée' : 'Corbeille vide'}
         actionsHeader="ACTIONS"
         rowActions={(r) => (
             <div className="flex flex-wrap justify-end gap-1.5">
@@ -316,13 +380,15 @@ export default function DomiciliationList() {
                   >
                     <RefreshCw size={15} />
                   </RowBtn>
+                  {/* Documents : facture, contrat, attestation, procuration, générés avec les données de la domiciliation. */}
+                  <MenuImprimer domiciliation={r} signaturePath={signaturePath} tous />
                   <ActionMenu
                     label="Actions"
-                    icon={<ListTree size={15} />}
+                    icon={<IconeActions />}
                     items={[
                       {
                         label: 'Modifier',
-                        icon: <Pencil size={15} />,
+                        icon: <IconeModifier size={15} />,
                         onClick: () => navigate(`/domiciliation/${r.id}/modifier`),
                       },
                       {

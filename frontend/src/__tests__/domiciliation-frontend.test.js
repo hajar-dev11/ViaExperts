@@ -22,7 +22,7 @@ describe('Routes React Domiciliation : URLs, composants et ordre inchangés', ()
       '/domiciliation -> DomiciliationList',
       '/domiciliation/nouvelle -> DomiciliationForm',
       '/domiciliation/:id/modifier -> DomiciliationForm',
-      '/domiciliation/liste -> DomiciliationStatuts',
+      '/domiciliation/liste -> Navigate', // ancienne page « List Domiciliation » : redirigée vers les onglets de statut de la gestion
       '/domiciliation/calendrier -> DomiciliationCalendar',
       '/domiciliation/centres -> DomiciliationCentres',
       '/domiciliation/centres/:id -> CentreDomiciliationDetails',
@@ -41,7 +41,6 @@ describe('Menu Domiciliation', () => {
     expect(groupe.children.map((c) => [c.label, c.to])).toEqual([
       ['Nouvelle Domiciliation', '/domiciliation/nouvelle'],
       ['Gestion Domiciliation', '/domiciliation'],
-      ['List Domiciliation', '/domiciliation/liste'],
       ['Domiciliation Calendrier', '/domiciliation/calendrier'],
       ['Centres des Domiciliation', '/domiciliation/centres'],
     ])
@@ -59,12 +58,14 @@ describe('Modes de paiement : une seule source frontend (shared)', () => {
     ])
   })
 
-  it('les 3 formulaires Domiciliation importent la constante partagée', () => {
+  it('les 3 formulaires Domiciliation passent par le champ partagé, qui importe la constante partagée', () => {
     for (const rel of ['modules/domiciliation/components/DomiciliationActions.jsx', 'modules/domiciliation/pages/DomiciliationForm.jsx', 'pages/EntrepriseForm.jsx']) {
       const source = fs.readFileSync(path.join(SRC, rel), 'utf8')
-      expect(source, rel).toMatch(/import \{[^}]*\bMODES_PAIEMENT\b[^}]*\} from '(\.\.\/)+shared\/constants\/documents\.js'/)
+      expect(source, rel).toMatch(/import ModePaiementChamp from '(\.\.\/)+components\/ModePaiementChamp\.jsx'/)
       expect(source, rel).not.toMatch(/MODES_PAIEMENT[^\n]*from '[^']*api\/domiciliations\.js'/)
     }
+    const champ = fs.readFileSync(path.join(SRC, 'components/ModePaiementChamp.jsx'), 'utf8')
+    expect(champ).toMatch(/import \{[^}]*\bMODES_PAIEMENT\b[^}]*\} from '(\.\.\/)+shared\/constants\/documents\.js'/)
   })
 })
 describe('utils/domiciliation.js : fonctions pures', () => {
@@ -146,11 +147,15 @@ describe('Frontières : Facturation et Paiements ne dépendent pas de Domiciliat
   it('`aujourdhui` est dans shared/utils/date.js, consommée par Facturation, Paiements et Domiciliation', () => {
     const consommateurs = fichiers(SRC).filter((f) => !rel(f).startsWith('__tests__/') && importsDe(f).includes('shared/utils/date.js')).map(rel).sort()
     expect(consommateurs).toEqual([
-      'modules/domiciliation/components/DomiciliationActions.jsx', 'modules/domiciliation/pages/DomiciliationForm.jsx',
-      'modules/facturation/pages/DocumentForm.jsx', 'pages/Cachets.jsx', 'pages/Mails.jsx', 'pages/PaiementForm.jsx',
+      // Paiements : formulaire « Ajouter Un Paiement » (paiement complémentaire), date d'opération du jour par défaut.
+      'components/AjouterPaiementModal.jsx',
+      'modules/domiciliation/components/DomiciliationActions.jsx', 'modules/domiciliation/utils/formulaireDomiciliation.js',
+      'modules/facturation/pages/DocumentForm.jsx', 'pages/Cachets.jsx', 'pages/Mails.jsx', 'pages/Mouvement.jsx', 'pages/PaiementForm.jsx',
       // Audit global (étape 23) : date locale du jour par défaut (au lieu de la date UTC) ; heure de départ des cachets et
       // courriers en heure locale, comme le serveur (fuseau Africa/Casablanca).
       'pages/Rapports.jsx',
+      // Module Mouvement : bornes de la période (2022 → aujourd'hui) calculées sur la date locale du jour.
+      'utils/periodeMouvement.js',
     ])
   })
 })
@@ -161,8 +166,8 @@ describe('Frontend Domiciliation : structure du module', () => {
   const MODULE_DOM = path.join(SRC, 'modules', 'domiciliation')
   const existe = (rel) => fs.existsSync(path.join(SRC, rel))
 
-  it('les pages Domiciliation (10) résident dans le module et plus dans src/pages', () => {
-    const pages = ['DomiciliationList', 'DomiciliationForm', 'DomiciliationDetails', 'DomiciliationStatuts', 'DomiciliationCalendar',
+  it('les pages Domiciliation (9) résident dans le module et plus dans src/pages', () => {
+    const pages = ['DomiciliationList', 'DomiciliationForm', 'DomiciliationDetails', 'DomiciliationCalendar',
       'DomiciliationCentres', 'CentreDomiciliationDetails', 'AttestationDomiciliation', 'ContratDomiciliation', 'ProcurationDomiciliation']
     for (const page of pages) {
       expect(existe(`modules/domiciliation/pages/${page}.jsx`), page).toBe(true)
@@ -213,6 +218,7 @@ describe('Frontend Domiciliation : structure du module', () => {
     expect(importeurs.map(relSrc).sort()).toEqual([
       'App.jsx', 'components/BlocsEntreprise.jsx', 'components/Topbar.jsx', 'pages/Archive.jsx', 'pages/ClientDetails.jsx',
       'pages/Dashboard.jsx', 'pages/EntrepriseDetails.jsx', 'pages/EntrepriseForm.jsx', 'pages/Parametres.jsx',
+      'utils/seriesDomiciliation.js',
     ])
     for (const f of importeurs) {
       for (const cible of importsDe(f).filter((c) => c.startsWith('modules/domiciliation'))) expect(cible, relSrc(f)).toBe('modules/domiciliation/index.js')
@@ -223,10 +229,11 @@ describe('Frontend Domiciliation : structure du module', () => {
     const index = await import('../modules/domiciliation/index.js')
     expect(Object.keys(index).sort()).toEqual([
       'AttestationDomiciliation', 'CentreDomiciliationDetails', 'ContratDomiciliation', 'DomiciliationCalendar', 'DomiciliationCentres',
-      'DomiciliationDetails', 'DomiciliationForm', 'DomiciliationList', 'DomiciliationStatuts', 'FormulaireRenouvellement', 'MenuImprimer',
-      'ProcurationDomiciliation', 'StatutDomiciliation', 'archiveDomiciliation', 'calculerDateFin', 'chargerSignatureDomiciliation',
-      'corbeilleDomiciliation', 'createDomiciliation', 'deleteDomiciliationForever', 'listCentres', 'listDomiciliations',
-      'renouvelerDomiciliation', 'restoreDomiciliation',
+      'DomiciliationDetails', 'DomiciliationForm', 'DomiciliationList', 'FormulaireRenouvellement', 'MOIS', 'MenuImprimer',
+      'PERIODES', 'ProcurationDomiciliation', 'StatutDomiciliation', 'archiveDomiciliation', 'calculerDateFin', 'calculerPrixTotal',
+      'casesDeLaPeriode', 'chargerSignatureDomiciliation', 'classerNouveauRenouveler', 'cleDeDate', 'corbeilleCentre', 'corbeilleDomiciliation',
+      'createDomiciliation', 'deleteCentre', 'deleteDomiciliationForever',
+      'domiciliationSaisie', 'listAllCentres', 'listCentres', 'listDomiciliations', 'renouvelerDomiciliation', 'restoreCentre', 'restoreDomiciliation',
     ])
     for (const page of ['DomiciliationList', 'DomiciliationForm', 'DomiciliationDetails', 'DomiciliationCentres']) expect(typeof index[page]).toBe('function')
     expect(index.calculerDateFin).toBe(calculerDateFin)

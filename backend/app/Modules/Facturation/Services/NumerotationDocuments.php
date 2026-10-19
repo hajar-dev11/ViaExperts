@@ -4,6 +4,7 @@ namespace App\Modules\Facturation\Services;
 
 use App\Models\CabinetSetting;
 use App\Models\DomiciliationSetting;
+use App\Modules\Facturation\Models\DocumentCommercial;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,43 @@ class NumerotationDocuments
             'numero' => $this->composer($reglages, $type),
             'responsable' => $reglages->nom_societe ?: ($emetteur === 'via_experts' ? 'Via Experts' : null),
         ];
+    }
+
+    /**
+     * Attribue le prochain numéro LIBRE de l'émetteur pour ce type (mode `numero_auto`).
+     *
+     * À appeler DANS la transaction de création, juste avant l'insertion : le lockForUpdate() sur la ligne de paramètres
+     * garde le compteur jusqu'à la fin de la transaction, donc deux créations simultanées lisent deux numéros différents.
+     * Si le compteur est en retard sur des numéros déjà pris (saisis à la main), il saute les numéros existants.
+     *
+     * @throws ValidationException si la numérotation de cet émetteur n'est pas configurée pour ce type
+     */
+    public function attribuer(string $emetteur, string $type): string
+    {
+        $classe = $emetteur === 'via_experts' ? DomiciliationSetting::class : CabinetSetting::class;
+        $classe::firstOrCreate([]);
+        $reglages = $classe::lockForUpdate()->first();
+        $colonne = $this->racine($type).'_prochain_numero';
+
+        for ($essai = 0; $essai < 1000; $essai++) {
+            $courant = $reglages->{$colonne};
+            $numero = $this->composer($reglages, $type);
+
+            if ($numero === '' || $courant === null || $courant === '') {
+                throw ValidationException::withMessages(['numero' => [
+                    'La numérotation automatique de cet émetteur n\'est pas configurée (Paramètres) : saisissez le numéro à la main.',
+                ]]);
+            }
+
+            if (! DocumentCommercial::where('type', $type)->where('numero', $numero)->exists()) {
+                return $numero;
+            }
+
+            $reglages->{$colonne} = (int) $courant + 1;
+            $reglages->save();
+        }
+
+        throw ValidationException::withMessages(['numero' => ['Aucun numéro libre n\'a pu être attribué : saisissez le numéro à la main.']]);
     }
 
     /**

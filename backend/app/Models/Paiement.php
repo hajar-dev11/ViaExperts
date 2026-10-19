@@ -8,6 +8,7 @@ use App\Modules\Facturation\Contracts\SynchronisationPaiements;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class Paiement extends Model
 {
@@ -17,7 +18,7 @@ class Paiement extends Model
         'reference', 'emetteur', 'responsable', 'party_id', 'document_id',
         'date_operation', 'date_credit', 'mode_paiement', 'signature',
         'piece_jointe_nom', 'piece_jointe_chemin', 'observation',
-        'total', 'prix_paye', 'status', 'created_by',
+        'total', 'prix_paye', 'status', 'created_by', 'paiement_origine_id',
     ];
 
     protected $casts = [
@@ -87,10 +88,92 @@ class Paiement extends Model
         }
     }
 
+    /**
+     * Reste à payer APRÈS ce paiement, cumulé sur le dossier (voir `chargerRestes`) ; null tant qu'il n'a pas été chargé,
+     * le reste se calcule alors sur ce seul paiement (comportement historique).
+     */
+    public ?string $resteCumule = null;
+
+    private static ?bool $complementsDisponibles = null;
+
+    /**
+     * La base connaît-elle les paiements complémentaires (colonne `paiement_origine_id`, migration du 15/10/2026) ?
+     * Tant que la migration n'est pas appliquée, les paiements restent des paiements indépendants (comportement historique) :
+     * les listes se chargent, seul l'ajout d'un complément est refusé avec un message clair.
+     */
+    public static function complementsDisponibles(): bool
+    {
+        return self::$complementsDisponibles ??= Schema::hasColumn('paiements', 'paiement_origine_id');
+    }
+
+    /** Paiement d'origine du dossier (null pour un paiement d'origine). */
+    public function origine()
+    {
+        return $this->belongsTo(self::class, 'paiement_origine_id');
+    }
+
+    /** Paiements complémentaires ajoutés plus tard pour le même service / le même client. */
+    public function complements()
+    {
+        return $this->hasMany(self::class, 'paiement_origine_id');
+    }
+
+    public function estComplement(): bool
+    {
+        return $this->paiement_origine_id !== null;
+    }
+
+    /** Identifiant du paiement d'origine du dossier (lui-même s'il est d'origine). */
+    public function racineId(): int
+    {
+        return (int) ($this->paiement_origine_id ?? $this->id);
+    }
+
+    /**
+     * Total déjà payé sur un dossier : paiements d'origine + compléments au statut demandé (actifs par défaut : un paiement
+     * archivé ou à la corbeille ne compte pas). `$sauf` exclut un paiement (celui qu'on modifie ou restaure).
+     */
+    public static function cumulPaye(int $racineId, string $status = 'actif', ?int $sauf = null): float
+    {
+        return round((float) static::query()
+            ->where(fn ($q) => static::complementsDisponibles()
+                ? $q->where('id', $racineId)->orWhere('paiement_origine_id', $racineId)
+                : $q->where('id', $racineId))
+            ->where('status', $status)
+            ->when($sauf, fn ($q) => $q->where('id', '!=', $sauf))
+            ->sum('prix_paye'), 2);
+    }
+
+    /**
+     * Calcule, en UNE requête, le reste à payer APRÈS chaque paiement de la liste : total du dossier moins la somme des
+     * paiements de même statut enregistrés jusqu'à celui-ci inclus (ordre d'enregistrement). Un paiement sans complément
+     * garde son reste historique (total − montant payé).
+     */
+    public static function chargerRestes(iterable $paiements): void
+    {
+        $paiements = collect($paiements)->values();
+        if ($paiements->isEmpty() || ! static::complementsDisponibles()) {
+            return;
+        }
+
+        $racines = $paiements->map(fn ($p) => $p->racineId())->unique()->all();
+        $membres = static::query()
+            ->where(fn ($q) => $q->whereIn('id', $racines)->orWhereIn('paiement_origine_id', $racines))
+            ->get(['id', 'paiement_origine_id', 'prix_paye', 'status'])
+            ->groupBy(fn ($m) => (int) ($m->paiement_origine_id ?? $m->id));
+
+        foreach ($paiements as $p) {
+            $cumul = ($membres[$p->racineId()] ?? collect())
+                ->filter(fn ($m) => $m->status === $p->status && $m->id <= $p->id && $m->id !== $p->id)
+                ->sum(fn ($m) => (float) $m->prix_paye) + (float) $p->prix_paye;
+            $p->resteCumule = number_format(round((float) $p->total - $cumul, 2), 2, '.', '');
+        }
+    }
+
     /** Colonne PRIX RESTANT de la capture : calculée, jamais stockée. */
     public function getPrixRestantAttribute(): string
     {
-        return number_format((float) $this->total - (float) $this->prix_paye, 2, '.', '');
+        return $this->resteCumule ?? number_format((float) $this->total - (float) $this->prix_paye, 2, '.', '');
     }
 
     public function getTiersNomAttribute(): ?string
@@ -100,6 +183,7 @@ class Paiement extends Model
 
     public function recalculerTotal(): void
     {
+        // Le total d'un paiement est la somme exacte de ses lignes (prix unitaires × quantités), centimes conservés.
         $total = $this->lignes->sum(fn ($l) => (float) $l->quantite * (float) $l->prix_unitaire);
 
         $this->forceFill(['total' => round($total, 2)])->save();

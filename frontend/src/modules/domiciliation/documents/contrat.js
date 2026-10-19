@@ -12,6 +12,7 @@ import { create as creerQr } from 'qrcode'
 import { escapeHtml } from '../../../utils/exporters.js'
 import { formatDateFr } from '../../../utils/print/commun.js'
 import { ouvrirPdfApresClic } from '../../../utils/print/ouvrirPdf.js'
+import { civiliteAbregee } from './civilite.js'
 
 // ---------------------------------------------------------------------------------------
 // Données
@@ -48,8 +49,9 @@ function dureeEnTexte(debut, fin) {
  * Valeurs initiales des champs jaunes du modèle.
  * @param d           domiciliation (API) : dénomination, ICE, client, CIN, adresse, dates
  * @param entreprise  fiche entreprise (API) : forme juridique
+ * @param client      fiche du client rattaché (API) : genre → civilité « Mr » / « Mme » (vide si inconnue)
  */
-export function contratParDefaut(d, { entreprise } = {}) {
+export function contratParDefaut(d, { entreprise, client } = {}) {
   const forme = compacter(entreprise?.forme)
   const denomination = compacter(d.denomination)
   const aujourdhui = new Date()
@@ -58,7 +60,7 @@ export function contratParDefaut(d, { entreprise } = {}) {
   return {
     societe: forme && !normaliser(denomination).includes(normaliser(forme)) ? `${denomination} ${forme}` : denomination,
     ice: compacter(d.ice),
-    civilite: 'Mr',
+    civilite: civiliteAbregee(client?.genre),
     representant: compacter(d.client).toUpperCase(),
     cni: compacter(d.clientCin).toUpperCase(),
     adresse: compacter(d.clientAdresse).toUpperCase(),

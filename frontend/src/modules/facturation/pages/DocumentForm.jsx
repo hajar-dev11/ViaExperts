@@ -1,25 +1,30 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Save, X, Plus } from 'lucide-react'
 import { Field, Input, Select, Textarea, Checkbox, FormCard, FormActions } from '../../../components/Field.jsx'
 import Alert from '../../../components/ui/Alert.jsx'
 import Button from '../../../components/ui/Button.jsx'
+import { CelluleCalculee, CelluleInput, TableauLignes } from '../../../components/ui/LigneSaisie.jsx'
+import ModePaiementChamp from '../../../components/ModePaiementChamp.jsx'
+import ChampSignature from '../../../components/ChampSignature.jsx'
+import SelectRecherche from '../../../components/SelectRecherche.jsx'
 import { RowBtn } from '../../../components/ListToolbar.jsx'
 import { ApiError } from '../../../api/http.js'
 import { listClients } from '../../../api/clients.js'
 import { listEntreprises } from '../../../api/entreprises.js'
 import { listServices } from '../../../api/services.js'
 import { aujourdhui } from '../../../shared/utils/date.js'
+import { enNombre, totauxDocument } from '../../../utils/arrondi.js'
+import { modePourEnvoi } from '../../../utils/modePaiement.js'
+import { formaterMontant, quantiteEntiere, remiseEnDh, saisieQuantite, soldeRestant } from '../../../utils/montants.js'
 import {
-  EMETTEURS, MODES_PAIEMENT, createDocument, updateDocument, getDocument, getNumeroPropose,
+  EMETTEURS, createDocument, updateDocument, getDocument, getNumeroPropose,
 } from '../api/facturation.js'
 
-const emptyLigne = { service_id: '', designation: '', quantite: 1, prix_unitaire: 0, remise_pourcent: 0, tva_pourcent: 20 }
+// `remise` : remise de la ligne EN MONTANT (Dh), plus en pourcentage.
+const emptyLigne = { service_id: '', designation: '', quantite: 1, prix_unitaire: 0, remise: 0, tva_pourcent: 20 }
 
-const n = (v) => {
-  const x = parseFloat(v)
-  return Number.isNaN(x) ? 0 : x
-}
+const n = enNombre
 
 // Champ calculé, en lecture seule : vert dès qu'il porte un montant, rose à
 // zéro — reprend exactement le code couleur de la capture de référence.
@@ -27,19 +32,21 @@ const toneClasses = (v) => (n(v) > 0
   ? 'border-success-300 bg-success-50 text-success-700'
   : 'border-danger-200 bg-danger-50 text-danger-600')
 
+// Même gabarit que les champs de saisie (libellé 15 px, boîte de 44 px, mêmes marges) : les montants calculés et les champs
+// saisissables s'alignent sur une même ligne.
 function ChampCalcule({ label, value, bold = false }) {
   return (
     <div>
-      <span className="mb-1.5 block text-sm font-medium text-ink-800">{label}</span>
-      <div className={`tabular flex h-11 items-center rounded-lg border px-3.5 text-sm ${bold ? 'font-bold' : 'font-semibold'} ${toneClasses(value)}`}>
+      <span className="mb-1.5 block text-[15px] font-medium text-ink-800">{label}</span>
+      <div className={`tabular flex h-11 items-center rounded-lg border px-3.5 text-[15px] ${bold ? 'font-bold' : 'font-semibold'} ${toneClasses(value)}`}>
         {n(value).toFixed(2)}
       </div>
     </div>
   )
 }
 
-// Numéro : jamais pré-rempli, seul le placeholder change selon le type — le
-// numéro réel reste entièrement à la saisie de l'utilisatrice.
+// Numéro : proposé automatiquement par la numérotation de l'émetteur choisi (Centre de domiciliation ou Bureau de
+// comptabilité) ; le placeholder ne sert que tant que la proposition n'est pas arrivée.
 const NUMERO_PLACEHOLDER = { facture: 'FAC-000/25', devis: 'DEV-000/25', bl: 'BL-000/25', avoir: 'FAV-000/25' }
 const NOTE_LABEL = {
   facture: 'Note Ajouter Sur Facture',
@@ -47,6 +54,24 @@ const NOTE_LABEL = {
   bl: 'Note à ajouter sur bon de livraison',
   avoir: "Note à ajouter sur facture d'avoir",
 }
+
+// Libellé de l'option « signature » : dit clairement qu'elle ajoute une signature sur LE document en cours de saisie.
+const SIGNATURE_TEXTE = {
+  facture: 'Ajouter une signature sur la facture',
+  devis: 'Ajouter une signature sur le devis',
+  bl: 'Ajouter une signature sur le bon de livraison',
+  avoir: "Ajouter une signature sur la facture d'avoir",
+}
+
+// Colonnes des lignes (compactes) : Service, PU HT, Qté, Total HT, Remise, Net HT, TVA %, TVA (Dh), Total TTC, retirer.
+const COLONNES = 'grid-cols-[minmax(11rem,2.4fr)_5.5rem_4rem_5.5rem_4.5rem_5.5rem_4rem_5rem_5.5rem_2rem]'
+const EN_TETES = ['Service', 'PU HT', 'Qté', 'Total HT', 'Remise (Dh)', 'Net HT', 'TVA %', 'TVA (Dh)', 'Total TTC', '']
+
+/** Remise d'une ligne en Dh : saisie positive, plafonnée au total HT de la ligne (comme le serveur). */
+const remiseLigne = (l, brut) => remiseEnDh(l.remise, brut)
+
+/** Prix unitaire HT d'une ligne : tel que saisi, avec ses centimes (seul le TOTAL du document est arrondi). */
+const prixLigne = (l) => enNombre(l.prix_unitaire)
 
 export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Facture', secondDateLabel }) {
   const navigate = useNavigate()
@@ -67,6 +92,12 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
     date_document: aujourdhui(), date_paiement: aujourdhui(), date_credit: '',
     mode_paiement: '', signature: true, note: '', prix_paye: '',
   })
+  // `numeroAuto` : le numéro affiché est celui proposé par la numérotation de l'émetteur et n'a pas été modifié à la main.
+  // Le serveur attribue alors lui-même le numéro libre (aucun doublon, même à plusieurs utilisateurs en même temps).
+  const [numeroAuto, setNumeroAuto] = useState(true)
+  // `prixPayeManuel` : « Prix à payer » est pré-rempli avec le total TTC tant que l'utilisateur n'y a pas touché ; sa saisie
+  // n'est ensuite plus jamais écrasée par un changement de ligne.
+  const [prixPayeManuel, setPrixPayeManuel] = useState(false)
   const [lignes, setLignes] = useState([])
   const [serviceChoisi, setServiceChoisi] = useState('')
 
@@ -86,22 +117,29 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
     listServices('actif').then(setServices).catch(() => setServices([]))
   }, [])
 
-  // Seul le Responsable est proposé par les paramètres de l'émetteur choisi
-  // (domiciliation_settings pour Via Experts, cabinet_settings pour le Bureau).
-  // Le Numéro, lui, n'est JAMAIS pré-rempli : il reste vide, avec pour seul
-  // repère son placeholder (FAC-000/25…), jusqu'à ce qu'il soit saisi.
-  const chargerResponsable = useCallback((emetteurChoisi) => {
+  // Numéro et responsable proposés par la numérotation de l'ÉMETTEUR choisi. À chaque changement d'émetteur le numéro de la
+  // sélection précédente est retiré aussitôt, puis remplacé par celui du nouvel émetteur ; une réponse qui arrive après un
+  // nouveau changement (réseau lent) est ignorée (compteur de requête).
+  const requeteProposition = useRef(0)
+  const chargerProposition = useCallback((emetteurChoisi) => {
+    const requete = ++requeteProposition.current
+    setNumeroAuto(true)
+    setForm((f) => ({ ...f, numero: '' }))
     getNumeroPropose(type, emetteurChoisi)
-      .then((res) => setForm((f) => ({
-        ...f,
-        responsable: res.responsable || EMETTEURS.find((e) => e.value === emetteurChoisi)?.label || '',
-      })))
+      .then((res) => {
+        if (requete !== requeteProposition.current) return
+        setForm((f) => ({
+          ...f,
+          numero: res.numero || '',
+          responsable: res.responsable || EMETTEURS.find((e) => e.value === emetteurChoisi)?.label || '',
+        }))
+      })
       .catch(() => {})
   }, [type])
 
   useEffect(() => {
-    if (!isEdit) chargerResponsable(emetteur)
-  }, [emetteur, isEdit, chargerResponsable])
+    if (!isEdit) chargerProposition(emetteur)
+  }, [emetteur, isEdit, chargerProposition])
 
   const charger = useCallback(() => {
     if (!isEdit) return
@@ -109,6 +147,8 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
       .then((d) => {
         setErreurChargement('')
         setEmetteur(d.emetteur)
+        setNumeroAuto(false)
+        setPrixPayeManuel(true)
         setForm({
           party_id: d.partyId ?? '',
           numero: d.numero ?? '',
@@ -126,7 +166,8 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
           designation: l.designation,
           quantite: l.quantite,
           prix_unitaire: l.prixUnitaire,
-          remise_pourcent: l.remisePourcent,
+          // Montant en Dh : celui saisi, ou l'équivalent exact de l'ancien pourcentage pour une ligne historique.
+          remise: l.remiseMontant ?? 0,
           tva_pourcent: l.tvaPourcent,
         })))
       })
@@ -165,7 +206,8 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
   const ajouterLigne = () => {
     const service = servicesResponsable.find((s) => String(s.id) === String(serviceChoisi))
     setLignes((ls) => [...ls, service
-      ? { ...emptyLigne, service_id: service.id, designation: service.nom, prix_unitaire: service.prix }
+      // Prix du service (HT) avec ses centimes.
+      ? { ...emptyLigne, service_id: service.id, designation: service.nom, prix_unitaire: service.prix ?? 0 }
       : { ...emptyLigne }])
     setServiceChoisi('')
   }
@@ -173,43 +215,62 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
   const majLigne = (i, k, v) => setLignes((ls) => ls.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)))
   const retirerLigne = (i) => setLignes((ls) => ls.filter((_, idx) => idx !== i))
 
-  // Totaux calculés à l'identique du backend (Remise et TVA en %, ligne par ligne).
-  const totaux = useMemo(() => {
-    let ht = 0, remise = 0, tva = 0
-    lignes.forEach((l) => {
-      const brut = n(l.quantite) * n(l.prix_unitaire)
-      const r = brut * (n(l.remise_pourcent) / 100)
-      const net = brut - r
-      ht += brut; remise += r; tva += net * (n(l.tva_pourcent) / 100)
-    })
-    const netHt = ht - remise
-    return { ht, remise, netHt, tva, ttc: netHt + tva }
-  }, [lignes])
+  // Totaux calculés à l'identique du backend (Remise en Dh, TVA en %, ligne par ligne) : prix unitaires avec leurs centimes,
+  // quantité entière. Le TOTAL HT est arrondi à l'entier (règle du demi) ; TVA et TTC sont calculés sur ce total arrondi.
+  const totaux = useMemo(() => totauxDocument(lignes.map((l) => {
+    const brut = quantiteEntiere(l.quantite) * prixLigne(l)
+    return { brut, remise: remiseLigne(l, brut), tva: n(l.tva_pourcent) }
+  })), [lignes])
 
-  const prixRestant = Math.max(0, totaux.ttc - n(form.prix_paye))
+  // « Prix à payer » : pré-rempli avec le total TTC (le montant que le client doit réellement payer) tant qu'il n'a pas été saisi
+  // à la main, y compris quand les lignes changent. Une facture déjà enregistrée garde son montant (voir `charger`).
+  useEffect(() => {
+    if (!avecPaiement || isEdit || prixPayeManuel) return
+    setForm((f) => {
+      const propose = totaux.ttc > 0 ? totaux.ttc.toFixed(2) : ''
+      return f.prix_paye === propose ? f : { ...f, prix_paye: propose }
+    })
+  }, [avecPaiement, isEdit, prixPayeManuel, totaux.ttc])
+
+  const prixRestant = soldeRestant(totaux.ttc, form.prix_paye)
 
   const submit = async (e) => {
     e.preventDefault()
-    setSaving(true); setErrors({}); setError('')
+    setErrors({}); setError('')
+    // Remise en Dh : jamais supérieure au total HT de sa ligne (le serveur la refuse aussi).
+    const horsPlafond = {}
+    lignes.forEach((l, i) => {
+      const brut = quantiteEntiere(l.quantite) * prixLigne(l)
+      if (n(l.remise) > brut + 0.005) horsPlafond[`lignes.${i}.remise_montant`] = [`La remise de la ligne ${i + 1} ne peut pas dépasser son total HT (${brut.toFixed(2)} Dh).`]
+    })
+    if (Object.keys(horsPlafond).length > 0) {
+      setErrors(horsPlafond)
+      setError('Merci de corriger les remises en rouge avant d’enregistrer.')
+      return
+    }
+    setSaving(true)
     try {
       const payload = {
         emetteur,
         responsable: form.responsable || null,
         party_id: Number(form.party_id),
         numero: form.numero,
+        // Création : tant que le numéro est celui proposé, le serveur attribue le numéro libre sous verrou.
+        ...(!isEdit && numeroAuto ? { numero_auto: true } : {}),
         date_document: form.date_document,
         date_paiement: avecPaiement ? (form.date_paiement || null) : null,
         date_credit: avecPaiement ? (form.date_credit || null) : null,
-        mode_paiement: form.mode_paiement || null,
+        mode_paiement: modePourEnvoi(form.mode_paiement) || null,
         signature: form.signature,
         note: form.note || null,
         prix_paye: avecPaiement ? (form.prix_paye === '' ? 0 : Number(form.prix_paye)) : 0,
         lignes: lignes.map((l) => ({
           service_id: l.service_id || null,
           designation: l.designation,
-          quantite: Number(l.quantite) || 0,
-          prix_unitaire: Number(l.prix_unitaire) || 0,
-          remise_pourcent: Number(l.remise_pourcent) || 0,
+          quantite: quantiteEntiere(l.quantite),
+          prix_unitaire: prixLigne(l),
+          remise_montant: remiseLigne(l, quantiteEntiere(l.quantite) * prixLigne(l)),
+          remise_pourcent: 0,
           tva_pourcent: Number(l.tva_pourcent) || 0,
         })),
       }
@@ -254,11 +315,11 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
           )}
         >
           {/* Les 2 émetteurs de la référence : chacun porte sa propre numérotation. */}
-          <div className="grid sm:grid-cols-2 gap-4 mb-5">
+          <div className="grid sm:grid-cols-2 gap-3 mb-4">
             {EMETTEURS.map((e) => (
               <label
                 key={e.value}
-                className={`flex items-center gap-3 rounded-lg border px-4 py-3.5 cursor-pointer transition-colors ${
+                className={`flex items-center gap-3 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${
                   emetteur === e.value ? 'border-brand-400 bg-brand-50/60' : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -278,21 +339,34 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
           {/* Grille à 4 colonnes de la référence — les champs s'enchaînent dans
               son ordre exact ; ceux propres à la Facture (avecPaiement) n'en
               retirent que des cases, jamais la grille elle-même. */}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* 4 colonnes pour la Facture (8 champs = 2 rangées pleines) ; 3 colonnes pour Devis / BL / Avoir (6 champs = 2 rangées
+              pleines) : plus de cases vides à droite sur grand écran. */}
+          <div className={`grid gap-x-5 gap-y-4 sm:grid-cols-2 ${avecPaiement ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
             <div>
               <div className="flex items-center gap-4 mb-1.5">
                 <Checkbox label="Entreprises" checked={showEntreprises} onChange={(e) => setShowEntreprises(e.target.checked)} />
                 <Checkbox label="Clients" checked={showClients} onChange={(e) => setShowClients(e.target.checked)} />
               </div>
-              <Select required value={form.party_id} onChange={set('party_id')}>
-                <option value="">Sélectionner Entreprise/Client</option>
-                {tiers.map((t) => <option key={`${t.groupe}-${t.id}`} value={t.id}>{t.label} — {t.groupe}</option>)}
-              </Select>
+              {/* Recherche par nom d'entreprise ou de client ; la valeur enregistrée reste l'identifiant du tiers choisi. */}
+              <SelectRecherche
+                required
+                options={tiers.map((t) => ({ cle: `${t.groupe}-${t.id}`, value: t.id, label: t.label, groupe: t.groupe }))}
+                value={form.party_id}
+                onChange={(valeur) => set('party_id')({ target: { value: valeur } })}
+                placeholder="Sélectionner Entreprise/Client"
+                error={!!errors.party_id}
+              />
               {err('party_id')}
             </div>
 
+            {/* Numéro automatique de l'émetteur choisi, modifiable : aucun texte d'aide sous le champ. */}
             <Field label="Numéro" required>
-              <Input required value={form.numero} onChange={set('numero')} placeholder={NUMERO_PLACEHOLDER[type] ?? 'FAC-000/25'} />
+              <Input
+                required
+                value={form.numero}
+                onChange={(e) => { setNumeroAuto(false); set('numero')(e) }}
+                placeholder={NUMERO_PLACEHOLDER[type] ?? 'FAC-000/25'}
+              />
               {err('numero')}
             </Field>
 
@@ -314,19 +388,17 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
               </>
             )}
 
-            <Field label="Mode de Paiement">
-              <Select value={form.mode_paiement} onChange={set('mode_paiement')}>
-                <option value="">Au choix du client</option>
-                {MODES_PAIEMENT.map((m) => <option key={m} value={m}>{m}</option>)}
-              </Select>
-            </Field>
+            <ModePaiementChamp value={form.mode_paiement} onChange={(v) => setForm((f) => ({ ...f, mode_paiement: v }))} />
 
-            <Field label="Ajouter Signature">
-              <Checkbox label="Signature" checked={form.signature} onChange={(e) => setForm((f) => ({ ...f, signature: e.target.checked }))} />
-            </Field>
+            <ChampSignature
+              label="Signature"
+              texte={SIGNATURE_TEXTE[type] ?? SIGNATURE_TEXTE.facture}
+              checked={form.signature}
+              onChange={(e) => setForm((f) => ({ ...f, signature: e.target.checked }))}
+            />
 
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-ink-800">Services</span>
+              <span className="mb-1.5 block text-sm font-medium text-ink-800">Services <span className="font-normal text-ink-600">(prix HT)</span></span>
               <div className="flex gap-2">
                 <Select
                   className="min-w-0 flex-1 truncate pr-8"
@@ -334,10 +406,9 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
                   onChange={(e) => choisirService(e.target.value)}
                 >
                   <option value="">Sélectionner le Service</option>
-                  {servicesResponsable.map((s) => <option key={s.id} value={s.id}>{s.nom} — {s.prix} Dh</option>)}
+                  {servicesResponsable.map((s) => <option key={s.id} value={s.id}>{s.nom} — {formaterMontant(s.prix)} Dh HT</option>)}
                 </Select>
-                {/* Bouton texte « + Ajouter », comme la référence — le formulaire
-                    est maintenant pleine largeur, la place ne manque plus. */}
+                {/* Bouton texte « + Ajouter », comme la référence. */}
                 <button
                   type="button"
                   onClick={ajouterLigne}
@@ -349,65 +420,72 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
             </div>
           </div>
 
-          {/* Lignes de service — une carte par ligne, mêmes colonnes que la
-              référence : Service, PU HT, Qté, Total HT, Remise, Net HT, TVA,
-              TVA (Dh), Total TTC. */}
-          <div className="mt-5 space-y-3">
+          {/* Lignes de service COMPACTES : une rangée par ligne, intitulés une seule fois en tête ; au-delà de 4 lignes la
+              zone défile dans sa propre hauteur. Colonnes : Service, PU HT, Qté, Total HT, Remise, Net HT, TVA, TVA (Dh), TTC. */}
+          <div className="mt-4">
             {lignes.length === 0 ? (
               <p className="text-sm text-ink-600">Aucune ligne. Sélectionnez un service puis « Ajouter », ou ajoutez une ligne libre.</p>
             ) : (
-              lignes.map((l, i) => {
-                const brut = n(l.quantite) * n(l.prix_unitaire)
-                const remiseMontant = brut * (n(l.remise_pourcent) / 100)
-                const net = brut - remiseMontant
-                const tvaMontant = net * (n(l.tva_pourcent) / 100)
-                const ttc = net + tvaMontant
-                return (
-                  <div key={i} className="rounded-lg border border-line bg-surface/50 p-3">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 xl:items-end">
-                      <Field label="Service" className="xl:col-span-2">
-                        <Input required value={l.designation} onChange={(e) => majLigne(i, 'designation', e.target.value)} placeholder="Désignation" />
-                      </Field>
-                      <Field label="PU HT">
-                        <Input type="number" step="0.01" min="0" value={l.prix_unitaire} onChange={(e) => majLigne(i, 'prix_unitaire', e.target.value)} />
-                      </Field>
-                      <Field label="Qté">
-                        <Input type="number" step="0.01" min="0" value={l.quantite} onChange={(e) => majLigne(i, 'quantite', e.target.value)} />
-                      </Field>
-                      <ChampCalcule label="Total HT" value={brut} />
-                      <Field label="Remise %">
-                        <Input type="number" step="0.01" min="0" max="100" value={l.remise_pourcent} onChange={(e) => majLigne(i, 'remise_pourcent', e.target.value)} />
-                      </Field>
-                      <ChampCalcule label="Net HT" value={net} />
-                      <Field label="TVA %">
-                        <Input type="number" step="0.01" min="0" max="100" value={l.tva_pourcent} onChange={(e) => majLigne(i, 'tva_pourcent', e.target.value)} />
-                      </Field>
-                      <ChampCalcule label="TVA (Dh)" value={tvaMontant} />
-                      <ChampCalcule label="Total TTC" value={ttc} bold />
-                      <div className="flex items-end justify-end xl:justify-center">
+              <TableauLignes colonnes={COLONNES} enTetes={EN_TETES} nombre={lignes.length}>
+                {lignes.map((l, i) => {
+                  const brut = quantiteEntiere(l.quantite) * prixLigne(l)
+                  const remiseMontant = remiseLigne(l, brut)
+                  const net = brut - remiseMontant
+                  const tvaMontant = net * (n(l.tva_pourcent) / 100)
+                  const ttc = net + tvaMontant
+                  return (
+                    <div key={i} className={`grid ${COLONNES} items-center gap-2 px-3 py-1.5`}>
+                      <CelluleInput required aria-label={`Désignation de la ligne ${i + 1}`} value={l.designation} onChange={(e) => majLigne(i, 'designation', e.target.value)} placeholder="Désignation" />
+                      <CelluleInput
+                        type="number" step="0.01" min="0" className="text-right" aria-label={`Prix unitaire HT de la ligne ${i + 1}`}
+                        value={l.prix_unitaire}
+                        onChange={(e) => majLigne(i, 'prix_unitaire', e.target.value)}
+                      />
+                      {/* Quantité : nombre ENTIER uniquement (la virgule et le point sont refusés dès la saisie). */}
+                      <CelluleInput
+                        type="text" inputMode="numeric" pattern="[0-9]*" className="text-right" aria-label={`Quantité de la ligne ${i + 1}`}
+                        value={l.quantite}
+                        onChange={(e) => majLigne(i, 'quantite', saisieQuantite(e.target.value))}
+                        erreur={!!errors[`lignes.${i}.quantite`]}
+                      />
+                      <CelluleCalculee positif={brut > 0}>{brut.toFixed(2)}</CelluleCalculee>
+                      {/* Remise en MONTANT (Dh) : plafonnée au total HT de la ligne. */}
+                      <CelluleInput
+                        type="number" step="0.01" min="0" max={brut} className="tabular text-right" aria-label={`Remise en Dh de la ligne ${i + 1}`}
+                        value={l.remise} onChange={(e) => majLigne(i, 'remise', e.target.value)}
+                        erreur={!!errors[`lignes.${i}.remise_montant`] || n(l.remise) > brut + 0.005}
+                      />
+                      <CelluleCalculee positif={net > 0}>{net.toFixed(2)}</CelluleCalculee>
+                      <CelluleInput type="number" step="0.01" min="0" max="100" className="text-right" aria-label={`TVA de la ligne ${i + 1}`} value={l.tva_pourcent} onChange={(e) => majLigne(i, 'tva_pourcent', e.target.value)} />
+                      <CelluleCalculee positif={tvaMontant > 0}>{tvaMontant.toFixed(2)}</CelluleCalculee>
+                      <CelluleCalculee positif={ttc > 0} gras>{ttc.toFixed(2)}</CelluleCalculee>
+                      <div className="flex justify-center">
                         <RowBtn title="Retirer" onClick={() => retirerLigne(i)} className="hover:bg-danger-50 hover:text-danger-600">
                           <X size={15} />
                         </RowBtn>
                       </div>
                     </div>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </TableauLignes>
             )}
             {errors.lignes && <span className="mt-2 block text-xs text-danger-600">{errors.lignes[0]}</span>}
+            {Object.keys(errors).filter((k) => /^lignes\.\d+\.(quantite|remise_montant)$/.test(k)).map((k) => (
+              <span key={k} className="mt-2 block text-xs text-danger-600">{errors[k][0]}</span>
+            ))}
           </div>
 
-          <div className="my-6 border-t border-line" />
+          <div className="my-4 border-t border-line" />
 
           <div>
             {/* Remplie automatiquement à la sélection d'un service (voir
                 `choisirService`) ; reste éditable à la main ensuite. */}
             <Field label={NOTE_LABEL[type] ?? NOTE_LABEL.facture}>
-              <Textarea rows={5} value={form.note} onChange={set('note')} />
+              <Textarea rows={3} value={form.note} onChange={set('note')} />
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-5">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-4">
             <ChampCalcule label="Total HT" value={totaux.ht} />
             <ChampCalcule label="Total Remise" value={totaux.remise} />
             <ChampCalcule label="Total Net HT" value={totaux.netHt} />
@@ -416,16 +494,23 @@ export default function DocumentForm({ title, type, listTo, dateLabel = 'Date Fa
           </div>
 
           {avecPaiement && (
-            <div className="grid sm:grid-cols-2 gap-4 mt-4">
-              {/* Saisissable, conformément à la référence et à la décision métier (option C). */}
-              <Field label="Prix Payer">
-                <Input type="number" step="0.01" min="0" value={form.prix_paye} onChange={set('prix_paye')} placeholder="0.00" />
+            <div className="grid items-start gap-x-4 gap-y-3 mt-3 sm:grid-cols-3">
+              {/* Total, déjà payé / à payer, et solde restant : trois montants distincts, sur une même ligne, même gabarit. */}
+              <ChampCalcule label="Total TTC de la facture" value={totaux.ttc} />
+              {/* Saisissable, conformément à la référence et à la décision métier (option C). Pré-rempli avec le total TTC :
+                  pas de texte d'aide sous le champ (il décalait la ligne) ; l'info-bulle le rappelle. */}
+              <Field label={isEdit ? 'Prix payé (déjà réglé)' : 'Prix à payer (TTC)'}>
+                <Input
+                  type="number" step="0.01" min="0" value={form.prix_paye} placeholder="0.00" className="tabular"
+                  title={isEdit ? undefined : (prixPayeManuel ? 'Montant saisi à la main.' : 'Pré-rempli avec le total TTC ; modifiable (paiement partiel).')}
+                  onChange={(e) => { setPrixPayeManuel(true); set('prix_paye')(e) }}
+                />
                 {err('prix_paye')}
               </Field>
               {/* Ambre : solde restant dû, calculé, jamais saisi ni stocké. */}
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-ink-800">Prix Restants</span>
-                <div className="tabular flex h-11 items-center rounded-lg border border-warning-300 bg-warning-50 px-3.5 text-sm font-semibold text-warning-700">
+                <span className="mb-1.5 block text-[15px] font-medium text-ink-800">Prix Restants</span>
+                <div className="tabular flex h-11 items-center rounded-lg border border-warning-300 bg-warning-50 px-3.5 text-[15px] font-semibold text-warning-700">
                   {prixRestant.toFixed(2)}
                 </div>
               </div>

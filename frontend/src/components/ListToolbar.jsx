@@ -29,7 +29,7 @@ export function RowBtn({ children, className = '', title, ...props }) {
       title={title}
       aria-label={title}
       {...props}
-      className={`grid h-8 w-8 place-items-center rounded-lg text-ink-600 transition-colors hover:bg-surface hover:text-brand-600 focus-ring disabled:opacity-50 ${className}`}
+      className={`grid h-8 w-8 place-items-center rounded-lg text-ink-800 transition-colors hover:bg-surface hover:text-brand-600 focus-ring disabled:opacity-50 [&>svg]:h-[18px] [&>svg]:w-[18px] ${className}`}
     >
       {children}
     </button>

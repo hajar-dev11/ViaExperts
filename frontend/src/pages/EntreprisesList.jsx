@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Plus, Pencil, ListTree, Archive, Trash2, RotateCcw, ArrowLeft,
+  Plus, ListTree, Archive, Trash2, RotateCcw, ArrowLeft,
   Eye, FilePlus2, MessageSquarePlus, Ban, ShieldOff, Lock,
 } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../components/ui/icons.jsx'
 import DataTable from '../components/DataTable.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import ExportMenu from '../components/ExportMenu.jsx'
@@ -13,13 +14,14 @@ import Alert from '../components/ui/Alert.jsx'
 import Modal from '../components/ui/Modal.jsx'
 import Button, { IconButton } from '../components/ui/Button.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
-import { Field, FileInput, Input, Textarea } from '../components/Field.jsx'
+import { Field, FileInput, Input, Select, Textarea } from '../components/Field.jsx'
 import {
   listEntreprises, restoreEntreprise, deleteEntrepriseForever,
   archiveEntreprise, corbeilleEntreprise,
   addEntrepriseObservation, addEntrepriseDocument,
   listeNoireEntreprise, retirerListeNoireEntreprise, bloquerEntreprise, debloquerEntreprise,
 } from '../api/entreprises.js'
+import { SITUATIONS, compterParSituation, filtrerParSituation, situationValide } from '../utils/situationsEntreprise.js'
 
 /**
  * Observation affichée dans la colonne : la plus récente de l'historique
@@ -66,7 +68,11 @@ const TABS = [
 
 export default function EntreprisesList() {
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const [status, setStatus] = useState('actif')
+  // Filtre de situation : lu dans l'adresse (`?situation=Liste Noire`), uniquement s'il correspond à une situation existante.
+  const situation = situationValide(params.get('situation') ?? '')
+  const changerSituation = (valeur) => setParams(valeur ? { situation: valeur } : {}, { replace: true })
   const [entreprises, setEntreprises] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -97,6 +103,10 @@ export default function EntreprisesList() {
   }
 
   useEffect(load, [status])
+
+  // Liste filtrée par situation (normale / bloquée / liste noire) : mêmes lignes, mêmes actions, seul l'affichage change.
+  const visibles = useMemo(() => filtrerParSituation(entreprises, situation), [entreprises, situation])
+  const compteurs = useMemo(() => compterParSituation(entreprises), [entreprises])
 
   /** Ajoute une ligne à l'historique des observations de l'entreprise. */
   const enregistrerObservation = async () => {
@@ -169,10 +179,21 @@ export default function EntreprisesList() {
 
       <DataTable
         title="Liste des Entreprises"
-        filter={status !== 'actif' && (
-          <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => setStatus('actif')}>
-            Retour à la liste des entreprises
-          </Button>
+        filterCentre
+        filter={(
+          <div className="flex w-full flex-wrap items-center justify-center gap-3">
+            {status !== 'actif' && (
+              <Button variant="secondary" icon={<ArrowLeft size={15} />} onClick={() => setStatus('actif')}>
+                Retour à la liste des entreprises
+              </Button>
+            )}
+            {/* Situation : Normales / Bloquées / Liste noire (anciennes pages de la sidebar). */}
+            <div className="w-full sm:flex-1">
+              <Select aria-label="Filtrer par situation" value={situation} onChange={(e) => changerSituation(e.target.value)}>
+                {SITUATIONS.map((s) => <option key={s.valeur} value={s.valeur}>{s.label} ({compteurs[s.valeur] ?? 0})</option>)}
+              </Select>
+            </div>
+          </div>
         )}
         actions={(
           <>
@@ -182,8 +203,8 @@ export default function EntreprisesList() {
               title="Liste des Entreprises"
               subtitle={TABS.find((t) => t.key === status)?.label}
               columns={exportColumns}
-              rows={entreprises}
-              disabled={entreprises.length === 0}
+              rows={visibles}
+              disabled={visibles.length === 0}
             />
             {/* Directement Archive puis Corbeille, comme la référence : pas de
                 bouton « Actifs » intermédiaire — le lien « Retour » ci-dessus
@@ -207,19 +228,19 @@ export default function EntreprisesList() {
           </>
         )}
         columns={columns}
-        rows={entreprises}
+        rows={visibles}
         loading={loading}
-        emptyText={status === 'actif' ? 'Aucune entreprise' : status === 'archive' ? 'Aucune entreprise archivée' : 'Corbeille vide'}
+        emptyText={situation ? `Aucune entreprise dans la situation « ${SITUATIONS.find((s) => s.valeur === situation)?.label} »` : status === 'actif' ? 'Aucune entreprise' : status === 'archive' ? 'Aucune entreprise archivée' : 'Corbeille vide'}
         rowActions={(r) => (
             <div className="flex justify-end gap-1.5">
               {status === 'actif' && (
                 <>
-                  <RowBtn title="Modifier" onClick={() => navigate(`/entreprises/${r.id}/modifier`)}><Pencil size={16} /></RowBtn>
+                  <RowBtn title="Modifier" onClick={() => navigate(`/entreprises/${r.id}/modifier`)}><IconeModifier /></RowBtn>
                   {/* Menu d'actions de la référence : Afficher / Ajouter Documents /
                       Ajouter Observation — Liste Noire / Bloquer — Archive / Supprimer. */}
                   <ActionMenu
                     label="Actions"
-                    icon={<ListTree size={16} />}
+                    icon={<IconeActions />}
                     items={[
                       {
                         label: 'Afficher',
@@ -299,6 +320,7 @@ export default function EntreprisesList() {
       <Modal
         open={!!observationPour}
         onClose={() => setObservationPour(null)}
+        size="xxl"
         title={`Observation — ${observationPour?.denomination ?? ''}`}
         footer={
           <>
@@ -313,13 +335,13 @@ export default function EntreprisesList() {
           </>
         }
       >
-        <div className="space-y-4">
-          <Field label="Observation" required>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Field label="Observation" required className="lg:col-span-2">
             <Textarea
               value={observationTexte}
               onChange={(e) => setObservationTexte(e.target.value)}
               placeholder="Observation"
-              className="min-h-[140px]"
+              className="min-h-[220px]"
             />
           </Field>
 
@@ -357,6 +379,7 @@ export default function EntreprisesList() {
       <Modal
         open={!!documentPour}
         onClose={() => setDocumentPour(null)}
+        size="xxl"
         title={`Ajouter un document — ${documentPour?.denomination ?? ''}`}
         description="5 Mo maximum."
         footer={
@@ -372,7 +395,7 @@ export default function EntreprisesList() {
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="grid gap-5 lg:grid-cols-2">
           <Field label="Fichier" required hint="5 Mo maximum.">
             <FileInput onChange={(e) => setDocumentFichier(e.target.files?.[0] ?? null)} />
           </Field>

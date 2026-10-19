@@ -128,6 +128,20 @@ export async function apiFetch(path, { method = 'GET', body, withCsrf = true, ca
   }
 }
 
+// Message affiché quand un envoi de fichier est refusé : le texte du serveur s'il existe, sinon une explication selon le
+// code HTTP. Un serveur qui répond sans corps JSON (page d'erreur Apache, limite de taille atteinte…) ne doit pas se
+// traduire par un simple « Erreur serveur ».
+export function messageEchecEnvoi(status, data) {
+  const premiereErreur = data?.errors && Object.values(data.errors)[0]?.[0]
+  if (premiereErreur) return premiereErreur
+  if (data?.message) return data.message
+  if (status === 413) return 'Le fichier est trop volumineux pour le serveur. Choisissez un fichier plus léger.'
+  if (status === 419) return 'Votre session a expiré. Rechargez la page puis réessayez.'
+  if (status === 403) return "Vous n'avez pas le droit d'envoyer ce fichier."
+  if (status >= 500) return `Le serveur n'a pas pu enregistrer le fichier (erreur ${status}). Réessayez, ou contactez l'administrateur si le problème continue.`
+  return 'Erreur serveur'
+}
+
 // `payload` : soit un File (envoyé sous le champ `file` — comportement historique,
 // utilisé par les logos/signatures et la photo de profil), soit un FormData déjà
 // construit, passé tel quel quand l'endpoint attend d'autres noms de champs.
@@ -147,18 +161,24 @@ export async function apiUpload(path, payload) {
   }
 
   try {
-    const response = await fetch(`${API_URL}${path}`, {
-      method: 'POST',
-      headers,
-      credentials: 'include',
-      body: formData,
-    })
+    let response
+    try {
+      response = await fetch(`${API_URL}${path}`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: formData,
+      })
+    } catch {
+      // Pas de réponse du tout : réseau coupé, envoi interrompu, ou refus du serveur avant toute réponse (CORS).
+      throw new ApiError("L'envoi a échoué : impossible de contacter le serveur. Vérifiez votre connexion et réessayez.", 0)
+    }
 
     const data = await response.json().catch(() => null)
 
     if (!response.ok) {
       if (response.status === 401) unauthorizedHandler?.()
-      throw new ApiError(data?.message ?? 'Erreur serveur', response.status, data?.errors)
+      throw new ApiError(messageEchecEnvoi(response.status, data), response.status, data?.errors)
     }
 
     return data

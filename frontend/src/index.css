@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Police unique de l'interface : Public Sans, AUTO-HÉBERGÉE (aucun appel à Google Fonts). Ses @font-face sont chargés par
+   main.jsx : un @import ici passerait par Tailwind, qui n'empaquette pas les fichiers .woff2 au build. */
 
 /* ============================================================================
    VIA EXPERTS — DESIGN SYSTEM
@@ -14,7 +16,23 @@
    ========================================================================== */
 
 @theme {
-  --font-sans: "Public Sans", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Typographie centralisée : toute l'application hérite de cette pile (boutons et champs via `font: inherit`).
+     Police identifiée sur les captures de référence par mesure des largeurs de texte : Public Sans, ~15 px. */
+  --font-sans: "Public Sans Variable", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Échelle typographique CENTRALISÉE : la même que la page « Centres de domiciliation » (tableaux : texte 15 px, en-têtes 13 px,
+     titres de carte 18 px). Redéfinir ici les tailles de Tailwind aligne d'un coup TOUS les écrans (les ~400 classes text-sm,
+     text-xs… déjà posées dans les pages), sans retoucher chaque page : plus de texte à 14 px d'un côté et 15 px de l'autre. */
+  --text-xs: 0.8125rem; /* 13 px : aides, étiquettes, badges */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.9375rem; /* 15 px : texte courant, champs, boutons, tableaux */
+  --text-sm--line-height: 1.5;
+  --text-base: 0.9375rem; /* 15 px */
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem; /* 18 px : titres de carte et de tableau */
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.125rem; /* 18 px : mêmes titres (plus de titre à 20 px d'un module à l'autre) */
+  --text-xl--line-height: 1.4;
 
   /* --- Neutres / texte (relevés : titres #5D596C, corps #6F6B7D) ---------- */
   --color-ink-950: #2f3349; /* sidebar et surfaces sombres */
@@ -94,8 +112,19 @@ body,
   height: 100%;
 }
 
+/* Titres : poids « medium », comme les titres de carte des listes (le reste de l'interface ne les met pas en gras). */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-weight: 500;
+  }
+}
+
 body {
   font-family: var(--font-sans);
+  font-size: 0.9375rem; /* 15 px : taille de texte par défaut, identique aux tableaux */
+  line-height: 1.5;
   background: var(--color-surface);
   color: var(--color-ink-800);
   -webkit-font-smoothing: antialiased;
@@ -259,4 +288,43 @@ body {
 }
 .ve-toast-in {
   animation: ve-toast-in 0.18s ease-out;
+}
+
+/* Listes déroulantes (select) : UNE seule apparence pour tout le projet — bleu de la marque (brand-500, le bleu-violet de Via Experts) :
+   bordure et fond teintés, flèche bleue dessinée (la flèche native ne peut pas être colorée). */
+.ve-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237367f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1.15rem;
+}
+.ve-select:disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23a5a3ae' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
+}
+
+/* Bandeau d'alerte d'échéance de domiciliation (barre du haut) : il CLIGNOTE pour attirer l'attention. Seul le fond pulse
+   (le texte reste pleinement lisible) ; le clignotement s'arrête au survol, et pour les personnes qui ont demandé
+   « réduire les animations » dans leur système. */
+@keyframes ve-clignote {
+  0%,
+  100% {
+    background-color: #ffbdbd;
+  }
+  50% {
+    background-color: #ff9f9f;
+  }
+}
+.ve-clignote {
+  animation: ve-clignote 1.4s ease-in-out infinite;
+}
+.ve-clignote:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ve-clignote {
+    animation: none;
+  }
 }

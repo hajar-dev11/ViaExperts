@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\DomiciliationSettingController;
 use App\Http\Controllers\Api\V1\EntrepriseController;
 use App\Http\Controllers\Api\V1\FichierController;
 use App\Http\Controllers\Api\V1\IdentiteImpressionController;
+use App\Http\Controllers\Api\V1\ImportateurTvaController;
 use App\Http\Controllers\Api\V1\MailController;
 use App\Http\Controllers\Api\V1\MailStatusController;
 use App\Http\Controllers\Api\V1\MouvementController;
@@ -125,6 +126,8 @@ Route::prefix('v1')->group(function () {
         // permissions distincts (`declaration` et `chiffre_affaire`).
         Route::prefix('declarations/{type}')->whereIn('type', ['tva', 'chiffre_affaire'])->group(function () {
             Route::get('/', [DeclarationTvaController::class, 'index']);
+            Route::post('/factures-existantes', [DeclarationTvaController::class, 'facturesExistantes']); // avertissement « doublon », lecture seule
+            Route::post('/especes-existantes', [DeclarationTvaController::class, 'especesExistantes']); // cumul des espèces du tiers, lecture seule
             Route::post('/', [DeclarationTvaController::class, 'store']);
             Route::get('/{declaration}', [DeclarationTvaController::class, 'show']);
             Route::put('/{declaration}', [DeclarationTvaController::class, 'update']);
@@ -133,6 +136,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/{declaration}/corbeille', [DeclarationTvaController::class, 'corbeille']);
             Route::post('/{declaration}/restore', [DeclarationTvaController::class, 'restore']);
             Route::delete('/{declaration}', [DeclarationTvaController::class, 'destroy']);
+        });
+
+        // Importateur de TVA — lignes d'un fichier Excel / CSV ajoutées à une Déclaration TVA. Permission `declaration.importeur`
+        // (+ celles de la Déclaration TVA vérifiées dans le contrôleur). Préfixe distinct : aucun conflit avec `declarations/{type}/{declaration}`.
+        Route::prefix('importateur-tva')->middleware('permission:declaration,importeur')->group(function () {
+            // Photo de la déclaration : contrôle de l'image seulement (pas de lecture automatique, rien n'est créé).
+            Route::post('/image', [ImportateurTvaController::class, 'image']);
+            Route::post('/apercu', [ImportateurTvaController::class, 'apercu']);
+            Route::post('/importer', [ImportateurTvaController::class, 'importer']);
         });
 
         // Centres de domiciliation : routes dans le module (même position, même ordre — voir app/Modules/Domiciliation/routes.php).
@@ -201,6 +213,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/paiements', [PaiementController::class, 'store']);
         Route::get('/paiements/{paiement}', [PaiementController::class, 'show']);
         Route::post('/paiements/{paiement}', [PaiementController::class, 'update']); // POST : multipart (pièce jointe)
+        Route::get('/paiements/{paiement}/historique', [PaiementController::class, 'historique']); // tous les paiements du service
+        Route::get('/paiements/{paiement}/fichier', [PaiementController::class, 'fichier']); // pièce jointe, accès contrôlé
+        Route::post('/paiements/{paiement}/complements', [PaiementController::class, 'ajouterComplement']); // multipart
         Route::post('/paiements/{paiement}/archive', [PaiementController::class, 'archive']);
         Route::post('/paiements/{paiement}/corbeille', [PaiementController::class, 'corbeille']);
         Route::post('/paiements/{paiement}/restore', [PaiementController::class, 'restore']);
@@ -209,9 +224,12 @@ Route::prefix('v1')->group(function () {
         // Services en cours — permissions `services_en_cours` du catalogue existant
         Route::get('/services-en-cours', [ServiceEnCoursController::class, 'index'])->middleware('permission:services_en_cours,list');
         Route::get('/services-en-cours/activite', [ServiceEnCoursController::class, 'activite'])->middleware('permission:services_en_cours,list');
+        Route::get('/services-en-cours/statuts', [ServiceEnCoursController::class, 'statuts'])->middleware('permission:services_en_cours,list');
         Route::get('/services-en-cours/{serviceEnCour}', [ServiceEnCoursController::class, 'show'])->middleware('permission:services_en_cours,list');
         Route::put('/services-en-cours/{serviceEnCour}', [ServiceEnCoursController::class, 'update'])->middleware('permission:services_en_cours,modifier');
         Route::post('/services-en-cours/{serviceEnCour}/operations', [ServiceEnCoursController::class, 'storeOperation'])->middleware('permission:services_en_cours,modifier');
+        Route::post('/services-en-cours/{serviceEnCour}/operations/{operation}/fichier', [ServiceEnCoursController::class, 'remplacerFichier'])->middleware('permission:services_en_cours,modifier');
+        Route::delete('/services-en-cours/{serviceEnCour}/operations/{operation}/fichier', [ServiceEnCoursController::class, 'supprimerFichier'])->middleware('permission:services_en_cours,modifier');
         Route::post('/services-en-cours/{serviceEnCour}/archive', [ServiceEnCoursController::class, 'archive'])->middleware('permission:services_en_cours,archive');
         Route::post('/services-en-cours/{serviceEnCour}/corbeille', [ServiceEnCoursController::class, 'corbeille'])->middleware('permission:services_en_cours,corbeille');
         Route::post('/services-en-cours/{serviceEnCour}/restore', [ServiceEnCoursController::class, 'restore'])->middleware('permission:services_en_cours,archive');

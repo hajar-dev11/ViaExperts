@@ -2,6 +2,14 @@
 export const JOURS_ALERTE = 30
 
 /**
+ * Destination d'un clic sur une alerte : la fiche du contrat concerné. Une alerte mémorisée avant l'ajout de `id`
+ * (copie de session) n'a pas de contrat : on ouvre alors l'onglet « En alerte » de la gestion de domiciliation.
+ */
+export const destinationAlerte = (alerte) => (alerte?.id !== null && alerte?.id !== undefined
+  ? `/domiciliation/${alerte.id}`
+  : '/domiciliation?statut=alerte')
+
+/**
  * Alertes d'échéance de domiciliation du bandeau (Topbar).
  *
  * RÈGLE : une entreprise reste en alerte tant qu'elle n'est pas renouvelée. On ne regarde donc pas chaque contrat
@@ -16,7 +24,8 @@ export const JOURS_ALERTE = 30
  *
  * @param {Array} lignes domiciliations actives, telles que renvoyées par l'API
  * @param {Date} [maintenant]
- * @returns {Array<{ entrepriseId: (number|string|null), nom: string, dateFin: string, expiree: boolean }>}
+ * @returns {Array<{ id: (number|string|null), entrepriseId: (number|string|null), nom: string, dateFin: string, expiree: boolean }>}
+ *   `id` = contrat porteur de l'échéance : le bandeau ouvre directement sa fiche.
  */
 export function calculerAlertesEcheance(lignes, maintenant = new Date()) {
   const aujourdhui = new Date(maintenant)
@@ -46,6 +55,7 @@ export function calculerAlertesEcheance(lignes, maintenant = new Date()) {
     })
     .sort((a, b) => String(a.dateFin).localeCompare(String(b.dateFin)))
     .map((d) => ({
+      id: d.id ?? null,
       entrepriseId: d.entrepriseId ?? null,
       nom: d.denomination,
       dateFin: d.dateFin,

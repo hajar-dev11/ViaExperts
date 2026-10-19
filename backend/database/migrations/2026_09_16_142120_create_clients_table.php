@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -34,7 +35,16 @@ return new class extends Migration
                 ->onDelete('cascade')->onUpdate('cascade');
         });
 
-        DB::statement("ALTER TABLE clients ADD CONSTRAINT chk_clients_type CHECK (type = 'client')");
+        try {
+            DB::statement("ALTER TABLE clients ADD CONSTRAINT chk_clients_type CHECK (type = 'client')");
+        } catch (QueryException $e) {
+            // MariaDB récent (ex. 10.11) refuse un CHECK sur une colonne d'une clé étrangère ON UPDATE CASCADE (erreur 1901).
+            // Dans ce cas seulement, la contrainte est omise : la clé étrangère (party_id, type) garde le lien avec parties,
+            // et l'application n'écrit jamais d'autre type. Toute autre erreur est relancée.
+            if ((int) ($e->errorInfo[1] ?? 0) !== 1901) {
+                throw $e;
+            }
+        }
     }
 
     public function down(): void

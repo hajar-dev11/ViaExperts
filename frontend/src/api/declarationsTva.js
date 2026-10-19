@@ -11,6 +11,24 @@ export async function listDeclarations(type, { status = 'actif', situation = '' 
   return unwrap(await apiFetch(`${base(type)}?${p.toString()}`))
 }
 
+// Factures déjà enregistrées portant l'un des numéros donnés (même type, même entreprise) : sert à l'avertissement « doublon ».
+// Lecture seule ; `exclure` écarte la déclaration en cours de modification.
+export async function facturesExistantes(type, { entrepriseId, numeros, exclure = null }) {
+  return unwrap(await apiFetch(`${base(type)}/factures-existantes`, {
+    method: 'POST',
+    body: { entreprise_id: Number(entrepriseId), numeros, ...(exclure ? { exclure: Number(exclure) } : {}) },
+  }))
+}
+
+// Règlements en espèces déjà enregistrés (même type, même entreprise, même année) : sert au cumul « espèces > 5 000 Dh » par tiers.
+// Lecture seule ; `exclure` écarte la déclaration en cours de modification (ses lignes sont dans le tableau).
+export async function especesExistantes(type, { entrepriseId, annee, exclure = null }) {
+  return unwrap(await apiFetch(`${base(type)}/especes-existantes`, {
+    method: 'POST',
+    body: { entreprise_id: Number(entrepriseId), annee: Number(annee), ...(exclure ? { exclure: Number(exclure) } : {}) },
+  }))
+}
+
 export async function getDeclaration(type, id) {
   return unwrap(await apiFetch(`${base(type)}/${id}`))
 }

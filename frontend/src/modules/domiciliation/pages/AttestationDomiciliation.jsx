@@ -3,11 +3,13 @@ import DocumentDomiciliationEditable from '../documents/DocumentDomiciliationEdi
 import {
   attestationParDefaut, construireHtmlAttestation, imprimerAttestationPdf, lireContenuAttestation,
 } from '../documents/attestation.js'
+import { chargerClientRepresentant } from '../documents/civilite.js'
 
 const CONFIG = {
   titre: 'Attestation de domiciliation',
   nom: "l'attestation",
   pages: 1,
+  charger: chargerClientRepresentant, // fiche client : civilité « Mr » / « Mme »
   parDefaut: attestationParDefaut,
   construire: construireHtmlAttestation,
   lireContenu: lireContenuAttestation,

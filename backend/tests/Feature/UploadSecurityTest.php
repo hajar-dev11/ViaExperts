@@ -166,8 +166,8 @@ class UploadSecurityTest extends TestCase
 
             $controles++;
             $this->assertTrue(
-                str_contains($source, 'FichierAutorise::') || str_contains($source, "'mimes:"),
-                basename($fichier).' stocke un fichier sur le disque public sans liste blanche de types (FichierAutorise ou mimes:).'
+                str_contains($source, 'FichierAutorise::') || str_contains($source, "'mimes:") || str_contains($source, 'ImageTeleversee::regles()'),
+                basename($fichier).' stocke un fichier sur le disque public sans liste blanche de types (FichierAutorise, ImageTeleversee ou mimes:).'
             );
         }
 

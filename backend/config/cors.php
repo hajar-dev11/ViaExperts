@@ -17,7 +17,9 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['*'],
+    // Méthodes réellement utilisées : GET/POST/PUT/DELETE par le frontend, PATCH par 2 routes de l'API, OPTIONS pour les
+    // pré-requêtes. Plus de joker. HEAD n'a pas besoin d'y figurer (GET, HEAD et POST sont « simples » en CORS).
+    'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     // Les ports de secours (5174/5180) ne servent qu'en local, quand plusieurs
     // instances Vite tournent en parallèle sur cette machine : ils ne doivent

@@ -6,6 +6,23 @@ export async function listCentres({ page = 1, perPage = 10, search = '', status 
   return apiFetch(`/api/v1/centres-domiciliation?${params.toString()}`)
 }
 
+/**
+ * TOUS les centres d'un statut (toutes les pages, 100 par requête) — pour les listes qui ne paginent pas côté serveur
+ * (page Archive / Corbeille). Aucun centre n'est oublié au-delà de la première page.
+ */
+export async function listAllCentres(status = 'actif') {
+  const toutes = []
+  let page = 1
+  let derniere = 1
+  do {
+    const res = await listCentres({ page, perPage: 100, status })
+    toutes.push(...(res.data ?? []))
+    derniere = res.last_page ?? res.meta?.last_page ?? 1
+    page += 1
+  } while (page <= derniere)
+  return toutes
+}
+
 /** Fiche « Informations Centre de domiciliation » : le centre + ses entreprises domiciliées. */
 export async function getCentre(id) {
   return apiFetch(`/api/v1/centres-domiciliation/${id}`)

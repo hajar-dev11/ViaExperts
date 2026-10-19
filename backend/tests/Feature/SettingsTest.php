@@ -152,7 +152,8 @@ class SettingsTest extends TestCase
         $admin = $this->admin();
 
         $this->actingAs($admin)->postJson('/api/v1/settings/cabinet/logo', [
-            'file' => UploadedFile::fake()->create('logo.png', 900, 'image/png'),
+            // Limite portée de 800 Ko à 2 Mo (App\Support\ImageTeleversee) : les photos de téléphone dépassent toujours 800 Ko.
+            'file' => UploadedFile::fake()->create('logo.png', 2100, 'image/png'),
         ])->assertStatus(422)->assertJsonValidationErrors('file');
     }
 

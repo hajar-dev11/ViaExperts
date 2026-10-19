@@ -3,7 +3,6 @@
 namespace App\Modules\Domiciliation\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateDomiciliationRequest extends FormRequest
 {
@@ -24,7 +23,7 @@ class UpdateDomiciliationRequest extends FormRequest
             'date_depart' => ['sometimes', 'date'],
             'date_fin' => ['sometimes', 'nullable', 'date', 'after_or_equal:date_depart'],
 
-            'mode_paiement' => ['sometimes', 'nullable', 'string', Rule::in(StoreDomiciliationRequest::MODES_PAIEMENT)],
+            'mode_paiement' => StoreDomiciliationRequest::reglesModePaiement(true),
             'prix_par_mois' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'prix_total' => ['sometimes', 'nullable', 'numeric', 'min:0'],
 

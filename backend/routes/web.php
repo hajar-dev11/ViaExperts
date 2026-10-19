@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RacineController;
+use App\Http\Controllers\StorageFichierController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,3 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', RacineController::class);
+
+// Fichiers téléversés (photos, logos, signatures, pièces jointes) : servis par l'application, sous session ouverte, là où le
+// serveur web ne peut pas publier `storage/app/public` (pas de lien symbolique). Voir StorageFichierController.
+Route::get('/storage/{chemin}', StorageFichierController::class)->where('chemin', '.*')->middleware('auth:sanctum');

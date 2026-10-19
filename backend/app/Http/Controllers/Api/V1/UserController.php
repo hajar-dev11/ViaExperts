@@ -11,6 +11,8 @@ use App\Models\UserPermission;
 use App\Support\SessionsUtilisateur;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -86,7 +88,31 @@ class UserController extends Controller
             return response()->json(['message' => 'Impossible de supprimer le dernier administrateur.'], 422);
         }
 
-        $user->delete();
+        // Tout ce qui appartient à CE compte — et rien d'autre — part avec lui, dans une seule transaction :
+        //  - ses autorisations (user_permissions.user_id : cascade en base, supprimées ici explicitement pour que le
+        //    comportement ne dépende pas du seul moteur) ;
+        //  - ses jetons d'accès API (personal_access_tokens n'a pas de clé étrangère : sans cela ils resteraient orphelins) ;
+        //  - ses demandes de réinitialisation de mot de passe (clé : e-mail) ;
+        //  - sa photo de profil ;
+        //  - ses messages de chat (envoyés ou reçus : cascade en base, discussion qui n'a plus de sens sans lui).
+        // Ce qui est PARTAGÉ est conservé : les autorisations des autres comptes, y compris celles que ce compte avait
+        // accordées (user_permissions.granted_by passe à NULL), et les documents/opérations qu'il a créés (created_by passe à NULL).
+        $photo = $user->photo_path;
+
+        DB::transaction(function () use ($user) {
+            $user->userPermissions()->delete();
+            $user->tokens()->delete();
+
+            if (Schema::hasTable('password_reset_tokens')) {
+                DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+            }
+
+            $user->delete();
+        });
+
+        if ($photo) {
+            Storage::disk('public')->delete($photo);
+        }
 
         return response()->json(['message' => 'Utilisateur supprimé.']);
     }

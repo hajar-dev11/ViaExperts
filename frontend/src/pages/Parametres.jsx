@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { UserRound, Save, LifeBuoy, Mail as MailIcon, Stamp, Briefcase, Building2, MapPinned, ShieldCheck, Pencil, X, ShieldAlert, Trash2, Image as ImageIcon } from 'lucide-react'
-import { Field, Input, Select, Textarea, Checkbox, FormCard } from '../components/Field.jsx'
+import { UserRound, Save, LifeBuoy, Mail as MailIcon, Stamp, Briefcase, Building2, MapPinned, ShieldCheck, X, ShieldAlert, Trash2, Image as ImageIcon } from 'lucide-react'
+import { IconeModifier } from '../components/ui/icons.jsx'
+import { Field, Input, Textarea, Checkbox, FormCard } from '../components/Field.jsx'
 import DataTable from '../components/DataTable.jsx'
 import ServerTable from '../components/ServerTable.jsx'
 import Alert from '../components/ui/Alert.jsx'
+import ImageAvecSecours from '../components/ImageAvecSecours.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import { RowBtn } from '../components/ListToolbar.jsx'
 import Button, { IconButton } from '../components/ui/Button.jsx'
@@ -13,6 +15,7 @@ import {
   listUsers,
   createUser,
   updateUser,
+  deleteUser,
   listPermissions,
   getUserPermissions,
   updateUserPermissions,
@@ -176,14 +179,16 @@ function AccountTab() {
       </div>
 
       {subTab === 'profil' ? (
-        <form onSubmit={saveProfile} className="max-w-xl space-y-5">
+        <form onSubmit={saveProfile} className="w-full space-y-5">
           {profileError && <Alert tone="danger" onAutoClose={() => setProfileError('')}>{profileError}</Alert>}
           {profileSuccess && <Alert tone="success" onAutoClose={() => setProfileSuccess('')}>{profileSuccess}</Alert>}
           <div className="flex items-center gap-4">
             <div className="h-20 w-20 rounded-full bg-surface grid place-items-center text-ink-600 overflow-hidden shrink-0">
-              {user?.photo_path
-                ? <img src={logoUrl(user.photo_path)} alt="" className="h-full w-full object-cover" />
-                : <UserRound size={30} />}
+              <ImageAvecSecours
+                src={user?.photo_path ? logoUrl(user.photo_path) : null}
+                className="h-full w-full object-cover"
+                fallback={<UserRound size={30} />}
+              />
             </div>
             <div>
               <div className="flex flex-wrap gap-2">
@@ -204,11 +209,11 @@ function AccountTab() {
                   Reset
                 </Button>
               </div>
-              <p className="text-xs text-ink-600 mt-1.5">Allowed JPG, GIF ou PNG. Max size of 800K.</p>
+              <p className="text-xs text-ink-600 mt-1.5">JPG, GIF ou PNG. La photo est réduite automatiquement avant l'envoi.</p>
               <input
                 ref={photoInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/gif"
+                accept="image/png,image/jpeg,image/gif,image/webp"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0]
@@ -218,38 +223,42 @@ function AccountTab() {
               />
             </div>
           </div>
-          <Field label="Nom et Prénom" required>
-            <Input required value={profileForm.name} onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nom et prénom" />
-            {profileErrors.name && <span className="mt-1 block text-xs text-danger-600">{profileErrors.name[0]}</span>}
-          </Field>
-          <Field label="Email" required>
-            <Input type="email" required value={profileForm.email} onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))} placeholder="email@exemple.com" />
-            {profileErrors.email && <span className="mt-1 block text-xs text-danger-600">{profileErrors.email[0]}</span>}
-          </Field>
-          {emailModifie && (
-            <Field label="Mot de passe actuel" required>
-              <Input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={profileCurrentPassword}
-                onChange={(e) => setProfileCurrentPassword(e.target.value)}
-                placeholder="Requis pour changer l'adresse email"
-              />
-              {profileErrors.current_password && <span className="mt-1 block text-xs text-danger-600">{profileErrors.current_password[0]}</span>}
+          {/* Champs sur toute la largeur de la carte : deux colonnes dès que la place le permet. */}
+          <div className="space-y-5">
+            <Field label="Nom et Prénom" required>
+              <Input required value={profileForm.name} onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nom et prénom" />
+              {profileErrors.name && <span className="mt-1 block text-xs text-danger-600">{profileErrors.name[0]}</span>}
             </Field>
-          )}
-          <Field label="Téléphone">
-            <Input value={profileForm.telephone} onChange={(e) => setProfileForm((f) => ({ ...f, telephone: e.target.value }))} placeholder="+212 6 00 00 00 00" />
-          </Field>
+            <Field label="Email" required>
+              <Input type="email" required value={profileForm.email} onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))} placeholder="email@exemple.com" />
+              {profileErrors.email && <span className="mt-1 block text-xs text-danger-600">{profileErrors.email[0]}</span>}
+            </Field>
+            {emailModifie && (
+              <Field label="Mot de passe actuel" required>
+                <Input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={profileCurrentPassword}
+                  onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                  placeholder="Requis pour changer l'adresse email"
+                />
+                {profileErrors.current_password && <span className="mt-1 block text-xs text-danger-600">{profileErrors.current_password[0]}</span>}
+              </Field>
+            )}
+            <Field label="Téléphone">
+              <Input value={profileForm.telephone} onChange={(e) => setProfileForm((f) => ({ ...f, telephone: e.target.value }))} placeholder="+212 6 00 00 00 00" />
+            </Field>
+          </div>
           <Button type="submit" variant="primary" icon={<Save size={15} />} loading={profileSaving}>
             {profileSaving ? 'Enregistrement…' : 'Enregistrer'}
           </Button>
         </form>
       ) : (
-        <form onSubmit={savePassword} className="max-w-xl space-y-5">
+        <form onSubmit={savePassword} className="w-full space-y-5">
           {passwordError && <Alert tone="danger" onAutoClose={() => setPasswordError('')}>{passwordError}</Alert>}
           {passwordSuccess && <Alert tone="success" onAutoClose={() => setPasswordSuccess('')}>{passwordSuccess}</Alert>}
+          <div className="space-y-5">
           <Field label="Mot de passe actuel" required>
             <Input
               type="password"
@@ -282,6 +291,7 @@ function AccountTab() {
               placeholder="••••••••"
             />
           </Field>
+          </div>
           <Button type="submit" variant="primary" icon={<Save size={15} />} loading={passwordSaving}>
             {passwordSaving ? 'Mise à jour…' : 'Mettre à jour'}
           </Button>
@@ -573,6 +583,7 @@ function AssistanceTab() {
   const [checkedPermissions, setCheckedPermissions] = useState(new Set())
   const [loadingPermissions, setLoadingPermissions] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [suppressionPour, setSuppressionPour] = useState(null)
 
   const loadUsers = () => {
     setLoadingList(true)
@@ -634,6 +645,23 @@ function AssistanceTab() {
     chargerPermissionsUtilisateur(u)
   }
 
+  const supprimerAssistance = async () => {
+    const cible = suppressionPour
+    setSuppressionPour(null)
+    if (!cible) return
+    setError('')
+    setSuccess('')
+    try {
+      await deleteUser(cible.id)
+      // Si on était en train de modifier ce compte, on quitte le formulaire.
+      if (editingUser?.id === cible.id) openCreate()
+      setSuccess(`Assistance « ${cible.name} » supprimée.`)
+      loadUsers()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    }
+  }
+
   const togglePermission = (id) => {
     setCheckedPermissions((prev) => {
       const next = new Set(prev)
@@ -680,15 +708,6 @@ function AssistanceTab() {
 
   return (
     <div className="space-y-4">
-      {/* Accès rapide à la gestion des centres de domiciliation (ajouter / modifier /
-          mettre à la corbeille) : on renvoie vers la page existante plutôt que de
-          dupliquer son formulaire et sa logique ici. */}
-      <div className="flex justify-end">
-        <Button variant="secondary" icon={<MapPinned size={15} />} to="/domiciliation/centres">
-          Gérer les Centres de Domiciliation
-        </Button>
-      </div>
-
       {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
       {erreurChargement && <Alert tone="danger" onRetry={charger}>{erreurChargement}</Alert>}
       {erreurChargementPermissions && editingUser && (
@@ -745,13 +764,21 @@ function AssistanceTab() {
               <span className="mt-1 block text-xs text-ink-600">{AIDE_MOT_DE_PASSE}</span>
               {formErrors.password && <span className="mt-1 block text-xs text-danger-600">{formErrors.password[0]}</span>}
             </Field>
-            <Field label="Fonction">
-              <Select value={form.fonction} onChange={(e) => setForm((f) => ({ ...f, fonction: e.target.value }))}>
-                <option value="">—</option>
+            {/* Saisie LIBRE : la liste n'est qu'une suggestion (datalist), on peut écrire n'importe quelle fonction. */}
+            <Field label="Fonction" hint="Saisie libre (30 caractères maximum).">
+              <Input
+                list="assistance-fonctions"
+                maxLength={30}
+                value={form.fonction}
+                onChange={(e) => setForm((f) => ({ ...f, fonction: e.target.value }))}
+                placeholder="Ex. : Assistante de direction"
+              />
+              <datalist id="assistance-fonctions">
                 {FONCTIONS.map((f) => (
-                  <option key={f} value={f}>{f}</option>
+                  <option key={f} value={f} />
                 ))}
-              </Select>
+              </datalist>
+              {formErrors.fonction && <span className="mt-1 block text-xs text-danger-600">{formErrors.fonction[0]}</span>}
             </Field>
           </div>
 
@@ -857,13 +884,28 @@ function AssistanceTab() {
             emptyText="Aucun utilisateur"
             actionsHeader="Actions"
             rowActions={(r) => (
-              <div className="flex justify-end">
-                <RowBtn title="Modifier" onClick={() => openEdit(r)}><Pencil size={14} /></RowBtn>
+              <div className="flex justify-end gap-1.5">
+                <RowBtn title="Modifier" onClick={() => openEdit(r)}><IconeModifier /></RowBtn>
+                {/* Pas de suppression de son propre compte (le serveur la refuse aussi). */}
+                {r.id !== user?.id && (
+                  <RowBtn title="Supprimer" className="hover:text-danger-600" onClick={() => setSuppressionPour(r)}><Trash2 /></RowBtn>
+                )}
               </div>
             )}
           />
         )}
       </FormCard>
+
+      <ConfirmDialog
+        open={!!suppressionPour}
+        title="Supprimer cette assistance ?"
+        message={suppressionPour
+          ? `« ${suppressionPour.name} » sera supprimée avec ses accès et ses autorisations. Les autres comptes et leurs autorisations ne sont pas touchés. Cette action est irréversible.`
+          : ''}
+        confirmLabel="Supprimer"
+        onCancel={() => setSuppressionPour(null)}
+        onConfirm={supprimerAssistance}
+      />
     </div>
   )
 }
@@ -890,7 +932,7 @@ function LogoSignatureField({ buttonLabel, imageUrl, onUpload, onReset, uploadin
   return (
     <div className="flex items-start gap-4">
       <div className="h-20 w-20 rounded-lg border border-line bg-surface grid place-items-center overflow-hidden shrink-0">
-        {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-contain" /> : <ImageIcon size={22} className="text-ink-600" />}
+        <ImageAvecSecours src={imageUrl} className="h-full w-full object-contain" fallback={<ImageIcon size={22} className="text-ink-600" />} />
       </div>
       <div>
         <div className="flex gap-2">
@@ -901,11 +943,11 @@ function LogoSignatureField({ buttonLabel, imageUrl, onUpload, onReset, uploadin
             Reset
           </Button>
         </div>
-        <p className="text-xs text-ink-600 mt-1.5">JPG, GIF ou PNG autorisés. Taille maximale de 800 Ko.</p>
+        <p className="text-xs text-ink-600 mt-1.5">JPG, GIF ou PNG autorisés. L'image est réduite automatiquement avant l'envoi.</p>
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/gif"
+          accept="image/png,image/jpeg,image/gif,image/webp"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0]
@@ -1025,16 +1067,16 @@ function BureauTab() {
         {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
         {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
-        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
+        <div className="grid sm:grid-cols-2 gap-6">
           <LogoSignatureField buttonLabel="Choisir le Logo" imageUrl={logoUrl(form.logo_path)} uploading={uploadingLogo} onUpload={handleUploadLogo} onReset={handleResetLogo} />
           <LogoSignatureField buttonLabel="Choisir le Signature" imageUrl={logoUrl(form.signature_path)} uploading={uploadingSignature} onUpload={handleUploadSignature} onReset={handleResetSignature} />
         </div>
 
-        <Field label="Nom de Société" className="max-w-3xl">
+        <Field label="Nom de Société">
           <Input value={form.nom_societe ?? ''} onChange={set('nom_societe')} placeholder="Nom du bureau de comptabilité" />
         </Field>
 
-        <div className="grid sm:grid-cols-3 gap-5 max-w-3xl">
+        <div className="grid sm:grid-cols-3 gap-5">
           <Field label="References de Recu">
             <Input value={form.references_recu ?? ''} onChange={set('references_recu')} placeholder="905" />
           </Field>
@@ -1048,7 +1090,7 @@ function BureauTab() {
           </Field>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl items-start">
+        <div className="grid sm:grid-cols-2 gap-6 items-start">
           <div className="space-y-5">
             <NumberingRow
               label="Numérotation des Factures"
@@ -1196,12 +1238,12 @@ function CentreSettingsForm() {
         {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
         {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
 
-        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl">
+        <div className="grid sm:grid-cols-2 gap-6">
           <LogoSignatureField buttonLabel="Choisir le Logo" imageUrl={logoUrl(form.logo_path)} uploading={uploadingLogo} onUpload={handleUploadLogo} onReset={handleResetLogo} />
           <LogoSignatureField buttonLabel="Choisir le Signature" imageUrl={logoUrl(form.signature_path)} uploading={uploadingSignature} onUpload={handleUploadSignature} onReset={handleResetSignature} />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-5 max-w-3xl">
+        <div className="grid sm:grid-cols-2 gap-5">
           <Field label="Nom de Société">
             <Input value={form.nom_societe ?? ''} onChange={set('nom_societe')} placeholder="Nom de la société de domiciliation" />
           </Field>
@@ -1210,11 +1252,11 @@ function CentreSettingsForm() {
           </Field>
         </div>
 
-        <Field label="Prix de Domiciliation" className="max-w-3xl">
+        <Field label="Prix de Domiciliation">
           <Input type="number" step="0.01" value={form.prix_domiciliation ?? ''} onChange={setNumber('prix_domiciliation')} placeholder="0.00" />
         </Field>
 
-        <div className="grid sm:grid-cols-3 gap-5 max-w-3xl">
+        <div className="grid sm:grid-cols-3 gap-5">
           <Field label="References de Recu">
             <Input value={form.references_recu ?? ''} onChange={set('references_recu')} placeholder="1020" />
           </Field>
@@ -1228,7 +1270,7 @@ function CentreSettingsForm() {
           </Field>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-6 max-w-3xl items-start">
+        <div className="grid sm:grid-cols-2 gap-6 items-start">
           <div className="space-y-5">
             <NumberingRow
               label="Numérotation des Factures"
@@ -1297,10 +1339,7 @@ const emptyStatusForm = { nom: '', couleur_texte: '#16A34A', couleur_fond: '#DCF
 
 // Gestionnaire de statuts réutilisé par Services, Cachet et Mail : même écran de référence,
 // mêmes règles (nom + couleur texte + couleur fond), seule l'API change.
-// `manageLink` donne en plus un accès direct à la page de gestion réelle de l'entité
-// (liste des Services / Cachets / Mails), au même titre que « Gérer les centres de
-// domiciliation » sur l'onglet Centre — les droits d'accès restent ceux de la page visée.
-function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
+function StatusManagerTab({ addTitle, api, permissionAction }) {
   const { hasPermission } = useAuth()
   const canAccess = hasPermission('parametre', permissionAction)
 
@@ -1390,13 +1429,6 @@ function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
 
   return (
     <div className="space-y-4">
-      {manageLink && (
-        <div className="flex justify-end">
-          <Button variant="secondary" icon={<manageLink.icon size={15} />} to={manageLink.to}>
-            {manageLink.label}
-          </Button>
-        </div>
-      )}
       {error && <Alert tone="danger" onAutoClose={() => setError('')}>{error}</Alert>}
       {erreurChargement && <Alert tone="danger" onRetry={load}>{erreurChargement}</Alert>}
       {success && <Alert tone="success" onAutoClose={() => setSuccess('')}>{success}</Alert>}
@@ -1478,7 +1510,7 @@ function StatusManagerTab({ addTitle, api, manageLink, permissionAction }) {
             actionsHeader="Actions"
             rowActions={(r) => (
               <div className="flex justify-end gap-1.5">
-                <RowBtn title="Modifier" onClick={() => startEdit(r)}><Pencil size={14} /></RowBtn>
+                <RowBtn title="Modifier" onClick={() => startEdit(r)}><IconeModifier /></RowBtn>
                 <RowBtn
                   title="Supprimer"
                   onClick={() => setConfirmDelete(r)}
@@ -1519,7 +1551,6 @@ export default function Parametres() {
             addTitle="Ajouter Services Status"
             api={serviceStatusApi}
             permissionAction="ajouter_services_status"
-            manageLink={{ to: '/services', label: 'Gérer les Services', icon: Building2 }}
           />
         )}
         {tab === 'cachet' && (
@@ -1527,7 +1558,6 @@ export default function Parametres() {
             addTitle="Ajouter Cashet Status"
             api={cachetStatusApi}
             permissionAction="ajouter_cashet_status"
-            manageLink={{ to: '/cachets', label: 'Gérer les Cachets', icon: Stamp }}
           />
         )}
         {tab === 'mail' && (
@@ -1535,7 +1565,6 @@ export default function Parametres() {
             addTitle="Ajouter Mail Status"
             api={mailStatusApi}
             permissionAction="ajouter_mail_status"
-            manageLink={{ to: '/mails', label: 'Gérer les Mails', icon: MailIcon }}
           />
         )}
         {tab === 'assistance' && <AssistanceTab />}

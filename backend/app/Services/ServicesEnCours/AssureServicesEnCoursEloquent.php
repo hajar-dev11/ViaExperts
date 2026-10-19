@@ -11,13 +11,13 @@ use App\Models\ServiceEnCours;
  */
 class AssureServicesEnCoursEloquent implements AssureServicesEnCours
 {
-    public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar): void
+    public function assurerPourTiers(?int $partyId, iterable $serviceIds, int $creePar, array $source = []): void
     {
-        ServiceEnCours::assurerServicesPourTiers($partyId, $serviceIds, $creePar);
+        ServiceEnCours::assurerServicesPourTiers($partyId, $serviceIds, $creePar, $source);
     }
 
-    public function assurerPourClient(string $nomService, ?int $clientId, int $creePar): void
+    public function assurerPourClient(string $nomService, ?int $clientId, int $creePar, array $source = []): void
     {
-        ServiceEnCours::assurerPourClient($nomService, $clientId, $creePar);
+        ServiceEnCours::assurerPourClient($nomService, $clientId, $creePar, $source);
     }
 }

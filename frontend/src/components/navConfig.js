@@ -18,8 +18,6 @@ export const nav = [
     children: [
       { label: 'Ajouter Entreprise', to: '/entreprises/nouvelle' },
       { label: 'Liste des Entreprises', to: '/entreprises' },
-      { label: 'Liste Noire', to: '/entreprises-liste-noire' },
-      { label: 'Entreprises Bloquées', to: '/entreprises-bloquees' },
     ],
   },
   {
@@ -27,7 +25,6 @@ export const nav = [
     children: [
       { label: 'Nouvelle Domiciliation', to: '/domiciliation/nouvelle' },
       { label: 'Gestion Domiciliation', to: '/domiciliation' },
-      { label: 'List Domiciliation', to: '/domiciliation/liste' },
       { label: 'Domiciliation Calendrier', to: '/domiciliation/calendrier' },
       { label: 'Centres des Domiciliation', to: '/domiciliation/centres' },
     ],
@@ -68,6 +65,8 @@ export const nav = [
     children: [
       { label: 'Nouvelle Déclaration', to: '/declaration-tva/nouvelle' },
       { label: 'Liste des Déclarations', to: '/declaration-tva' },
+      // Importateur (photo de la déclaration) : DANS la section Déclaration TVA, au milieu de ses entrées. Visible avec la permission « Importeur ».
+      { label: 'Importer Déclaration', to: '/declaration-tva/importateur', permission: { module: 'declaration', action: 'importeur' } },
       { label: "Chiffre d'Affaire", to: '/declaration-tva/chiffre-affaires/nouveau' },
       { label: "Liste des Chiffres d'Affaire", to: '/declaration-tva/chiffre-affaires' },
     ],

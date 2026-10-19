@@ -6,14 +6,20 @@ import {
   Folder, Archive, Eye, Users,
 } from 'lucide-react'
 import {
-  Field, FieldRow, AddButton, Input, Select, Checkbox, FormCard,
+  Field, FieldRow, AddButton, Input, Select, FormCard,
 } from '../components/Field.jsx'
+import SelectRecherche from '../components/SelectRecherche.jsx'
+import { optionsClients } from '../utils/rechercheOptions.js'
 import Alert from '../components/ui/Alert.jsx'
 import { SkeletonText } from '../components/ui/Skeleton.jsx'
 import { listClients } from '../api/clients.js'
-import { listCentres, createDomiciliation, calculerDateFin } from '../modules/domiciliation/index.js'
-import { createEntreprise, updateEntreprise, getEntreprise } from '../api/entreprises.js'
-import { MODES_PAIEMENT } from '../shared/constants/documents.js'
+import { listCentres, createDomiciliation, calculerDateFin, calculerPrixTotal, domiciliationSaisie } from '../modules/domiciliation/index.js'
+import { createEntreprise, updateEntreprise, getEntreprise, listEntreprises } from '../api/entreprises.js'
+import { trouverDoublons } from '../utils/doublonsEntreprise.js'
+import ModePaiementChamp from '../components/ModePaiementChamp.jsx'
+import ChampSignature from '../components/ChampSignature.jsx'
+import { arrondirPrix, enNombre, prixArrondiEnTexte } from '../utils/arrondi.js'
+import { modePourEnvoi } from '../utils/modePaiement.js'
 import { ApiError } from '../api/http.js'
 
 const formes = ['SARL', 'SARL AU', 'SA', 'SNC', 'Auto-Entrepreneur', 'Établissement Public']
@@ -51,7 +57,7 @@ const aujourdhui = () => {
 }
 
 /** Prix par mois proposé par défaut sur une nouvelle domiciliation. */
-const PRIX_PAR_MOIS_DEFAUT = '104.17'
+const PRIX_PAR_MOIS_DEFAUT = '104.17' // prix par défaut d'une domiciliation (Dh HT par mois), exact : jamais arrondi à l'entier
 
 /**
  * Section « Ajouter Domiciliation » intégrée à la page Ajouter Entreprise.
@@ -65,10 +71,11 @@ const emptyDomiciliation = () => ({
   mois_gratuits: '',
   // La référence pré-remplit les quatre dates au jour courant.
   date_depart: aujourdhui(),
-  date_fin: aujourdhui(),
+  date_fin: '',
   mode_paiement: '',
   prix_par_mois: PRIX_PAR_MOIS_DEFAUT,
   prix_total: '',
+  prix_total_manuel: false,
   signature_sur_facture: true,
   date_facture: aujourdhui(),
   date_paiement: aujourdhui(),
@@ -90,6 +97,9 @@ export default function EntrepriseForm() {
   const [errors, setErrors] = useState({})
   const [globalError, setGlobalError] = useState('')
   const [erreurChargement, setErreurChargement] = useState('')
+  // Entreprises déjà enregistrées (toutes situations, archivées et corbeille comprises) : contrôle d'unicité avant l'envoi.
+  const [existantes, setExistantes] = useState([])
+  const [denominationOrigine, setDenominationOrigine] = useState(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   // --- Section « Ajouter Domiciliation » (création d'entreprise uniquement) ---
@@ -99,27 +109,30 @@ export default function EntrepriseForm() {
   const setDomiField = (k) => (e) => setDomi((d) => ({ ...d, [k]: e.target.value }))
   const setDomiCheck = (k) => (e) => setDomi((d) => ({ ...d, [k]: e.target.checked }))
 
-  // La section n'est prise en compte que si la date de départ est saisie :
-  // c'est le seul champ que l'API exige en plus de l'entreprise et du centre.
-  const domiRenseignee = !!domi.date_depart
+  // La section n'est prise en compte que si elle est réellement remplie : une date de départ ET une durée (au moins un mois
+  // payé ou gratuit). La date de départ étant pré-remplie au jour courant, elle ne suffit pas : sans durée, aucune
+  // domiciliation n'est créée (sinon chaque entreprise recevait une « période » d'un jour qui bloquait les suivantes).
+  const domiRenseignee = domiciliationSaisie(domi)
 
-  // Prix Totale = Prix par mois × (Mois Payée + Mois Gratuits), en lecture seule.
+  // Prix Totale = Prix par mois × Mois Payée (les mois gratuits ne sont pas facturés), en lecture seule.
   // Date de Fin = Date de Depart + (Mois Payée + Mois Gratuits), également
   // calculée : même logique que « Nouvelle Domiciliation » et « Renouveler ».
+  // Sans durée, la date de fin reste VIDE (jamais « aujourd'hui » : cela créait une période d'un jour).
   useEffect(() => {
-    const pm = parseFloat(domi.prix_par_mois)
     const dureeMois = (Number(domi.mois_payee) || 0) + (Number(domi.mois_gratuits) || 0)
     setDomi((d) => ({
       ...d,
-      prix_total: Number.isNaN(pm) ? '' : (pm * dureeMois).toFixed(2),
-      date_fin: calculerDateFin(d.date_depart, dureeMois) || d.date_fin,
+      // Proposition ; un total saisi à la main n'est pas écrasé.
+      prix_total: d.prix_total_manuel ? d.prix_total : (calculerPrixTotal(domi.prix_par_mois, domi.mois_payee) ?? ''),
+      date_fin: calculerDateFin(d.date_depart, dureeMois),
     }))
-  }, [domi.prix_par_mois, domi.mois_payee, domi.mois_gratuits, domi.date_depart])
+  }, [domi.prix_par_mois, domi.mois_payee, domi.mois_gratuits, domi.date_depart, domi.prix_total_manuel])
 
   useEffect(() => {
     listClients('actif').then(setClients).catch(() => setClients([]))
     listCentres({ page: 1, perPage: 100 }).then((res) => setCentres(res.data || [])).catch(() => setCentres([]))
-
+    Promise.all(['actif', 'archive', 'corbeille'].map((s) => listEntreprises(s).catch(() => [])))
+      .then((listes) => setExistantes(listes.flat()))
   }, [])
 
   const charger = useCallback(() => {
@@ -128,6 +141,7 @@ export default function EntrepriseForm() {
       .then((e) => {
         setErreurChargement('')
         setForm({ ...emptyForm, ...e, observation: e.observation ?? '' })
+        setDenominationOrigine(e.denomination ?? '')
         if (e.secteurs && e.secteurs.length > 0) {
           setSecteurs(e.secteurs.map((s) => (
             secteursActivite.includes(s.secteur)
@@ -163,6 +177,16 @@ export default function EntrepriseForm() {
     e.preventDefault()
     setErrors({})
     setGlobalError('')
+
+    // Dénomination, I.C.E et Identifiant Fiscal uniques (création comme modification) : contrôle avant l'envoi, avec les
+    // mêmes messages que le serveur. L'entreprise modifiée n'est jamais un doublon d'elle-même.
+    const doublons = trouverDoublons(form, existantes, { idCourant: id ?? null, denominationOrigine: id ? denominationOrigine : null })
+    if (Object.keys(doublons).length > 0) {
+      setErrors(doublons)
+      setGlobalError('Cette entreprise existe déjà : corrigez les champs signalés en rouge.')
+      return
+    }
+
     setSaving(true)
     // Le secteur est choisi une seule fois (première ligne) : toutes les
     // activités saisies lui sont rattachées, ce que la table
@@ -208,9 +232,10 @@ export default function EntrepriseForm() {
             mois_gratuits: Number(domi.mois_gratuits) || 0,
             date_depart: domi.date_depart,
             date_fin: domi.date_fin || null,
-            mode_paiement: domi.mode_paiement || null,
-            prix_par_mois: domi.prix_par_mois === '' ? 0 : Number(domi.prix_par_mois),
-            prix_total: domi.prix_total === '' ? 0 : Number(domi.prix_total),
+            mode_paiement: modePourEnvoi(domi.mode_paiement) || null,
+            // Prix par mois EXACT au centime (104,17 reste 104,17) ; total (arrondi à l'entier) calculé ou saisi à la main, conservé par le serveur.
+            prix_par_mois: domi.prix_par_mois === '' ? 0 : Math.round(enNombre(domi.prix_par_mois) * 100) / 100,
+            prix_total: domi.prix_total === '' ? null : arrondirPrix(domi.prix_total),
             signature_sur_facture: domi.signature_sur_facture,
             date_facture: domi.date_facture || null,
             date_paiement: domi.date_paiement || null,
@@ -355,10 +380,14 @@ export default function EntrepriseForm() {
               htmlFor="e-client"
               action={<AddButton title="Ajouter un client" onClick={() => navigate('/clients/nouveau')} />}
             >
-              <Select id="e-client" value={form.client ?? ''} onChange={set('client')}>
-                <option value="">Sélectionner le Client</option>
-                {clients.map((c) => <option key={c.id} value={c.nom}>{c.nom}</option>)}
-              </Select>
+              {/* Recherche par nom ; la valeur enregistrée reste le nom du client, comme avant. */}
+              <SelectRecherche
+                id="e-client"
+                options={optionsClients(clients, (c) => c.nom)}
+                value={form.client ?? ''}
+                onChange={(valeur) => set('client')({ target: { value: valeur } })}
+                placeholder="Sélectionner le Client"
+              />
             </FieldRow>
           </div>
 
@@ -550,24 +579,29 @@ export default function EntrepriseForm() {
                   </Field>
 
                   <Field
-                    label="Prix Totale (Dh HT)"
+                    label="Prix total HT (Dh)"
                     required={domiRenseignee}
-                    hint="Calculé : Prix par mois × (Mois Payée + Mois Gratuits)"
+                    hint={domi.prix_total_manuel
+                      ? <>Montant saisi à la main. <button type="button" onClick={() => setDomi((d) => ({ ...d, prix_total_manuel: false }))} className="font-semibold text-brand-600 hover:underline">Recalculer</button></>
+                      : 'Calculé : Prix par mois × Mois Payée (mois gratuits non facturés). Modifiable.'}
                   >
-                    <Input type="number" value={domi.prix_total} readOnly disabled placeholder="0" />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={domi.prix_total}
+                      placeholder="0"
+                      onChange={(e) => setDomi((d) => ({ ...d, prix_total: e.target.value, prix_total_manuel: true }))}
+                      onBlur={() => setDomi((d) => ({ ...d, prix_total: prixArrondiEnTexte(d.prix_total) }))}
+                    />
                   </Field>
 
-                  <Field label="Mode de Paiement">
-                    <Select value={domi.mode_paiement} onChange={setDomiField('mode_paiement')}>
-                      <option value="">Au choix du client</option>
-                      {MODES_PAIEMENT.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </Select>
-                  </Field>
+                  <ModePaiementChamp value={domi.mode_paiement} onChange={(v) => setDomi((d) => ({ ...d, mode_paiement: v }))} />
                 </div>
 
                 {/* Ligne 2 : Mois Payée / Mois Gratuits. */}
                 <div className="grid gap-5 lg:grid-cols-2">
-                  <Field label="Mois Payée">
+                  <Field label="Mois Payée" hint="Renseignez au moins un mois (payé ou gratuit) pour créer la domiciliation avec l'entreprise.">
                     <Input
                       type="number"
                       min="0"
@@ -603,19 +637,17 @@ export default function EntrepriseForm() {
 
                 {/* Ligne 4 : signature encadrée + les deux dates de facturation. */}
                 <div className="grid gap-5 lg:grid-cols-3">
-                  <Field label="Signature">
-                    <div className="flex min-h-11 items-center rounded-lg border border-line bg-white px-4 py-2.5">
-                      <Checkbox
-                        label="Ajouter la Signature sur Facture"
-                        checked={domi.signature_sur_facture}
-                        onChange={setDomiCheck('signature_sur_facture')}
-                      />
-                    </div>
-                    <span className="mt-1.5 block text-xs text-ink-600">
+                  <div>
+                    <ChampSignature
+                      texte="Ajouter une signature sur la facture, le contrat et l'attestation"
+                      checked={domi.signature_sur_facture}
+                      onChange={setDomiCheck('signature_sur_facture')}
+                    />
+                    <span className="mt-1.5 block text-[13px] text-ink-600">
                       Si cette case est cochée, la facture de domiciliation de cette entreprise sera
                       imprimée avec le cachet/signature configuré dans Paramètre &gt; Centre Domiciliation.
                     </span>
-                  </Field>
+                  </div>
 
                   <Field label="Date Facture">
                     <Input type="date" value={domi.date_facture} onChange={setDomiField('date_facture')} />

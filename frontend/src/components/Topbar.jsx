@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import Popover from './Popover.jsx'
 import EmptyState from './EmptyState.jsx'
+import ImageAvecSecours from './ImageAvecSecours.jsx'
 import CalculatorPanel from './CalculatorPanel.jsx'
 import TvaCalculatorPanel from './TvaCalculatorPanel.jsx'
 import { useFiles } from '../context/FilesContext.jsx'
@@ -17,7 +18,7 @@ import { listClients } from '../api/clients.js'
 import { listEntreprises } from '../api/entreprises.js'
 import { listDomiciliations } from '../modules/domiciliation/index.js'
 import { API_URL } from '../api/http.js'
-import { calculerAlertesEcheance, JOURS_ALERTE } from '../utils/alertesDomiciliation.js'
+import { calculerAlertesEcheance, destinationAlerte, JOURS_ALERTE } from '../utils/alertesDomiciliation.js'
 import { EVT_DOMICILIATIONS_MODIFIEES } from '../shared/constants/evenements.js'
 
 // Clé de persistance du bandeau d'alerte : évite qu'il disparaisse le temps
@@ -83,6 +84,8 @@ export default function Topbar({ onMenuClick }) {
   }, [])
 
   const [mobileTool, setMobileTool] = useState('menu')
+  // Calculateur de TVA : fenêtre large ouverte depuis l'icône % (ou depuis le menu « Outils » sur petit écran).
+  const [tvaOuvert, setTvaOuvert] = useState(false)
 
   // --- Bandeau rose : ALERTE d'échéance de domiciliation -------------------
   // Entreprises dont la domiciliation se termine dans 1 mois ou moins.
@@ -205,6 +208,7 @@ export default function Topbar({ onMenuClick }) {
   const panel = 'w-80 overflow-hidden rounded-xl bg-white shadow-menu'
 
   return (
+    <>
     <header className="sticky top-0 z-30 px-4 pt-4 sm:px-6">
       {/* ⚠️ Pas de `overflow-hidden` ici : cette barre encadre tous les
           popovers (Fichiers, Notes, Calculatrice, TVA, Notifications, Profil,
@@ -213,7 +217,7 @@ export default function Topbar({ onMenuClick }) {
           bien ouvert dans le DOM mais totalement rogné — invisible, comme si
           les icônes ne faisaient rien. Les coins arrondis restent corrects
           sans lui : aucun enfant ne porte de fond plein qui déborderait. */}
-      <div className="relative flex h-16 items-center rounded-xl bg-white shadow-card">
+      <div className="relative flex h-14 items-center rounded-xl bg-white shadow-card">
         <button
           className="pl-4 text-ink-700 lg:hidden"
           onClick={onMenuClick}
@@ -281,16 +285,16 @@ export default function Topbar({ onMenuClick }) {
         </div>
 
         {/* Bandeau rose — ALERTE : domiciliations arrivant à échéance sous 1 mois.
-            Un clic ouvre la liste par statut, où figurent les domiciliations en alerte. */}
+            Un clic ouvre la fiche de la domiciliation affichée. */}
         {alerteCourante && (
           <button
             type="button"
-            onClick={() => navigate('/domiciliation/liste')}
+            onClick={() => navigate(destinationAlerte(alerteCourante))}
             title={
               `${alertes.length} domiciliation(s) à renouveler (échéance passée ou sous ${JOURS_ALERTE} jours) :\n`
               + alertes.map((a) => `• ${a.nom} — ${a.expiree ? 'expirée le' : 'expire le'} ${formatDate(a.dateFin)}`).join('\n')
             }
-            className="hidden min-w-0 items-center gap-2 bg-[#ffbdbd] px-6 text-left transition-colors hover:bg-[#ffaeae] md:absolute md:inset-y-0 md:left-1/2 md:flex md:w-[26%] md:-translate-x-1/2 lg:w-[30%]"
+            className="ve-clignote hidden min-w-0 items-center gap-2 bg-[#ffbdbd] px-6 text-left transition-colors hover:bg-[#ffaeae] md:absolute md:inset-y-0 md:left-1/2 md:flex md:w-[26%] md:-translate-x-1/2 lg:w-[30%]"
           >
             <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-warning-700">
               {alerteCourante.nom}
@@ -320,7 +324,7 @@ export default function Topbar({ onMenuClick }) {
               </button>
             )}
           >
-            {() => (
+            {(close) => (
               mobileTool === 'menu' ? (
                 <div className="w-56 py-1">
                   <Link to="/fichiers" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-800 hover:bg-surface">
@@ -332,7 +336,7 @@ export default function Topbar({ onMenuClick }) {
                   <button type="button" onClick={() => setMobileTool('calc')} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink-800 hover:bg-surface">
                     <Calculator size={16} className="text-ink-600" /> Calcul
                   </button>
-                  <button type="button" onClick={() => setMobileTool('tva')} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink-800 hover:bg-surface">
+                  <button type="button" onClick={() => { close(); setTvaOuvert(true) }} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-ink-800 hover:bg-surface">
                     <Percent size={16} className="text-ink-600" /> Calcul TVA
                   </button>
                 </div>
@@ -342,7 +346,6 @@ export default function Topbar({ onMenuClick }) {
                     <ChevronLeft size={13} /> Retour
                   </button>
                   {mobileTool === 'calc' && <CalculatorPanel />}
-                  {mobileTool === 'tva' && <TvaCalculatorPanel />}
                 </div>
               )
             )}
@@ -429,14 +432,7 @@ export default function Topbar({ onMenuClick }) {
             {() => <CalculatorPanel />}
           </Popover>
 
-          <Popover
-            panelClassName="overflow-hidden rounded-xl bg-white shadow-menu"
-            trigger={(toggle) => (
-              <IconBtn title="Calcul TVA" onClick={toggle}><Percent size={20} /></IconBtn>
-            )}
-          >
-            {() => <TvaCalculatorPanel />}
-          </Popover>
+          <IconBtn title="Calcul TVA" onClick={() => setTvaOuvert(true)}><Percent size={20} /></IconBtn>
 
           <Popover
             align="right"
@@ -444,9 +440,11 @@ export default function Topbar({ onMenuClick }) {
             trigger={(toggle) => (
               <button onClick={toggle} className="relative ml-1.5 focus-ring rounded-full" title="Profil" aria-label="Profil">
                 <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-surface text-ink-600">
-                  {user?.photo_path
-                    ? <img src={`${API_URL}/storage/${user.photo_path}`} alt="" className="h-full w-full object-cover" />
-                    : <UserRound size={20} />}
+                  <ImageAvecSecours
+                    src={user?.photo_path ? `${API_URL}/storage/${user.photo_path}` : null}
+                    className="h-full w-full object-cover"
+                    fallback={<UserRound size={20} />}
+                  />
                 </span>
                 <span className="absolute right-0 bottom-0 h-3 w-3 rounded-full bg-success-500 ring-2 ring-white" />
               </button>
@@ -456,9 +454,11 @@ export default function Topbar({ onMenuClick }) {
               <div>
                 <div className="flex items-center gap-3 border-b border-line px-4 py-4">
                   <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-surface text-ink-600">
-                    {user?.photo_path
-                      ? <img src={`${API_URL}/storage/${user.photo_path}`} alt="" className="h-full w-full object-cover" />
-                      : <UserRound size={20} />}
+                    <ImageAvecSecours
+                      src={user?.photo_path ? `${API_URL}/storage/${user.photo_path}` : null}
+                      className="h-full w-full object-cover"
+                      fallback={<UserRound size={20} />}
+                    />
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-ink-900">{user?.name || 'Utilisateur'}</div>
@@ -479,6 +479,8 @@ export default function Topbar({ onMenuClick }) {
         </div>
       </div>
     </header>
+    <TvaCalculatorPanel open={tvaOuvert} onClose={() => setTvaOuvert(false)} />
+    </>
   )
 }
 

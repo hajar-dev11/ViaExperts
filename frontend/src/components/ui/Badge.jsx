@@ -26,8 +26,8 @@ const SOLID = {
 }
 
 const SIZES = {
-  sm: 'px-2 py-0.5 text-[11px]',
-  md: 'px-2.5 py-1 text-xs',
+  sm: 'px-2 py-0.5 text-xs',
+  md: 'px-2.5 py-1 text-[14px]',
 }
 
 export default function Badge({

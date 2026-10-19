@@ -1,0 +1,208 @@
+{
+  "ocr": [
+    {
+      "texte": "Déclaration de TVA — CA3 mensuelle",
+      "confiance": 94
+    },
+    {
+      "texte": "EXEMPLE FICTIF — Période : octobre 2026 — Régime réel normal — Taux unique 20 %",
+      "confiance": 93
+    },
+    {
+      "texte": "1. Hypothèses",
+      "confiance": 95
+    },
+    {
+      "texte": "cor",
+      "confiance": 23
+    },
+    {
+      "texte": "Ventes et prestations de services (20 %) 50 000,00 €",
+      "confiance": 93
+    },
+    {
+      "texte": "Achats de biens et services 18 000,00 €",
+      "confiance": 96
+    },
+    {
+      "texte": "Immobilisations (ordinateur) 2.000,00 €",
+      "confiance": 87
+    },
+    {
+      "texte": "Crédit de TVA reporté 0,00€",
+      "confiance": 95
+    },
+    {
+      "texte": "2. TVA collectée (brute)",
+      "confiance": 94
+    },
+    {
+      "texte": "08 Ventes à taux normal 50 000,00 € 10 000,00 €",
+      "confiance": 95
+    },
+    {
+      "texte": "16 Total TVA brute 10 000,00 €",
+      "confiance": 96
+    },
+    {
+      "texte": "3. TVA déductible",
+      "confiance": 96
+    },
+    {
+      "texte": "19 Biens constituant des immobilisations 2000,00 € 400,00 €",
+      "confiance": 95
+    },
+    {
+      "texte": "20 Autres biens et services 18 000,00 € 3.600,00 €",
+      "confiance": 86
+    },
+    {
+      "texte": "22 Report du crédit de TVA 0,00€",
+      "confiance": 94
+    },
+    {
+      "texte": "23 Total TVA déductible 4 000,00 €",
+      "confiance": 90
+    },
+    {
+      "texte": "4. Résultat",
+      "confiance": 96
+    },
+    {
+      "texte": "coro",
+      "confiance": 0
+    },
+    {
+      "texte": "TVA brute (ligne 16) 10 000,00 €",
+      "confiance": 96
+    },
+    {
+      "texte": "— TVA déductible (ligne 23) 4 000,00 €",
+      "confiance": 87
+    },
+    {
+      "texte": "TVA nette à payer (ligne 28) 6 000,00 €",
+      "confiance": 87
+    },
+    {
+      "texte": "Si la TVA déductible dépasse la TVA brute, la différence constitue un crédit de TVA (ligne 25), reportable",
+      "confiance": 95
+    },
+    {
+      "texte": "ou remboursable sous conditions.",
+      "confiance": 96
+    },
+    {
+      "texte": "5. Formules utiles",
+      "confiance": 96
+    },
+    {
+      "texte": "TVA = base HT x 0,20 | HT=TTC- 1,20 | TVA nette = TVA brute — TVA déductible",
+      "confiance": 86
+    },
+    {
+      "texte": "Document pédagogique avec des chiffres fictifs, ne constituant pas une déclaration officielle. Les numéros de lignes peuvent",
+      "confiance": 96
+    },
+    {
+      "texte": "varier selon la version du formulaire. Le dépôt et le paiement se font en ligne sur impots.gouv.fr dans les délais légaux. Je ne",
+      "confiance": 95
+    },
+    {
+      "texte": "suis pas expert-comptable : faites relire le résultat par un professionnel avant tout dépôt.",
+      "confiance": 95
+    }
+  ],
+  "natif": [
+    {
+      "texte": "Déclaration de TVA – CA3 mensuelle"
+    },
+    {
+      "texte": "EXEMPLE FICTIF – Période : octobre 2026 – Régime réel normal – Taux unique 20 %"
+    },
+    {
+      "texte": "1. Hypothèses"
+    },
+    {
+      "texte": "Élément Montant HT"
+    },
+    {
+      "texte": "Ventes et prestations de services (20 %) 50 000,00 €"
+    },
+    {
+      "texte": "Achats de biens et services 18 000,00 €"
+    },
+    {
+      "texte": "Immobilisations (ordinateur) 2 000,00 €"
+    },
+    {
+      "texte": "Crédit de TVA reporté 0,00 €"
+    },
+    {
+      "texte": "2. TVA collectée (brute)"
+    },
+    {
+      "texte": "Ligne Désignation Base HT TVA (20 %)"
+    },
+    {
+      "texte": "08 Ventes à taux normal 50 000,00 € 10 000,00 €"
+    },
+    {
+      "texte": "16 Total TVA brute 10 000,00 €"
+    },
+    {
+      "texte": "3. TVA déductible"
+    },
+    {
+      "texte": "Ligne Désignation Base HT TVA (20 %)"
+    },
+    {
+      "texte": "19 Biens constituant des immobilisations 2 000,00 € 400,00 €"
+    },
+    {
+      "texte": "20 Autres biens et services 18 000,00 € 3 600,00 €"
+    },
+    {
+      "texte": "22 Report du crédit de TVA 0,00 €"
+    },
+    {
+      "texte": "23 Total TVA déductible 4 000,00 €"
+    },
+    {
+      "texte": "4. Résultat"
+    },
+    {
+      "texte": "Calcul Montant"
+    },
+    {
+      "texte": "TVA brute (ligne 16) 10 000,00 €"
+    },
+    {
+      "texte": "– TVA déductible (ligne 23) 4 000,00 €"
+    },
+    {
+      "texte": "TVA nette à payer (ligne 28) 6 000,00 €"
+    },
+    {
+      "texte": "Si la TVA déductible dépasse la TVA brute, la différence constitue un crédit de TVA (ligne 25), reportable"
+    },
+    {
+      "texte": "ou remboursable sous conditions."
+    },
+    {
+      "texte": "5. Formules utiles"
+    },
+    {
+      "texte": "TVA = base HT × 0,20 | HT = TTC ÷ 1,20 | TVA nette = TVA brute – TVA déductible"
+    },
+    {
+      "texte": "Document pédagogique avec des chiffres fictifs, ne constituant pas une déclaration officielle. Les numéros de lignes peuvent"
+    },
+    {
+      "texte": "varier selon la version du formulaire. Le dépôt et le paiement se font en ligne sur impots.gouv.fr dans les délais légaux. Je ne"
+    },
+    {
+      "texte": "suis pas expert-comptable : faites relire le résultat par un professionnel avant tout dépôt."
+    }
+  ]
+}

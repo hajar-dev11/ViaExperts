@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Pencil, Archive, Trash2, RotateCcw, ArrowLeft } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Plus, Archive, Trash2, RotateCcw, ArrowLeft, Eye } from 'lucide-react'
+import { IconeActions, IconeModifier } from '../../../components/ui/icons.jsx'
+import ActionMenu from '../../../components/ui/ActionMenu.jsx'
 import ServerTable from '../../../components/ServerTable.jsx'
 import Alert from '../../../components/ui/Alert.jsx'
 import Modal from '../../../components/ui/Modal.jsx'
@@ -58,6 +60,7 @@ function apiErrorMessage(err, fallback) {
  * masquait les boutons même à un non-admin habilité).
  */
 export default function DomiciliationCentres() {
+  const navigate = useNavigate()
   const [status, setStatus] = useState('actif')
   const [meta, setMeta] = useState(null)
   const [rows, setRows] = useState([])
@@ -74,6 +77,7 @@ export default function DomiciliationCentres() {
   const [editing, setEditing] = useState(null)
   const [formErrors, setFormErrors] = useState({})
   const [saving, setSaving] = useState(false)
+  const [archivagePour, setArchivagePour] = useState(null)
   const [suppressionPour, setSuppressionPour] = useState(null)
   const [suppressionDefinitivePour, setSuppressionDefinitivePour] = useState(null)
 
@@ -121,10 +125,11 @@ export default function DomiciliationCentres() {
     }
   }
 
-  const runAction = async (action, id) => {
+  const runAction = async (action, id, message = '') => {
     setError(''); setSuccess('')
     try {
       await action(id)
+      if (message) setSuccess(message)
       load()
     } catch (err) {
       setError(apiErrorMessage(err, "L'action n'a pas pu être effectuée."))
@@ -189,18 +194,37 @@ export default function DomiciliationCentres() {
           <div className="flex justify-end gap-1.5">
             {status === 'actif' && (
               <>
-                <RowBtn title="Modifier" onClick={() => ouvrirModifier(r)}><Pencil size={14} /></RowBtn>
-                <RowBtn title="Archiver" className="hover:text-warning-600" onClick={() => runAction(archiveCentre, r.id)}>
-                  <Archive size={14} />
-                </RowBtn>
-                <RowBtn title="Mettre à la corbeille" className="hover:text-danger-600" onClick={() => setSuppressionPour(r)}>
-                  <Trash2 size={14} />
-                </RowBtn>
+                {/* Même colonne ACTIONS que la liste des clients : crayon (Modifier) + menu d'actions. */}
+                <RowBtn title="Modifier" onClick={() => ouvrirModifier(r)}><IconeModifier /></RowBtn>
+                <ActionMenu
+                  label="Actions"
+                  icon={<IconeActions />}
+                  items={[
+                    {
+                      label: 'Afficher',
+                      icon: <Eye size={15} />,
+                      onClick: () => navigate(`/domiciliation/centres/${r.id}`),
+                    },
+                    {
+                      label: 'Archiver',
+                      icon: <Archive size={15} />,
+                      tone: 'warning',
+                      separatorBefore: true,
+                      onClick: () => setArchivagePour(r),
+                    },
+                    {
+                      label: 'Mettre à la corbeille',
+                      icon: <Trash2 size={15} />,
+                      tone: 'danger',
+                      onClick: () => setSuppressionPour(r),
+                    },
+                  ]}
+                />
               </>
             )}
             {status === 'archive' && (
               <>
-                <RowBtn title="Restaurer" onClick={() => runAction(restoreCentre, r.id)}><RotateCcw size={14} /></RowBtn>
+                <RowBtn title="Restaurer" onClick={() => runAction(restoreCentre, r.id, 'Centre restauré : il figure de nouveau dans la liste des centres actifs.')}><RotateCcw size={14} /></RowBtn>
                 <RowBtn title="Mettre à la corbeille" className="hover:text-danger-600" onClick={() => setSuppressionPour(r)}>
                   <Trash2 size={14} />
                 </RowBtn>
@@ -249,6 +273,21 @@ export default function DomiciliationCentres() {
           ))}
         </form>
       </Modal>
+
+      {/* Confirmation avant d'archiver : « Annuler » ferme la fenêtre sans rien changer. */}
+      <ConfirmDialog
+        open={!!archivagePour}
+        title="Archiver ce centre ?"
+        message={`Voulez-vous vraiment archiver « ${archivagePour?.nom ?? ''} » ? Il quittera la liste des centres actifs et pourra être restauré depuis les archives.`}
+        confirmLabel="Archiver"
+        tone="warning"
+        onCancel={() => setArchivagePour(null)}
+        onConfirm={() => {
+          const cible = archivagePour
+          setArchivagePour(null)
+          runAction(archiveCentre, cible.id, `Centre « ${cible.nom} » archivé.`)
+        }}
+      />
 
       <ConfirmDialog
         open={!!suppressionPour}

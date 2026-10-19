@@ -3,11 +3,13 @@ import DocumentDomiciliationEditable from '../documents/DocumentDomiciliationEdi
 import {
   contratParDefaut, construireHtmlContrat, imprimerContratPdf, lireContenuContrat,
 } from '../documents/contrat.js'
+import { chargerClientRepresentant } from '../documents/civilite.js'
 
 const CONFIG = {
   titre: 'Contrat de domiciliation',
   nom: 'le contrat',
   pages: 3,
+  charger: chargerClientRepresentant, // fiche client : civilité « Mr » / « Mme »
   parDefaut: contratParDefaut,
   construire: construireHtmlContrat,
   lireContenu: lireContenuContrat,

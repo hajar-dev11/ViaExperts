@@ -15,15 +15,16 @@ const TVA_DOMICILIATION = 20
  * Convertit une domiciliation en « facture » au format des documents commerciaux, pour
  * réutiliser EXACTEMENT le modèle de la Facture. Rien n'est enregistré : c'est uniquement
  * la présentation des champs de la domiciliation.
- * - une ligne « Domiciliation » : quantité = mois payés, total TTC = prix total ;
- * - HT / TVA (20 %) déduits du TTC, comme sur la facture de domiciliation de référence ;
+ * - une ligne « Domiciliation » : quantité = mois payés, total HT = prix total (HT) ;
+ * - TVA (20 %) calculée sur le HT, TTC = HT + TVA ;
  * - « Information » : période, mois payés/gratuits, centre — le contenu propre à la domiciliation ;
  * - payée si une date de paiement est renseignée.
  */
 export function domiciliationEnFacture(d) {
-  const totalTtc = arrondi2(d.prixTotal)
-  const totalHt = arrondi2(totalTtc / (1 + TVA_DOMICILIATION / 100))
-  const totalTva = arrondi2(totalTtc - totalHt)
+  // Le prix total de la domiciliation est un montant HT (« Prix total HT » dans l'application) : la TVA (20 %) s'ajoute.
+  const totalHt = arrondi2(d.prixTotal)
+  const totalTva = arrondi2(totalHt * (TVA_DOMICILIATION / 100))
+  const totalTtc = arrondi2(totalHt + totalTva)
   const mois = Number(d.moisPayee) > 0 ? Number(d.moisPayee) : 1
   const annee = String(d.dateFacture || '').slice(2, 4) || String(new Date().getFullYear()).slice(2)
   const periode = d.dateDepart || d.dateFin ? `Période : ${formatDateFr(d.dateDepart) || '—'} au ${formatDateFr(d.dateFin) || '—'}` : ''
